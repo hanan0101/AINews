@@ -1,0 +1,16 @@
+.git
+.gitignore
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/.env
+backend/.env.ai_updates
+backend/qdrant_db/
+backend/qdrant_db_reset_backup_*/
+backend/generated/

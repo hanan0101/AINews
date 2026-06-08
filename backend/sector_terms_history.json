@@ -1,0 +1,383 @@
+{
+  "schema": "sector_terms_history_v1",
+  "updated": "2026-06-08T13:08:36.060471+00:00",
+  "sectors": {
+    "museums": {
+      "base_terms": "museum gallery exhibition visitor guide curation collections",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "films": {
+      "base_terms": "film cinema video editing production animation storyboard",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "heritage": {
+      "base_terms": "heritage restoration archive manuscripts cultural preservation",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "fashion": {
+      "base_terms": "fashion style outfit try on apparel design",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "libraries": {
+      "base_terms": "library research documents citations archive knowledge sources",
+      "learned_terms": [
+        "complex task handling",
+        "deep thinking support",
+        "multi-stage research",
+        "advanced analysis"
+      ],
+      "last_updated": "2026-05-31",
+      "success_rate": 0.4
+    },
+    "music": {
+      "base_terms": "music audio voice narration dubbing song sound",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "visual_arts": {
+      "base_terms": "visual arts design image illustration photo editing creative assets",
+      "learned_terms": [
+        "real-time editing",
+        "advanced visualization",
+        "ai-assisted design",
+        "creative process efficiency",
+        "intelligent design agent",
+        "enhanced design capabilities",
+        "image editing",
+        "creative experiences",
+        "high-quality production",
+        "multi-image integration"
+      ],
+      "last_updated": "2026-05-31",
+      "success_rate": 1.0
+    },
+    "literature": {
+      "base_terms": "writing storytelling publishing books reading translation",
+      "learned_terms": [
+        "voice assistant support",
+        "user language switching",
+        "audiobook creation",
+        "voice interaction",
+        "text to audio",
+        "user experience enhancement",
+        "writing improvement",
+        "grammar correction",
+        "style enhancement",
+        "real-time feedback"
+      ],
+      "last_updated": "2026-05-31",
+      "success_rate": 1.0
+    },
+    "cooking": {
+      "base_terms": "cooking recipes meal planning kitchen nutrition",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "architecture": {
+      "base_terms": "architecture interior design space planning floor plan",
+      "learned_terms": [
+        "ai productivity tools",
+        "task automation",
+        "risk reduction in construction",
+        "ai visualization tools",
+        "workflow efficiency",
+        "creative process accuracy",
+        "design flexibility"
+      ],
+      "last_updated": "2026-05-31",
+      "success_rate": 0.7
+    },
+    "theater": {
+      "base_terms": "theater performance stage script rehearsal production",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "mental_health": {
+      "base_terms": "mental health wellbeing meditation coaching reflection",
+      "learned_terms": [],
+      "last_updated": "",
+      "success_rate": 0.0
+    },
+    "physical_health": {
+      "base_terms": "fitness workout sleep wellness physical health",
+      "learned_terms": [
+        "speech to text accuracy",
+        "real-time audio processing",
+        "medical application improvement",
+        "high precision transcription"
+      ],
+      "last_updated": "2026-05-31",
+      "success_rate": 0.4
+    },
+    "work_productivity": {
+      "base_terms": "productivity documents meetings email workspace research",
+      "learned_terms": [
+        "ai productivity tools",
+        "user experience enhancement",
+        "task automation",
+        "contextual app commands",
+        "clean query formulation",
+        "organized productivity system",
+        "presentation creation",
+        "collaboration tools",
+        "ai content generation",
+        "task management"
+      ],
+      "last_updated": "2026-05-31",
+      "success_rate": 1.0
+    },
+    "ai_education_training_daily_tasks": {
+      "base_terms": "learning education training assistant daily tasks planning",
+      "learned_terms": [
+        "task automation",
+        "interactive user experience",
+        "automatic file synchronization",
+        "interactive learning experience",
+        "personalized learning instructions",
+        "task automation packages",
+        "model integration",
+        "real-time corrections",
+        "academic access",
+        "research accuracy"
+      ],
+      "last_updated": "2026-05-31",
+      "success_rate": 1.0
+    },
+    "الأفلام": {
+      "learned_terms": [
+        "google",
+        "artificial",
+        "intelligence",
+        "latest",
+        "updates",
+        "مهرجان",
+        "أفلام",
+        "runway",
+        "يعرض",
+        "أعمال"
+      ],
+      "last_updated": "2026-06-08"
+    },
+    "إنتاجية العمل": {
+      "learned_terms": [
+        "إطلاق",
+        "claude",
+        "opus",
+        "بتحسينات",
+        "التفكير",
+        "والبرمجة",
+        "anthropic",
+        "artificial",
+        "intelligence",
+        "latest"
+      ],
+      "last_updated": "2026-06-08"
+    },
+    "الصحة الجسدية": {
+      "learned_terms": [
+        "اشتراكات",
+        "وجبات",
+        "صحية",
+        "مجدولة",
+        "zomato",
+        "cooking",
+        "meal",
+        "planning",
+        "feature",
+        "product"
+      ],
+      "last_updated": "2026-06-04"
+    },
+    "المكتبات": {
+      "learned_terms": [
+        "القفل",
+        "chatgpt",
+        "لمنع",
+        "الأوامر",
+        "openai",
+        "artificial",
+        "intelligence",
+        "latest",
+        "updates",
+        "feature"
+      ],
+      "last_updated": "2026-06-08"
+    },
+    "الأزياء": {
+      "learned_terms": [
+        "المزعومة",
+        "باسم",
+        "dreaming",
+        "openai",
+        "artificial",
+        "intelligence",
+        "latest",
+        "توسيع",
+        "بنمط",
+        "updates"
+      ],
+      "last_updated": "2026-06-06"
+    },
+    "الموسيقى": {
+      "learned_terms": [
+        "tool",
+        "تحديث",
+        "songengine",
+        "بميزات",
+        "جديدة",
+        "لكتابة",
+        "الأغاني",
+        "feelyoursound",
+        "feature",
+        "release"
+      ],
+      "last_updated": "2026-06-08"
+    },
+    "التراث": {
+      "learned_terms": [
+        "release",
+        "تطبيق",
+        "ollie",
+        "scan",
+        "يشرح",
+        "القطع",
+        "بالمسح",
+        "داخل",
+        "clos",
+        "lucé"
+      ],
+      "last_updated": "2026-06-08"
+    },
+    "الصحة النفسية": {
+      "learned_terms": [
+        "voice",
+        "narration",
+        "product",
+        "ميزة",
+        "google",
+        "phone",
+        "ترصد",
+        "مكالمات",
+        "انتحال",
+        "صوتي"
+      ],
+      "last_updated": "2026-06-03"
+    },
+    "الفنون البصرية": {
+      "learned_terms": [
+        "ملاحظات",
+        "إصدار",
+        "figma",
+        "تعرض",
+        "تحديثات",
+        "المنتجات",
+        "library",
+        "research",
+        "product",
+        "update"
+      ],
+      "last_updated": "2026-06-08"
+    },
+    "الأدب": {
+      "learned_terms": [
+        "يتيح",
+        "التفكير",
+        "الموس",
+        "مجان",
+        "artificial",
+        "intelligence",
+        "latest",
+        "يفتح",
+        "الممتد",
+        "updates"
+      ],
+      "last_updated": "2026-06-07"
+    },
+    "الذكاء الاصطناعي والتعليم والتدريب والمهام اليومية": {
+      "learned_terms": [
+        "rollout",
+        "تحديثات",
+        "claude",
+        "مركز",
+        "المساعدة",
+        "anthropic",
+        "artificial",
+        "intelligence",
+        "latest",
+        "updates"
+      ],
+      "last_updated": "2026-06-06"
+    },
+    "العمارة": {
+      "learned_terms": [
+        "design",
+        "tool",
+        "release",
+        "ميزة",
+        "building",
+        "layout",
+        "explorer",
+        "التجريبية",
+        "forma",
+        "autodesk"
+      ],
+      "last_updated": "2026-06-04"
+    },
+    "المسرح": {
+      "learned_terms": [
+        "product",
+        "update",
+        "naver",
+        "shopping",
+        "يجعل",
+        "مساعد",
+        "التسوق",
+        "يقترح",
+        "تلقائي",
+        "agent"
+      ],
+      "last_updated": "2026-06-03"
+    },
+    "الطهي": {
+      "learned_terms": [
+        "بالصور",
+        "والصوت",
+        "إطلاق",
+        "healthy",
+        "subscriptions",
+        "zomato",
+        "لجدولة",
+        "وجبات",
+        "صحية",
+        "cooking"
+      ],
+      "last_updated": "2026-06-08"
+    },
+    "المتاحف": {
+      "learned_terms": [
+        "تجربة",
+        "ذكاء",
+        "اصطناعي",
+        "تربط",
+        "الزائر",
+        "بلوحة",
+        "متحف",
+        "gogh",
+        "matching",
+        "feature"
+      ],
+      "last_updated": "2026-06-08"
+    }
+  }
+}

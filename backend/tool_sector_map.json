@@ -1,0 +1,659 @@
+{
+  "schema": "tool_sector_map_v1",
+  "updated": "2026-05-31",
+  "tools": {
+    "chatgpt": {
+      "tool": "ChatGPT",
+      "company": "OpenAI",
+      "tool_type": "general",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "cultural_applications": [
+        "work_productivity",
+        "literature",
+        "libraries"
+      ],
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks",
+        "literature",
+        "libraries"
+      ],
+      "reason": "General assistant used for work, writing, learning, and research.",
+      "group": "general_market",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "claude": {
+      "tool": "Claude",
+      "company": "Anthropic",
+      "tool_type": "general",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "cultural_applications": [
+        "literature",
+        "libraries",
+        "ai_education_training_daily_tasks"
+      ],
+      "secondary_sectors": [
+        "literature",
+        "libraries",
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "General assistant used for writing, analysis, research, and learning.",
+      "group": "general_market",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "gemini": {
+      "tool": "Gemini",
+      "company": "Google",
+      "tool_type": "general",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "cultural_applications": [
+        "work_productivity",
+        "ai_education_training_daily_tasks",
+        "libraries"
+      ],
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks",
+        "libraries"
+      ],
+      "reason": "General assistant across Google products and daily tasks.",
+      "group": "general_market",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "perplexity": {
+      "tool": "Perplexity",
+      "company": "Perplexity",
+      "tool_type": "specialized",
+      "primary_sector": "libraries",
+      "sector_hint": "archives_research",
+      "cultural_applications": [
+        "libraries"
+      ],
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "Search and research assistant for sources and documents.",
+      "group": "general_market",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "runway": {
+      "tool": "Runway",
+      "company": "Runway",
+      "tool_type": "specialized",
+      "primary_sector": "films",
+      "sector_hint": "video_creation",
+      "cultural_applications": [
+        "films"
+      ],
+      "secondary_sectors": [
+        "visual_arts",
+        "theater"
+      ],
+      "reason": "AI video generation and film production workflows.",
+      "group": "culture_creative",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "kling ai": {
+      "tool": "Kling AI",
+      "company": "Kuaishou",
+      "tool_type": "specialized",
+      "primary_sector": "films",
+      "sector_hint": "video_creation",
+      "cultural_applications": [
+        "films"
+      ],
+      "secondary_sectors": [
+        "visual_arts"
+      ],
+      "reason": "AI video generation for creators.",
+      "group": "culture_creative",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "elevenlabs": {
+      "tool": "ElevenLabs",
+      "company": "ElevenLabs",
+      "tool_type": "specialized",
+      "primary_sector": "music",
+      "sector_hint": "audio_voice",
+      "cultural_applications": [
+        "music"
+      ],
+      "secondary_sectors": [
+        "films",
+        "theater"
+      ],
+      "reason": "AI voice, narration, dubbing, and audio workflows.",
+      "group": "culture_creative",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "suno": {
+      "tool": "Suno",
+      "company": "Suno",
+      "tool_type": "specialized",
+      "primary_sector": "music",
+      "sector_hint": "audio_voice",
+      "cultural_applications": [
+        "music"
+      ],
+      "secondary_sectors": [
+        "films"
+      ],
+      "reason": "AI music generation.",
+      "group": "culture_creative",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "adobe firefly": {
+      "tool": "Adobe Firefly",
+      "company": "Adobe",
+      "tool_type": "specialized",
+      "primary_sector": "visual_arts",
+      "sector_hint": "design_tools",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "secondary_sectors": [
+        "fashion",
+        "films"
+      ],
+      "reason": "AI design, image, and creative production tools.",
+      "group": "culture_creative",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "midjourney": {
+      "tool": "Midjourney",
+      "company": "Midjourney",
+      "tool_type": "specialized",
+      "primary_sector": "visual_arts",
+      "sector_hint": "image_generation",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "secondary_sectors": [
+        "fashion",
+        "films"
+      ],
+      "reason": "AI image generation for visual arts.",
+      "group": "culture_creative",
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "luma": {
+      "tool": "Luma",
+      "company": "Luma",
+      "primary_sector": "films",
+      "sector_hint": "video_creation",
+      "secondary_sectors": [
+        "visual_arts"
+      ],
+      "reason": "AI video and motion generation.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "films"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "heygen": {
+      "tool": "HeyGen",
+      "company": "HeyGen",
+      "primary_sector": "films",
+      "sector_hint": "video_creation",
+      "secondary_sectors": [
+        "theater"
+      ],
+      "reason": "AI avatar and video creation.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "films"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "udio": {
+      "tool": "Udio",
+      "company": "Udio",
+      "primary_sector": "music",
+      "sector_hint": "audio_voice",
+      "secondary_sectors": [
+        "films"
+      ],
+      "reason": "AI music generation.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "music"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "figma ai": {
+      "tool": "Figma AI",
+      "company": "Figma",
+      "primary_sector": "visual_arts",
+      "sector_hint": "design_tools",
+      "secondary_sectors": [
+        "work_productivity"
+      ],
+      "reason": "AI design and interface workflow support.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "canva": {
+      "tool": "Canva",
+      "company": "Canva",
+      "primary_sector": "visual_arts",
+      "sector_hint": "design_tools",
+      "secondary_sectors": [
+        "work_productivity",
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "AI-assisted visual design and presentations.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "canva ai": {
+      "tool": "Canva AI",
+      "company": "Canva",
+      "primary_sector": "visual_arts",
+      "sector_hint": "design_tools",
+      "secondary_sectors": [
+        "work_productivity"
+      ],
+      "reason": "AI-assisted visual design.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "krea": {
+      "tool": "Krea",
+      "company": "Krea",
+      "primary_sector": "visual_arts",
+      "sector_hint": "image_generation",
+      "secondary_sectors": [
+        "fashion"
+      ],
+      "reason": "AI image generation and creative control.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "ideogram": {
+      "tool": "Ideogram",
+      "company": "Ideogram",
+      "primary_sector": "visual_arts",
+      "sector_hint": "image_generation",
+      "secondary_sectors": [
+        "design_tools"
+      ],
+      "reason": "AI image generation and typography.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "microsoft copilot": {
+      "tool": "Microsoft Copilot",
+      "company": "Microsoft",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "AI assistant for work documents, meetings, and daily tasks.",
+      "tool_type": "general",
+      "cultural_applications": [
+        "ai_education_training_daily_tasks"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "notebooklm": {
+      "tool": "NotebookLM",
+      "company": "Google",
+      "primary_sector": "libraries",
+      "sector_hint": "archives_research",
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "AI research assistant for documents and sources.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "libraries"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "grok": {
+      "tool": "Grok",
+      "company": "xAI",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "General AI assistant.",
+      "tool_type": "general",
+      "cultural_applications": [
+        "ai_education_training_daily_tasks"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "meta ai": {
+      "tool": "Meta AI",
+      "company": "Meta",
+      "primary_sector": "ai_education_training_daily_tasks",
+      "sector_hint": "daily_assistant",
+      "secondary_sectors": [
+        "work_productivity"
+      ],
+      "reason": "Consumer AI assistant across daily apps.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "ai_education_training_daily_tasks"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "deepseek": {
+      "tool": "DeepSeek",
+      "company": "DeepSeek",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "General AI assistant and model platform.",
+      "tool_type": "general",
+      "cultural_applications": [
+        "ai_education_training_daily_tasks"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "poe": {
+      "tool": "Poe",
+      "company": "Quora",
+      "primary_sector": "ai_education_training_daily_tasks",
+      "sector_hint": "general_market",
+      "secondary_sectors": [
+        "work_productivity"
+      ],
+      "reason": "AI assistant aggregation and daily use.",
+      "tool_type": "general",
+      "cultural_applications": [
+        "work_productivity"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "cursor": {
+      "tool": "Cursor",
+      "company": "Anysphere",
+      "primary_sector": "work_productivity",
+      "sector_hint": "work_productivity",
+      "secondary_sectors": [],
+      "reason": "AI-assisted productivity tool for coding workflows.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "work_productivity"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "gamma": {
+      "tool": "Gamma",
+      "company": "Gamma",
+      "primary_sector": "work_productivity",
+      "sector_hint": "design_tools",
+      "secondary_sectors": [
+        "visual_arts"
+      ],
+      "reason": "AI presentations and documents for work.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "work_productivity"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "planner 5d": {
+      "tool": "Planner 5D",
+      "company": "Planner 5D",
+      "primary_sector": "architecture",
+      "sector_hint": "architecture",
+      "secondary_sectors": [
+        "visual_arts"
+      ],
+      "reason": "AI interior and space planning.",
+      "tool_type": "specialized",
+      "cultural_applications": [
+        "architecture"
+      ],
+      "source": "seed",
+      "updated": "2026-05-31"
+    },
+    "magic design": {
+      "tool": "Magic Design",
+      "company": "Canva",
+      "tool_type": "specialized",
+      "primary_sector": "visual_arts",
+      "sector_hint": "design_tools",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "nano banana 2": {
+      "tool": "Nano Banana 2",
+      "company": "",
+      "tool_type": "specialized",
+      "primary_sector": "visual_arts",
+      "sector_hint": "image_generation",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "microsoft 365 copilot": {
+      "tool": "Microsoft 365 Copilot",
+      "company": "Microsoft",
+      "tool_type": "general",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "cultural_applications": [
+        "museums",
+        "libraries",
+        "literature",
+        "theater"
+      ],
+      "secondary_sectors": [
+        "music",
+        "visual_arts"
+      ],
+      "reason": "Microsoft 365 Copilot enhances productivity across various cultural sectors by assisting with writing, research, and collaboration.",
+      "group": "general_market",
+      "source": "gpt",
+      "updated": "2026-05-31"
+    },
+    "dirigi": {
+      "tool": "Dirigi",
+      "company": "",
+      "tool_type": "specialized",
+      "primary_sector": "theater",
+      "sector_hint": "theater",
+      "cultural_applications": [
+        "theater"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "google gemini": {
+      "tool": "Google Gemini",
+      "company": "Google",
+      "tool_type": "general",
+      "primary_sector": "ai_education_training_daily_tasks",
+      "sector_hint": "general_market",
+      "cultural_applications": [
+        "museums",
+        "literature",
+        "music",
+        "visual_arts"
+      ],
+      "secondary_sectors": [
+        "theater",
+        "films",
+        "heritage"
+      ],
+      "reason": "Google Gemini can assist in various cultural sectors by providing insights, generating content, and enhancing user experiences.",
+      "group": "general_market",
+      "source": "gpt",
+      "updated": "2026-05-31"
+    },
+    "cora": {
+      "tool": "Cora",
+      "company": "",
+      "tool_type": "specialized",
+      "primary_sector": "physical_health",
+      "sector_hint": "physical_health",
+      "cultural_applications": [
+        "physical_health"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "khanmigo": {
+      "tool": "Khanmigo",
+      "company": "",
+      "tool_type": "specialized",
+      "primary_sector": "ai_education_training_daily_tasks",
+      "sector_hint": "learning",
+      "cultural_applications": [
+        "ai_education_training_daily_tasks"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "grammarly": {
+      "tool": "Grammarly",
+      "company": "Grammarly",
+      "tool_type": "general",
+      "primary_sector": "literature",
+      "sector_hint": "writing_storytelling",
+      "cultural_applications": [
+        "literature",
+        "work_productivity",
+        "mental_health"
+      ],
+      "secondary_sectors": [
+        "ai_education_training_daily_tasks"
+      ],
+      "reason": "Grammarly assists with writing and editing across various sectors, enhancing communication and productivity.",
+      "group": "general_market",
+      "source": "gpt",
+      "updated": "2026-05-31"
+    },
+    "kittl": {
+      "tool": "Kittl",
+      "company": "",
+      "tool_type": "specialized",
+      "primary_sector": "visual_arts",
+      "sector_hint": "design_tools",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "prezi ai": {
+      "tool": "Prezi AI",
+      "company": "",
+      "tool_type": "specialized",
+      "primary_sector": "visual_arts",
+      "sector_hint": "design_tools",
+      "cultural_applications": [
+        "visual_arts"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "arabic ai": {
+      "tool": "Arabic.AI",
+      "company": "",
+      "tool_type": "specialized",
+      "primary_sector": "literature",
+      "sector_hint": "translation",
+      "cultural_applications": [
+        "literature"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    },
+    "luma ray3": {
+      "tool": "Luma Ray3",
+      "company": "Luma",
+      "tool_type": "specialized",
+      "primary_sector": "films",
+      "sector_hint": "video_creation",
+      "cultural_applications": [
+        "films"
+      ],
+      "secondary_sectors": [],
+      "reason": "Classified from existing tool signal.",
+      "group": "culture_creative",
+      "source": "suggested",
+      "updated": "2026-05-31"
+    }
+  }
+}

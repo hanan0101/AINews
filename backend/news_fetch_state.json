@@ -1,0 +1,159 @@
+{
+  "last_run_performance": {
+    "generated_at": "2026-06-08T13:08:38.954086+00:00",
+    "source": "ai_update_pipeline",
+    "performance": {
+      "total_seconds": 83.97,
+      "fetch_seconds": 16.86,
+      "source_fetch_seconds": 12.66,
+      "filter_seconds": 4.2,
+      "gpt_seconds": 64.23,
+      "save_seconds": 1.6,
+      "raw_candidates": 366,
+      "valid_candidates": 82,
+      "selected_count": 12,
+      "saved_count": 12,
+      "queries": 80,
+      "exa_queries": 40,
+      "searxng_queries": 40,
+      "exa_raw": 115,
+      "searxng_raw": 251,
+      "exa_seconds": 4.87,
+      "searxng_seconds": 12.48,
+      "parallel_fetch_seconds": 12.66,
+      "source_failures": {
+        "exa": "exa_request_failed",
+        "searxng": "searxng_request_failed"
+      },
+      "source_candidate_counts": {
+        "exa": 32,
+        "searxng": 88
+      },
+      "source_quality_mode": "best_pool",
+      "cutoff_date": "2026-05-25",
+      "lookback_days": 14,
+      "memory_enabled": true,
+      "semantic_memory_enabled": true,
+      "memory_status": "exact_loaded",
+      "memory_filter_status": "semantic_checked",
+      "memory_exact_available": true,
+      "memory_exact_entries": 381,
+      "memory_exact_skipped": 27,
+      "semantic_memory_available": true,
+      "semantic_memory_requested": 32,
+      "semantic_memory_checked": 32,
+      "semantic_memory_skipped": 0,
+      "memory_save_status": "saved",
+      "memory_save_count": 12,
+      "memory_save_error": null,
+      "large_scan": {
+        "enabled": true,
+        "filtered_candidates": 82,
+        "scan_pool_limit": 120,
+        "scan_pool_count": 82,
+        "scan_pool_score_max": 38,
+        "scan_pool_score_min": 12,
+        "gpt_shortlist_limit": 60,
+        "gpt_shortlist_count": 54,
+        "gpt_shortlist_hint_counts": {
+          "المكتبات": 5,
+          "الأفلام": 5,
+          "الذكاء الاصطناعي والتعليم والتدريب والمهام اليومية": 5,
+          "general_market": 5,
+          "video_creation": 4,
+          "audio_voice": 1,
+          "الأزياء": 3,
+          "التراث": 5,
+          "الفنون البصرية": 1,
+          "العمارة": 5,
+          "المتاحف": 4,
+          "الموسيقى": 2,
+          "الأدب": 2,
+          "الطهي": 5,
+          "إنتاجية العمل": 2
+        },
+        "gpt_shortlist_query_mix_counts": {
+          "specialized": 44,
+          "tool_driven": 10
+        },
+        "gpt_shortlist_source_type_counts": {
+          "unknown": 44,
+          "trending_tool": 10
+        }
+      },
+      "scan_pool_count": 82,
+      "gpt_shortlist_count": 54,
+      "stage_durations": [
+        {
+          "key": "source_fetch",
+          "label": "Source fetch",
+          "seconds": 12.66
+        },
+        {
+          "key": "quality_filter",
+          "label": "Quality filters and memory",
+          "seconds": 4.2
+        },
+        {
+          "key": "ai_model",
+          "label": "AI model selection",
+          "seconds": 64.23
+        },
+        {
+          "key": "save",
+          "label": "Save output",
+          "seconds": 1.6
+        },
+        {
+          "key": "supporting",
+          "label": "Courses and movies",
+          "seconds": 1.27
+        }
+      ],
+      "memory_save_requested": 12,
+      "memory_save_content_type": "news",
+      "memory_save_enabled": true,
+      "memory_save_embedding_count": 12,
+      "semantic_memory_saved": 12,
+      "news_json_save_seconds": 1.59,
+      "news_json_saved": true,
+      "supporting_content_wait_seconds": 0.0,
+      "supporting_content_apply_seconds": 1.27,
+      "supporting_content_prefetched": true,
+      "supporting_content_seconds": 15.18,
+      "supporting_content_blocking_seconds": 1.27,
+      "courses_fetch_seconds": 1.86,
+      "courses_filter_seconds": 4.91,
+      "courses_gpt_seconds": 7.77,
+      "courses_total_seconds": 14.53,
+      "movies_fetch_seconds": 2.1,
+      "movies_filter_seconds": 4.24,
+      "movies_gpt_seconds": 8.84,
+      "movies_total_seconds": 15.18,
+      "courses_seconds": 14.53,
+      "movies_seconds": 15.18
+    },
+    "diversity": {
+      "domain_counts": {
+        "work_life": 5,
+        "daily_life": 1
+      },
+      "sector_counts": {
+        "المكتبات": 1,
+        "الموسيقى": 2,
+        "الأفلام": 2,
+        "الطهي": 1
+      },
+      "highlight": {
+        "title": "وضع القفل في (ChatGPT) لمنع حقن الأوامر",
+        "sector": "المكتبات",
+        "reason": "ميزة أمان مباشرة الاستخدام ومتاحة لكل الخطط، وتغيّر سلوك (ChatGPT) فورًا لتقليل مخاطر تسريب البيانات في المهام اليومية."
+      },
+      "target_counts": {
+        "visible": 6,
+        "backup": 6,
+        "total": 12
+      }
+    }
+  }
+}

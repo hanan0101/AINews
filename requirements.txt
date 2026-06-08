@@ -1,0 +1,7 @@
+openai==2.31.0
+pydantic==2.12.5
+python-dotenv==1.2.2
+requests==2.33.1
+qdrant-client==1.17.1
+Pillow==12.2.0
+playwright==1.59.0

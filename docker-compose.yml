@@ -1,0 +1,28 @@
+name: ainewsletter_v0_1
+
+services:
+  ainewsletter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      HOST: 0.0.0.0
+      AI_UPDATES_SEARXNG_URL: http://searxng:8080
+    depends_on:
+      - searxng
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    restart: unless-stopped
