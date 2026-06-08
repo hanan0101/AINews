@@ -1,219 +1,219 @@
-# دليل تشغيل AINewsletter_v0.1
+# AINewsletter_v0.1 User Setup Guide
 
-هذا الدليل مخصص للمستخدم الذي يريد تشغيل البرنامج محليًا. يمكنك تشغيله بطريقتين:
+This guide is for users who want to run the project locally. You can run it in two ways:
 
-- باستخدام Docker، وهي الطريقة الأسهل إذا كان Docker مثبتًا.
-- بدون Docker باستخدام Python وبيئة افتراضية.
+- With Docker, which is the easiest option if Docker Desktop is installed.
+- Without Docker, using Python and a virtual environment.
 
-بعد التشغيل افتح الواجهة من المتصفح:
+After the server starts, open the app in your browser:
 
 ```text
 http://127.0.0.1:8000/UI.html
 ```
 
-## المتطلبات
+## Requirements
 
-قبل البدء تأكد من توفر التالي:
+Before you start, make sure you have:
 
-- Docker Desktop، إذا أردت التشغيل عبر Docker.
-- أو Python 3.11 أو أحدث، إذا أردت التشغيل بدون Docker.
-- مفاتيح API التالية داخل ملف البيئة:
+- Docker Desktop, if you want to run the project with Docker.
+- Or Python 3.11 or newer, if you want to run it without Docker.
+- API keys in the environment file:
   - `OPENAI_API_KEY`
   - `EXA_API_KEY`
   - `TMDB_API_KEY`
 
-ملف البيئة الأساسي هو:
+The main environment file is:
 
 ```text
 backend/.env
 ```
 
-إذا لم يكن الملف موجودًا، انسخه من المثال:
+If it does not exist, copy it from the example file:
 
 ```powershell
 copy backend\.env.example backend\.env
 ```
 
-ثم افتحه وأضف المفاتيح:
+Then open it and add your real API keys:
 
 ```powershell
 notepad backend\.env
 ```
 
-## التشغيل باستخدام Docker
+## Run With Docker
 
-هذه الطريقة تشغل التطبيق مع خدمة SearXNG المساعدة.
+This starts the app and the supporting SearXNG service.
 
-1. افتح PowerShell داخل مجلد المشروع:
+1. Open PowerShell in the project folder:
 
 ```powershell
 cd C:\AINewsletter_v0.1
 ```
 
-2. تأكد أن ملف البيئة موجود:
+2. Make sure the environment file exists:
 
 ```powershell
 copy backend\.env.example backend\.env
 notepad backend\.env
 ```
 
-إذا كان `backend\.env` موجودًا مسبقًا، لا تحتاج إلى نسخه مرة أخرى. فقط تأكد أن المفاتيح موجودة داخله.
+If `backend\.env` already exists, you do not need to copy it again. Just confirm that the API keys are set.
 
-3. شغل الخدمات:
+3. Start the services:
 
 ```powershell
 docker compose up --build
 ```
 
-4. افتح الواجهة:
+4. Open the app:
 
 ```text
 http://127.0.0.1:8000/UI.html
 ```
 
-5. لإيقاف التشغيل اضغط `Ctrl + C` في نافذة PowerShell.
+5. To stop the services, press `Ctrl + C` in the PowerShell window.
 
-أو أوقف الخدمات من نافذة أخرى:
+Or stop them from another terminal:
 
 ```powershell
 docker compose down
 ```
 
-### تشغيل Docker في الخلفية
+### Run Docker in the Background
 
-إذا أردت تشغيله بدون إبقاء نافذة السجلات مفتوحة:
+To run without keeping the logs open:
 
 ```powershell
 docker compose up --build -d
 ```
 
-لمشاهدة السجلات:
+To view logs:
 
 ```powershell
 docker compose logs -f ainewsletter
 ```
 
-لإيقافه:
+To stop everything:
 
 ```powershell
 docker compose down
 ```
 
-## التشغيل بدون Docker
+## Run Without Docker
 
-استخدم هذه الطريقة إذا كنت تريد تشغيل البرنامج مباشرة على جهازك.
+Use this option if you want to run the app directly on your machine.
 
-1. افتح PowerShell داخل مجلد المشروع:
+1. Open PowerShell in the project folder:
 
 ```powershell
 cd C:\AINewsletter_v0.1
 ```
 
-2. أنشئ البيئة الافتراضية:
+2. Create a virtual environment:
 
 ```powershell
 python -m venv venv
 ```
 
-3. فعّل البيئة:
+3. Activate the virtual environment:
 
 ```powershell
 venv\Scripts\activate
 ```
 
-4. ثبّت المكتبات:
+4. Install dependencies:
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-5. ثبّت متصفح Playwright المطلوب لتصدير PDF:
+5. Install the Playwright browser required for PDF export:
 
 ```powershell
 python -m playwright install chromium
 ```
 
-6. جهّز ملف البيئة:
+6. Prepare the environment file:
 
 ```powershell
 copy backend\.env.example backend\.env
 notepad backend\.env
 ```
 
-7. شغل السيرفر:
+7. Start the server:
 
 ```powershell
 python backend\server.py
 ```
 
-8. افتح الواجهة:
+8. Open the app:
 
 ```text
 http://127.0.0.1:8000/UI.html
 ```
 
-## تشغيل سريع على ويندوز
+## Quick Windows Restart
 
-يوجد سكربت جاهز لإعادة تشغيل الباكند:
+The project includes a helper script to restart the backend:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\restart_backend.ps1
 ```
 
-إذا أردت رؤية السجلات مباشرة:
+To see logs directly in the terminal:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\restart_backend.ps1 -Foreground
 ```
 
-لإيقاف الباكند فقط:
+To stop the backend only:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\restart_backend.ps1 -NoStart
 ```
 
-## طريقة الاستخدام من الواجهة
+## Using the App
 
-1. افتح:
+1. Open:
 
 ```text
 http://127.0.0.1:8000/UI.html
 ```
 
-2. اضغط زر Generate لتوليد النشرة.
-3. انتظر حتى يكتمل الجلب والاختيار.
-4. يمكنك تعديل البطاقات يدويًا من الواجهة.
-5. يمكنك تصدير النشرة PDF من الواجهة.
+2. Click **Generate** to generate the newsletter.
+3. Wait for fetching, filtering, and AI selection to finish.
+4. Edit cards manually from the UI if needed.
+5. Export the newsletter as PDF from the UI.
 
-الملفات التي يتم تحديثها بعد التوليد:
+Files updated after generation:
 
 - `frontend/news.json`
 - `frontend/ai_updates_run_report.json`
 - `backend/news_fetch_state.json`
 - `backend/qdrant_db/`
 
-## مشاكل شائعة
+## Common Issues
 
-### المنفذ 8000 مشغول
+### Port 8000 Is Already in Use
 
-إذا ظهر خطأ أن المنفذ مستخدم، أوقف السيرفر القديم:
+If the server cannot start because port `8000` is busy, find and stop the old process:
 
 ```powershell
 netstat -ano | findstr :8000
 taskkill /PID <PID> /F
 ```
 
-استبدل `<PID>` بالرقم الذي يظهر من الأمر الأول.
+Replace `<PID>` with the process ID shown by the first command.
 
-### Docker لا يقرأ مفاتيح API
+### Docker Does Not Read the API Keys
 
-تأكد أن الملف موجود هنا:
+Make sure this file exists:
 
 ```text
 backend/.env
 ```
 
-وتأكد أن الأسماء مكتوبة بنفس الشكل:
+And make sure the variable names are written exactly like this:
 
 ```text
 OPENAI_API_KEY=...
@@ -221,35 +221,35 @@ EXA_API_KEY=...
 TMDB_API_KEY=...
 ```
 
-ثم أعد التشغيل:
+Then restart Docker:
 
 ```powershell
 docker compose down
 docker compose up --build
 ```
 
-### التوليد لا يجلب أخبارًا كافية
+### Generation Does Not Find Enough News
 
-تأكد من:
+Check the following:
 
-- صحة مفاتيح API.
-- اتصال الإنترنت.
-- أن خدمة SearXNG تعمل عند استخدام Docker.
-- عدم تفعيل وضع `NEWS_JSON_ONLY_MODE=1` داخل `backend/.env`.
+- The API keys are valid.
+- Your internet connection is working.
+- SearXNG is running when using Docker.
+- `NEWS_JSON_ONLY_MODE=1` is not enabled in `backend/.env`.
 
-### تصدير PDF لا يعمل بدون Docker
+### PDF Export Does Not Work Without Docker
 
-نفذ:
+Run:
 
 ```powershell
 python -m playwright install chromium
 ```
 
-ثم أعد تشغيل السيرفر.
+Then restart the server.
 
-## ملاحظات مهمة
+## Important Notes
 
-- لا تشارك ملف `backend/.env` لأنه يحتوي مفاتيح API.
-- عند استخدام Docker، يتم ربط مجلدي `backend` و `frontend` مع الحاوية، لذلك أي ملفات ناتجة ستظهر في المشروع مباشرة.
-- رابط الواجهة المحلي هو `http://127.0.0.1:8000/UI.html`.
-- رابط SearXNG عند التشغيل عبر Docker هو `http://127.0.0.1:8080`.
+- Do not share `backend/.env`; it contains private API keys.
+- When using Docker, the `backend` and `frontend` folders are mounted into the container, so generated files appear directly in the project folder.
+- The local app URL is `http://127.0.0.1:8000/UI.html`.
+- The local SearXNG URL when using Docker is `http://127.0.0.1:8080`.
