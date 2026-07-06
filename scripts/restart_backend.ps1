@@ -8,12 +8,11 @@ $ErrorActionPreference = "Stop"
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $VenvPython = Join-Path $Root "venv\Scripts\python.exe"
-$ServerScript = Join-Path $Root "backend\server.py"
+$ServerModule = "backend.server.http_server"
 
 function Stop-AiNewsPythonProcesses {
     $patterns = @(
-        "*backend/server.py*",
-        "*backend\server.py*",
+        "*backend.server.http_server*",
         "*backend/Generator.py*",
         "*backend\Generator.py*"
     )
@@ -65,11 +64,11 @@ if (-not (Test-Path $VenvPython)) {
 Write-Host "Starting backend on http://127.0.0.1:$Port ..."
 if ($Foreground) {
     Write-Host "Running in foreground. Press Ctrl+C to stop."
-    & $VenvPython "backend/server.py"
+    & $VenvPython -m $ServerModule
     exit $LASTEXITCODE
 }
 
-Start-Process -FilePath $VenvPython -ArgumentList "backend/server.py" -WorkingDirectory $Root -WindowStyle Hidden
+Start-Process -FilePath $VenvPython -ArgumentList @("-m", $ServerModule) -WorkingDirectory $Root -WindowStyle Hidden
 Start-Sleep -Seconds 3
 
 $listener = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
@@ -81,4 +80,4 @@ if (-not $listener) {
 
 $health = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:$Port/api/news?auto=0" -TimeoutSec 10
 Write-Host "Backend is ready. HTTP $($health.StatusCode)"
-Write-Host "Open: http://127.0.0.1:$Port/UI.html"
+Write-Host "Open: http://127.0.0.1:$Port/News.html"

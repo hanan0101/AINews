@@ -1,0 +1,8 @@
+{"ts":"2026-07-01T00:34:38.411828+00:00","event":"courses.platform_discovered","run_id":"","mode":"","domain":"temporary-test-platform.example","path":"/courses/ai-for-employees","times_selected":1}
+{"ts":"2026-07-01T01:31:21.174832+00:00","event":"courses.platform_cap_reached","run_id":"","mode":"","platform":"Coursera","cap":3}
+{"ts":"2026-07-01T01:31:21.175831+00:00","event":"courses.platform_level_duplicate_replaced","run_id":"","mode":"","old_platform":"Coursera","old_level":"beginner","new_platform":"DataCamp","new_level":"beginner"}
+{"ts":"2026-07-01T01:31:46.687016+00:00","event":"courses.platform_cap_reached","run_id":"","mode":"","platform":"Coursera","cap":3}
+{"ts":"2026-07-01T01:31:46.688989+00:00","event":"courses.platform_level_duplicate_replaced","run_id":"","mode":"","old_platform":"Coursera","old_level":"Beginner","new_platform":"DataCamp","new_level":"Beginner"}
+{"ts":"2026-07-01T20:08:57.845931+00:00","event":"courses.platform_cap_reached","run_id":"","mode":"","platform":"Coursera","cap":1,"major_platform":true}
+{"ts":"2026-07-01T20:08:57.865019+00:00","event":"courses.major_platform_replaced","run_id":"","mode":"","old_platform":"Coursera","old_level":"Beginner","new_platform":"DataCamp","new_level":"Beginner"}
+{"ts":"2026-07-01T20:08:57.865019+00:00","event":"courses.major_platform_replaced","run_id":"","mode":"","old_platform":"edX","old_level":"Intermediate","new_platform":"Kaggle Learn","new_level":"Intermediate"}

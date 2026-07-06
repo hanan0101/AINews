@@ -1,0 +1,38 @@
+{
+  "satr.tuwaiq.edu.sa": {
+    "domain": "satr.tuwaiq.edu.sa",
+    "first_seen": "2026-07-04",
+    "url_path": "/index.html",
+    "paths": {
+      "/index.html": 1
+    },
+    "times_selected": 1
+  },
+  "sdaia.gov.sa": {
+    "domain": "sdaia.gov.sa",
+    "first_seen": "2026-07-04",
+    "url_path": "/ar/Sectors/BuildingCapacity/IT-Institute/Pages/default.aspx",
+    "paths": {
+      "/ar/Sectors/BuildingCapacity/IT-Institute/Pages/default.aspx": 1
+    },
+    "times_selected": 1
+  },
+  "maharatech.gov.eg": {
+    "domain": "maharatech.gov.eg",
+    "first_seen": "2026-07-04",
+    "url_path": "/course/view.php",
+    "paths": {
+      "/course/view.php": 2
+    },
+    "times_selected": 2
+  },
+  "stagging.maharatech.gov.eg": {
+    "domain": "stagging.maharatech.gov.eg",
+    "first_seen": "2026-07-05",
+    "url_path": "/course/view.php",
+    "paths": {
+      "/course/view.php": 1
+    },
+    "times_selected": 1
+  }
+}

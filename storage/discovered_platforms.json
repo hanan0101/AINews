@@ -1,0 +1,11 @@
+{
+  "temporary-test-platform.example": {
+    "domain": "temporary-test-platform.example",
+    "first_seen": "2026-07-01",
+    "url_path": "/courses/ai-for-employees",
+    "paths": {
+      "/courses/ai-for-employees": 1
+    },
+    "times_selected": 1
+  }
+}

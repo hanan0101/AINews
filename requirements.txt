@@ -1,7 +1,63 @@
+# Installs the Python dependency set used by Docker and local development.
+# Direct application dependencies
 openai==2.31.0
 pydantic==2.12.5
 python-dotenv==1.2.2
+psycopg2-binary==2.9.11
 requests==2.33.1
 qdrant-client==1.17.1
 Pillow==12.2.0
 playwright==1.59.0
+pypdf==6.14.2
+PyMuPDF==1.26.7
+python-keycloak==3.9.1
+python-jose==3.3.0
+google-genai==2.10.0
+
+# Pinned transitive dependencies used by the packages above. Keeping these
+# here makes Docker builds and local installs resolve the same working stack.
+annotated-types==0.7.0
+anyio==4.13.0
+certifi==2026.5.20
+cffi==2.0.0
+charset-normalizer==3.4.7
+colorama==0.4.6
+cryptography==49.0.0
+deprecation==2.1.0
+distro==1.9.0
+ecdsa==0.19.2
+google-auth==2.55.1
+greenlet==3.5.1
+grpcio==1.81.1
+h11==0.16.0
+h2==4.3.0
+hpack==4.1.0
+httpcore==1.0.9
+httpx==0.28.1
+beautifulsoup4==4.12.3
+extruct==0.18.0
+python-dateutil==2.9.0.post0
+hyperframe==6.1.0
+idna==3.18
+jiter==0.15.0
+jwcrypto==1.5.8
+numpy==2.4.6
+packaging==26.2
+portalocker==3.2.0
+protobuf==7.35.1
+pyasn1==0.6.3
+pyasn1-modules==0.4.2
+pycparser==3.0
+pydantic-core==2.41.5
+pyee==13.0.1
+pywin32==312; sys_platform == "win32"
+requests-toolbelt==1.0.0
+rsa==4.9.1
+six==1.17.0
+sniffio==1.3.1
+tenacity==9.1.4
+tqdm==4.68.2
+typing-inspection==0.4.2
+typing-extensions==4.15.0
+urllib3==2.7.0
+websockets==16.0

@@ -1,0 +1,55 @@
+{
+  "runs": {
+    "manual": {
+      "run_id": "manual",
+      "mode": "",
+      "started_at": "2026-07-04T23:20:25.345073+00:00",
+      "calls": [
+        {
+          "ts": "2026-07-04T23:20:25.345073+00:00",
+          "stage": "supporting_course",
+          "provider": "openai",
+          "model": "gpt-5.2",
+          "status": "success",
+          "input_tokens": 3171,
+          "output_tokens": 1303,
+          "total_tokens": 4474,
+          "estimated_input_tokens": 3759,
+          "payload_candidates": 6,
+          "request_number_today": null,
+          "remaining_daily_requests": null,
+          "daily_request_budget": null,
+          "run_request_number": null,
+          "run_request_budget": null
+        }
+      ],
+      "failures": [],
+      "totals": {
+        "calls": 1,
+        "input_tokens": 3171,
+        "output_tokens": 1303,
+        "total_tokens": 4474,
+        "estimated_input_tokens": 3759,
+        "by_provider": {
+          "openai": {
+            "calls": 1,
+            "input_tokens": 3171,
+            "output_tokens": 1303,
+            "total_tokens": 4474,
+            "estimated_input_tokens": 3759
+          }
+        },
+        "by_model": {
+          "gpt-5.2": {
+            "calls": 1,
+            "input_tokens": 3171,
+            "output_tokens": 1303,
+            "total_tokens": 4474,
+            "estimated_input_tokens": 3759
+          }
+        }
+      }
+    }
+  },
+  "updated_at": "2026-07-04T23:20:25.345073+00:00"
+}

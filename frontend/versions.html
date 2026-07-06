@@ -1,0 +1,1035 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة النسخ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #EEDFD0;
+    --paper: #F5EDDF;
+    --card-bg: #FBF6ED;
+    --footer-bg: #F0DECC;
+    --text: #2e241d;
+    --muted: #78675d;
+    --line: #C73D39;
+    --ui-surface: rgba(238,223,208,.80);
+    --ui-surface-strong: rgba(238,223,208,.92);
+    --ui-surface-hover: rgba(238,223,208,.88);
+    --ui-border: rgba(120,80,40,.18);
+    --ui-shadow: 0 18px 38px rgba(91,61,30,.12);
+  }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:
+      linear-gradient(132deg, #f6eee2 0%, #ead9c7 48%, #e3ceb7 100%);
+    height: 100vh;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    direction: rtl;
+    padding: 10px;
+    gap: 14px;
+    position: relative;
+  }
+  body:before {
+    content: "";
+    position: fixed;
+    inset: -22%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .68;
+    background:
+      linear-gradient(105deg, transparent 0 18%, rgba(199,61,57,.12) 25%, rgba(199,61,57,.05) 34%, transparent 44%),
+      linear-gradient(112deg, transparent 18%, rgba(196,151,58,.14) 33%, rgba(145,185,180,.08) 48%, transparent 63%),
+      linear-gradient(72deg, transparent 43%, rgba(145,185,180,.12) 56%, rgba(199,61,57,.06) 66%, transparent 78%),
+      repeating-linear-gradient(104deg, transparent 0 92px, rgba(255,255,255,.13) 114px, transparent 152px);
+    filter: blur(24px);
+    transform: skewY(-7deg);
+  }
+  body:after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .24;
+    background:
+      repeating-linear-gradient(104deg, transparent 0 54px, rgba(199,61,57,.08) 74px, transparent 106px),
+      repeating-linear-gradient(76deg, transparent 0 78px, rgba(145,185,180,.08) 102px, transparent 144px);
+    filter: blur(10px);
+  }
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+  .toolbar {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 24px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 14px;
+    box-shadow: var(--ui-shadow);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 30;
+  }
+  .toolbar-right,.toolbar-left,.action-group { display: flex; align-items: center; gap: 9px; }
+  .logo-brand {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    object-fit: contain;
+    flex-shrink: 0;
+    background: transparent;
+    padding: 0;
+  }
+  .search-wrap {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 9px;
+    width: 218px;
+    height: 38px;
+    border: 1px solid var(--ui-border);
+    border-radius: 12px;
+    background: var(--paper);
+    padding: 0 13px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(80,55,40,.07);
+  }
+  .search-wrap svg { flex: 0 0 16px; width: 16px; height: 16px; color: var(--text); order: 1; }
+  .search-wrap input {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    direction: rtl;
+    text-align: right;
+    font-family: inherit;
+    order: 2;
+  }
+  .search-wrap input::placeholder { color: var(--muted); opacity: .82; }
+  .sort-menu {
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .sort-trigger {
+    border: 1px solid var(--ui-border);
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    height: 38px;
+    min-width: 126px;
+    padding: 0 14px;
+    outline: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 1px 3px rgba(80,55,40,.07);
+  }
+  .sort-trigger:after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid var(--text);
+  }
+  .sort-options {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 156px;
+    width: 156px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--ui-surface-strong);
+    border: 1px solid var(--ui-border);
+    box-shadow: 0 14px 30px rgba(73,44,31,.14);
+    z-index: 20;
+    display: none;
+  }
+  .sort-menu.open .sort-options { display: block; }
+  .sort-option {
+    width: 100%;
+    height: 46px;
+    border: 0;
+    background: var(--ui-surface-strong);
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    text-align: right;
+    padding: 0 18px;
+  }
+  .sort-option:hover,
+  .sort-option.active {
+    background: var(--footer-bg);
+    color: var(--line);
+  }
+  .tb-btn {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background .1s;
+  }
+  .tb-btn:hover { background: var(--ui-surface-hover); }
+  .tb-btn.danger { background: #fdf0ee; color: #c0392b; border-color: #f0c0bb; }
+  .tb-btn.danger:hover { background: #fce4e0; }
+  .tb-btn.new-gen { background: var(--ui-surface); color: var(--text); border-color: var(--ui-border); }
+  .tb-btn.new-gen:hover { background: var(--ui-surface-hover); }
+  body:not(.is-admin) .toolbar-right > .tb-btn,
+  body:not(.is-admin) .tb-btn.new-gen,
+  body:not(.is-admin) .action-group .tb-btn:first-child,
+  body:not(.is-admin) .action-group .tb-btn.danger,
+  body:not(.is-admin) .action-icon.del,
+  body.viewer-mode .toolbar-right > .tb-btn,
+  body.viewer-mode .tb-btn.new-gen,
+  body.viewer-mode .action-group .tb-btn:first-child,
+  body.viewer-mode .action-group .tb-btn.danger,
+  body.viewer-mode .action-icon.del { display: none !important; }
+  .action-group { display: none; }
+  .action-group.visible { display: none; }
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px;
+    background:
+      linear-gradient(108deg, rgba(199,61,57,.045), transparent 31%, rgba(145,185,180,.055) 61%, transparent 82%),
+      rgba(255,255,255,.18);
+    border: 1px solid var(--ui-border);
+    border-radius: 30px;
+    box-shadow: var(--ui-shadow);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    scrollbar-width: thin;
+    scrollbar-color: #dccdc1 transparent;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+  .card {
+    aspect-ratio: 1 / 1.28;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    padding: 12px;
+    display: grid;
+    grid-template-rows: 22px 1fr auto;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-3px); }
+  .card.selected { border: 1.5px solid var(--line); box-shadow: 0 14px 32px rgba(199,61,57,.16); }
+  .card.hidden-version { opacity: .72; }
+  .card.hidden-version:after {
+    content: "مخفي";
+    position: absolute;
+    top: 14px;
+    left: 42px;
+    min-width: 42px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(199,61,57,.10);
+    border: 1px solid rgba(199,61,57,.20);
+    color: #8e4640;
+    font-size: 10px;
+    font-weight: 700;
+    pointer-events: none;
+  }
+  .card-menu-dots {
+    position: absolute;
+    top: 16px;
+    right: 8px;
+    width: 25px;
+    height: 22px;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+    background:
+      radial-gradient(circle, rgba(75,49,36,.58) 0 2px, transparent 2.5px) center 50%/5px 7px repeat-y;
+    opacity: .8;
+  }
+  .card-menu-dots:hover { background-color: var(--ui-surface-hover); opacity: 1; }
+  .file-icon-wrap {
+    grid-row: 2;
+    align-self: center;
+    justify-self: center;
+    width: 64px;
+    height: 72px;
+    position: relative;
+    filter: drop-shadow(0 10px 14px rgba(73,44,31,.12));
+  }
+  .file-icon {
+    width: 64px;
+    height: 72px;
+    border-radius: 8px 17px 8px 8px;
+    background: linear-gradient(145deg, #d8efef 0%, #b8d9d8 48%, #91B9B4 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .card.pdf-version .file-icon {
+    width: 54px;
+    height: 62px;
+    margin: 5px auto 0;
+    border-radius: 7px 15px 7px 7px;
+    background: linear-gradient(145deg, #b7ada3 0%, #95897e 100%);
+  }
+  .card.pdf-version .file-icon:after {
+    content: "PDF";
+    inset: 31px 0 auto 0;
+    width: auto;
+    height: auto;
+    background: transparent;
+    box-shadow: none;
+    color: rgba(248,241,234,.92);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: 0;
+  }
+  .file-icon:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 25px;
+    height: 25px;
+    background: rgba(112,158,166,.32);
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+    opacity: .9;
+  }
+  .file-icon:after {
+    content: "";
+    position: absolute;
+    inset: 18px 18px auto auto;
+    width: 24px;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(248,241,234,.68);
+    box-shadow: 0 10px 0 rgba(248,241,234,.48), 0 20px 0 rgba(248,241,234,.30);
+  }
+  .card-info {
+    grid-row: 3;
+    min-width: 0;
+    align-self: end;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px 22px;
+    transform: translateY(-6px);
+  }
+  .card-name {
+    font-size: 9px;
+    font-weight: 600;
+    color: #2e241c;
+    line-height: 1.4;
+    cursor: text;
+    outline: none;
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .card-name[contenteditable="true"],
+  .card-date[contenteditable="true"] { border-bottom: 1px solid #8b5a2b; padding-bottom: 1px; }
+  .card-meta {
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #888;
+    margin-top: auto;
+    direction: ltr;
+  }
+  .card-size,.card-date { white-space: nowrap; }
+  .card-date { cursor: text; outline: none; }
+  .card-actions {
+    position: absolute;
+    top: 42px;
+    right: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 3px;
+    z-index: 2;
+  }
+  .card.menu-open .card-actions { display: flex; }
+  .quick-actions {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    z-index: 2;
+  }
+  .quick-actions .action-icon {
+    width: auto;
+    height: 24px;
+    min-width: 22px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0 2px;
+    color: var(--text);
+    box-shadow: none;
+    gap: 3px;
+    font-size: 13px;
+  }
+  .quick-actions .action-icon:hover { background: transparent; color: #8e4640; }
+  .quick-actions .download-action svg {
+    width: 23px;
+    height: 23px;
+    stroke: currentColor;
+    stroke-width: 1.2;
+    fill: none;
+  }
+  /* PDF BYTEA UI change: normalize the new View PDF button so it matches the
+     existing icon actions without exposing edit/restore controls. */
+  .action-icon {
+    width: 25px;
+    height: 25px;
+    background: var(--ui-surface);
+    border: .5px solid rgba(142,70,64,.18);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    padding: 0;
+    font: inherit;
+    transition: background .1s;
+  }
+  .action-icon:hover { background: var(--ui-surface-hover); }
+  .action-icon.del:hover { background: #fdf0ee; color: #c0392b; }
+  .action-icon.visibility-action svg {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .action-icon.visibility-action.is-hidden { color: #8e4640; }
+  .footer {
+    background: var(--footer-bg);
+    border: 1px solid var(--ui-border);
+    border-radius: 18px;
+    padding: 7px 16px;
+    font-size: 11px;
+    color: #8a7a6e;
+    display: flex;
+    gap: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 8px 22px rgba(78,59,45,.05);
+  }
+  .toast {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; }
+  @media (max-width: 850px) {
+    body { padding: 8px; gap: 10px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .toolbar { align-items: stretch; flex-direction: column; }
+    .toolbar-right,.toolbar-left { justify-content: space-between; }
+    .scroll-area { border-radius: 24px; padding: 14px; }
+    .search-wrap { flex: 1 1 auto; width: auto; min-width: 0; }
+    .sort-trigger { min-width: 118px; }
+    .sort-options { min-width: 156px; width: 156px; }
+  }
+</style>
+</head>
+<body class="viewer-mode">
+<div class="toolbar">
+  <div class="toolbar-right">
+    <div class="search-wrap">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="searchInput" placeholder="بحث..." oninput="filterCards(this.value)">
+    </div>
+    <div class="sort-menu" id="sortMenu">
+      <button class="sort-trigger" id="sortTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" onclick="toggleSortMenu(event)">ترتيب حسب</button>
+      <div class="sort-options" role="listbox" aria-label="ترتيب النسخ">
+        <button class="sort-option active" type="button" role="option" data-sort-value="newest" onclick="setSortOrder('newest')">الأحدث أولاً</button>
+        <button class="sort-option" type="button" role="option" data-sort-value="oldest" onclick="setSortOrder('oldest')">الأقدم أولاً</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar-left">
+    <div class="action-group" id="actionGroup">
+      <button class="tb-btn" onclick="editSelected()">تعديل</button>
+      <button class="tb-btn" onclick="downloadSelected()">تحميل</button>
+      <button class="tb-btn danger" onclick="deleteSelected()">حذف</button>
+    </div>
+    <button class="tb-btn new-gen" onclick="goToMain()">نشرة جديدة</button>
+    <img class="logo-brand" src="image/brand-mark.svg" alt="">
+  </div>
+</div>
+
+<div class="scroll-area">
+  <div class="grid" id="versionsGrid"></div>
+</div>
+
+<div class="footer">
+  <span id="footerTime">آخر حفظ: -</span>
+  <span>.</span>
+  <span id="footerCount">0 نسخ محفوظة</span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let selectedId = null;
+let selectedKind = 'json';
+let authIsAdmin = false;
+let versionsSortOrder = 'newest';
+
+function visibilityIcon(hidden) {
+  return hidden
+    ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></svg>`
+    : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6c2.2 0 4.1.7 5.7 1.7"/><path d="M22 12s-3.5 6-10 6c-2.2 0-4.1-.7-5.7-1.7"/><path d="M3 3l18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>`;
+}
+
+function createCard(version) {
+  const kind = version.kind === 'pdf' ? 'pdf' : 'json';
+  const hidden = !!version.hidden_from_users;
+  const card = document.createElement('div');
+  card.className = `card ${kind}-version${hidden ? ' hidden-version' : ''}`;
+  card.dataset.id = version.id;
+  card.dataset.name = version.title;
+  card.dataset.kind = kind;
+  const renameAttrs = authIsAdmin
+    ? `onclick="event.stopPropagation()" ondblclick="event.stopPropagation();startRename(this)" onblur="finishRename(this, ${version.id})" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"`
+    : '';
+  const dateAttrs = authIsAdmin
+    ? `onclick="event.stopPropagation()" ondblclick="event.stopPropagation();startDateEdit(this)" onblur="finishDateEdit(this, ${version.id})" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"`
+    : '';
+  const adminMenu = authIsAdmin
+    ? `<button type="button" class="card-menu-dots" title="الخيارات" aria-label="الخيارات"></button>`
+    : '';
+  const adminActions = authIsAdmin
+    ? (kind === 'json'
+      ? `
+          <button type="button" class="action-icon visibility-action ${hidden ? 'is-hidden' : ''}" title="${hidden ? 'إظهار' : 'إخفاء'}" aria-label="${hidden ? 'إظهار' : 'إخفاء'}" onclick="event.stopPropagation(); toggleVersionVisibility(${version.id}, ${hidden ? 'false' : 'true'})">${visibilityIcon(hidden)}</button>
+          <button type="button" class="action-icon" title="تعديل" onclick="event.stopPropagation(); restoreAndEdit(${version.id})">✎</button>
+          <button type="button" class="action-icon" title="تحميل" onclick="event.stopPropagation(); downloadPDF(${version.id})">↓</button>
+          <button type="button" class="action-icon del" title="حذف" onclick="event.stopPropagation(); deleteVersion(${version.id})">×</button>
+        `
+      : `
+          <button type="button" class="action-icon visibility-action ${hidden ? 'is-hidden' : ''}" title="${hidden ? 'إظهار' : 'إخفاء'}" aria-label="${hidden ? 'إظهار' : 'إخفاء'}" onclick="event.stopPropagation(); toggleVersionVisibility(${version.id}, ${hidden ? 'false' : 'true'})">${visibilityIcon(hidden)}</button>
+          <button type="button" class="action-icon" title="معاينة" onclick="event.stopPropagation(); viewPdf(${version.id})">↗</button>
+          <button type="button" class="action-icon del" title="حذف" onclick="event.stopPropagation(); deleteVersion(${version.id})">×</button>
+        `)
+    : '';
+  const userActions = !authIsAdmin
+    ? `
+        <div class="quick-actions">
+          <button type="button" class="action-icon download-action" title="تحميل" aria-label="تحميل" onclick="event.stopPropagation(); downloadVersion(${version.id}, '${kind}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11"/><path d="m7 10 5 5 5-5"/><path d="M4 16v2.5A2.5 2.5 0 0 0 6.5 21h11A2.5 2.5 0 0 0 20 18.5V16"/></svg></button>
+        </div>
+      `
+    : '';
+  card.innerHTML = `
+    ${adminMenu}
+    ${userActions}
+    <div class="file-icon-wrap" aria-hidden="true">
+      <div class="file-icon"></div>
+    </div>
+    <div class="card-info">
+      <div class="card-name" contenteditable="false"
+           ${renameAttrs}>${escapeHtml(version.title)}</div>
+    </div>
+    <div class="card-meta">
+      <span class="card-size">${formatSize(version.content_size)}</span>
+      <span class="card-date" contenteditable="false" data-original-date="${escapeHtml(formatCompactDate(version.created_at))}" ${dateAttrs}>${formatCompactDate(version.created_at)}</span>
+    </div>
+    <div class="card-actions">
+      ${adminActions}
+    </div>
+  `;
+  const menuButton = card.querySelector('.card-menu-dots');
+  if (menuButton) {
+    menuButton.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      document.querySelectorAll('.card.menu-open').forEach(openCard => {
+        if (openCard !== card) openCard.classList.remove('menu-open');
+      });
+      card.classList.toggle('menu-open');
+    });
+  }
+  card.addEventListener('click', () => {
+    if (!authIsAdmin) {
+      previewVersion(version.id, kind);
+      return;
+    }
+    if (kind === 'pdf') {
+      selectedId = null;
+      selectedKind = 'json';
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+      document.getElementById('actionGroup').classList.remove('visible');
+      viewPdf(version.id);
+      return;
+    }
+    selectCard(card, version.id, kind);
+  });
+  card.addEventListener('dblclick', event => {
+    if (!authIsAdmin) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const nameEl = card.querySelector('.card-name');
+    if (nameEl) startRename(nameEl);
+  });
+  return card;
+}
+
+function selectCard(card, id, kind='json') {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  if (selectedId === id) {
+    selectedId = null;
+    selectedKind = 'json';
+    document.getElementById('actionGroup').classList.remove('visible');
+    return;
+  }
+  selectedId = id;
+  selectedKind = kind;
+  card.classList.add('selected');
+  document.getElementById('actionGroup').classList.toggle('visible', kind === 'json');
+}
+
+function editSelected() { if (authIsAdmin && selectedId && selectedKind === 'json') restoreAndEdit(selectedId); }
+function downloadSelected() { if (selectedId && selectedKind === 'json') downloadPDF(selectedId); }
+function deleteSelected() { if (authIsAdmin && selectedId) deleteVersion(selectedId); }
+
+// PDF BYTEA UI change: open the unchanged PDF endpoint in a new browser tab;
+// the backend now streams its bytes from PostgreSQL rather than local storage.
+function viewPdf(id) {
+  window.open(`/api/versions/${id}/pdf`, '_blank', 'noopener');
+}
+
+function previewVersion(id, kind) {
+  if (kind === 'pdf') {
+    viewPdf(id);
+    return;
+  }
+  window.open(`News.html?restoredVersion=${encodeURIComponent(id)}`, '_blank', 'noopener');
+}
+
+function downloadVersion(id, kind) {
+  if (kind === 'pdf') {
+    viewPdf(id);
+    return;
+  }
+  exportStoredVersion(id);
+}
+
+async function restoreAndEdit(id) {
+  if (!authIsAdmin) return;
+  showToast('جاري فتح النسخة للتعديل...');
+  const res = await fetch(`/api/versions/${id}/restore`, { method: 'POST' });
+  if (!res.ok) {
+    showToast('تعذر فتح النسخة');
+    return;
+  }
+  try {
+    sessionStorage.setItem('aiNewsletterEditingVersionId', String(id));
+  } catch (_) {}
+  window.location.replace(`News.html?restoredVersion=${encodeURIComponent(id)}`);
+}
+
+async function downloadPDF(id) {
+  if (!authIsAdmin) return exportStoredVersion(id);
+  showToast('جاري التحميل...');
+  await fetch(`/api/versions/${id}/restore`, { method: 'POST' });
+  const newsRes = await fetch('/api/news?auto=0');
+  await newsRes.json();
+  const previewEl = document.getElementById('newsletter-preview');
+  if (!previewEl) {
+    showToast('افتح النسخة في صفحة التعديل للتحميل');
+    setTimeout(() => {
+      window.location.href = 'News.html?restoredVersion=1';
+    }, 900);
+    return;
+  }
+  const res = await fetch('/api/export-pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      html: previewEl.innerHTML,
+      width: 794,
+      height: 1123,
+      direction: 'rtl'
+    })
+  });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `newsletter_version_${id}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportStoredVersion(id) {
+  window.open(`/api/versions/${id}/export`, '_blank', 'noopener');
+}
+
+async function deleteVersion(id) {
+  if (!authIsAdmin) return;
+  if (!confirm('هل تريد حذف هذه النسخة؟')) return;
+  await fetch(`/api/versions/${id}`, { method: 'DELETE' });
+  selectedId = null;
+  document.getElementById('actionGroup').classList.remove('visible');
+  loadVersions();
+}
+
+async function toggleVersionVisibility(id, hidden) {
+  if (!authIsAdmin) return;
+  const res = await fetch(`/api/versions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hidden_from_users: !!hidden })
+  });
+  if (!res.ok) {
+    showToast('تعذر تحديث ظهور النسخة');
+    return;
+  }
+  showToast(hidden ? 'تم إخفاء النسخة عن المستخدم' : 'تم إظهار النسخة للمستخدم');
+  loadVersions();
+}
+
+function startRename(el) {
+  if (!authIsAdmin) return;
+  el.contentEditable = 'true';
+  el.focus();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+}
+
+function startDateEdit(el) {
+  if (!authIsAdmin) return;
+  el.dataset.originalDate = el.textContent.trim();
+  el.contentEditable = 'true';
+  el.focus();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+}
+
+async function finishRename(el, id) {
+  if (!authIsAdmin) return;
+  el.contentEditable = 'false';
+  const newTitle = el.textContent.trim();
+  if (!newTitle) return;
+  await fetch(`/api/versions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: newTitle })
+  });
+  loadVersions();
+}
+
+async function finishDateEdit(el, id) {
+  if (!authIsAdmin) return;
+  el.contentEditable = 'false';
+  const original = el.dataset.originalDate || '';
+  const rawDate = el.textContent.trim();
+  if (!rawDate) {
+    el.textContent = original;
+    return;
+  }
+  const createdAt = parseEditableDate(rawDate);
+  if (!createdAt) {
+    el.textContent = original;
+    showToast('اكتب التاريخ بصيغة 2026-06-28 أو 28/06/2026');
+    return;
+  }
+  const res = await fetch(`/api/versions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ created_at: createdAt })
+  });
+  if (!res.ok) {
+    el.textContent = original;
+    showToast('تعذر تحديث التاريخ');
+    return;
+  }
+  loadVersions();
+}
+
+async function loadVersions() {
+  const res = await fetch('/api/versions');
+  const data = await res.json();
+  const sorted = [...data].sort((a, b) => {
+    const av = versionDateTime(a.created_at);
+    const bv = versionDateTime(b.created_at);
+    if (av !== bv) return versionsSortOrder === 'oldest' ? av - bv : bv - av;
+    const aid = Number(a.id || 0);
+    const bid = Number(b.id || 0);
+    return versionsSortOrder === 'oldest' ? aid - bid : bid - aid;
+  });
+  const latest = [...data].sort((a, b) => {
+    const av = versionDateTime(a.created_at);
+    const bv = versionDateTime(b.created_at);
+    if (av !== bv) return bv - av;
+    return Number(b.id || 0) - Number(a.id || 0);
+  })[0];
+  const grid = document.getElementById('versionsGrid');
+  grid.querySelectorAll('.card').forEach(c => c.remove());
+  sorted.forEach(v => grid.appendChild(createCard(v)));
+  applyRolePermissions();
+  document.getElementById('footerCount').textContent = `${data.length} نسخ محفوظة`;
+  document.getElementById('footerTime').textContent = data.length
+    ? `آخر حفظ: ${formatDate(latest.created_at)}`
+    : 'آخر حفظ: -';
+}
+
+function setSortOrder(value) {
+  versionsSortOrder = value === 'oldest' ? 'oldest' : 'newest';
+  document.querySelectorAll('.sort-option').forEach(option => {
+    option.classList.toggle('active', option.dataset.sortValue === versionsSortOrder);
+  });
+  closeSortMenu();
+  loadVersions();
+}
+
+function toggleSortMenu(event) {
+  event?.stopPropagation();
+  const menu = document.getElementById('sortMenu');
+  const trigger = document.getElementById('sortTrigger');
+  if (!menu || !trigger) return;
+  const open = !menu.classList.contains('open');
+  menu.classList.toggle('open', open);
+  trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeSortMenu() {
+  const menu = document.getElementById('sortMenu');
+  const trigger = document.getElementById('sortTrigger');
+  menu?.classList.remove('open');
+  trigger?.setAttribute('aria-expanded', 'false');
+}
+
+function filterCards(query) {
+  document.querySelectorAll('.card').forEach(card => {
+    const name = (card.dataset.name || '').toLowerCase();
+    card.style.display = name.includes(query.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function goToMain() {
+  try { sessionStorage.removeItem('aiNewsletterEditingVersionId'); } catch (_) {}
+  window.location.href = 'News.html?new=1';
+}
+function escapeHtml(value='') {
+  return String(value).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatDate(dateStr) {
+  const d = dateFromVersionValue(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+function formatCompactDate(dateStr) {
+  const d = dateFromVersionValue(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}.${month}.${d.getFullYear()}`;
+}
+function versionDateTime(value='') {
+  const d = dateFromVersionValue(value);
+  const time = d.getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+function dateFromVersionValue(value='') {
+  const text = String(value || '').trim();
+  if (!text) return new Date(Number.NaN);
+  let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.\d+)?)?)?/);
+  if (match) {
+    const [, year, month, day, hour='0', minute='0', second='0'] = match;
+    return buildLocalDate(year, month, day, hour, minute, second);
+  }
+  match = text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    return buildLocalDate(year, month, day);
+  }
+  return new Date(text);
+}
+function buildLocalDate(year, month, day, hour=0, minute=0, second=0) {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  const h = Number(hour);
+  const min = Number(minute);
+  const s = Number(second);
+  const date = new Date(y, m - 1, d, h, min, s);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+    return new Date(Number.NaN);
+  }
+  return date;
+}
+function parseEditableDate(value='') {
+  const text = String(value || '').trim();
+  let match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return normalizedDateParts(year, month, day);
+  }
+  match = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    return normalizedDateParts(year, month, day);
+  }
+  return '';
+}
+function normalizedDateParts(year, month, day) {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return '';
+  const date = new Date(y, m - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return '';
+  return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+function formatSize(bytes=0) {
+  const value = Number(bytes || 0);
+  if (!Number.isFinite(value) || value <= 0) return '0 KB';
+  if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast.t);
+  showToast.t = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+document.addEventListener('click', closeSortMenu);
+async function loadAuthState() {
+  const res = await fetch('/api/auth/me', { cache: 'no-store' });
+  if (!res.ok) {
+    window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    return;
+  }
+  const auth = await res.json();
+  authIsAdmin = !!auth.is_admin;
+  document.body.classList.toggle('is-admin', authIsAdmin);
+  document.body.classList.toggle('is-user', !!auth.is_user);
+  document.body.classList.toggle('viewer-mode', !authIsAdmin);
+  applyRolePermissions();
+  ensureLogoutButton();
+}
+function isPageRefresh() {
+  try {
+    const navigation = performance.getEntriesByType?.('navigation')?.[0];
+    if (navigation?.type) return navigation.type === 'reload';
+    return performance.navigation?.type === 1;
+  } catch (_) {
+    return false;
+  }
+}
+function applyRolePermissions() {
+  if (authIsAdmin) return;
+  const adminSelectors = [
+    '.tb-btn.new-gen',
+    '.action-group .tb-btn:first-child',
+    '.action-group .tb-btn.danger',
+    '.json-version .card-actions .action-icon:first-child',
+    '.action-icon.del'
+  ];
+  adminSelectors.forEach(selector => {
+    document.querySelectorAll(selector).forEach(element => {
+      element.style.display = 'none';
+      element.setAttribute('aria-hidden', 'true');
+      if ('disabled' in element) element.disabled = true;
+      element.onclick = null;
+    });
+  });
+}
+function ensureLogoutButton() {
+  if (document.querySelector('[data-action="logout"]')) return;
+  const holder = document.querySelector('.toolbar-left');
+  if (!holder) return;
+  const button = document.createElement('button');
+  button.className = 'tb-btn';
+  button.type = 'button';
+  button.dataset.action = 'logout';
+  button.textContent = 'خروج';
+  button.addEventListener('click', async () => {
+    await fetch('/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  });
+  holder.prepend(button);
+}
+async function bootVersions() {
+  await loadAuthState();
+  if (isPageRefresh()) {
+    window.location.replace('/News.html?new=1');
+    return;
+  }
+  await loadVersions();
+}
+bootVersions();
+</script>
+</body>
+</html>
+

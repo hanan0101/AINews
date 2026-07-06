@@ -1,0 +1,22 @@
+=== TOOL DISCOVERY RESULTS (from last log) ===
+Tools discovered: 43
+Tools accepted: 43
+Tools rejected: 0
+Reason for rejection: not reported in last log; live discovery disabled; successful discovery disabled
+Pass / Fail: Fail
+
+=== OFFICIAL SITE DETECTION RESULTS ===
+Tools with official_site found: 0
+Tools with official_site missing: not reported in last log
+Tools with wrong domain: not reported in last log
+Pass / Fail: Fail
+
+=== UNUSED CODE REMOVED ===
+Functions deleted: fetch_auto_expand_exa, fetch_auto_expand_searxng, search_official_site_candidates, infer_official_site_with_model
+Imports deleted: hashlib, SequenceMatcher, quote
+Variables deleted: MONTHLY_TOOLS_SUCCESSFUL_FILE, AI_UPDATES_TOOL_QUERY_ROTATION_POOL
+
+=== OVERALL ===
+tools_aware.py: needs work
+Deployment ready: no
+Main issues remaining: monthly_tools.json and tool_official_sites.json were not present at the requested paths during this pass; last log did not report rejection reasons, missing official-site count, or wrong-domain count; fetchers.py has not been modified yet by request.

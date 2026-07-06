@@ -1,3 +1,4 @@
+# Builds the application container for the AI newsletter backend and frontend.
 FROM mcr.microsoft.com/playwright/python:v1.59.0-noble
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -15,4 +16,6 @@ COPY README.md .
 
 EXPOSE 8000
 
-CMD ["python", "backend/server.py"]
+# Container command: starts the HTTP server, static frontend, auth checks, and
+# the pipeline orchestrator used by Generate/refill routes.
+CMD ["python", "-m", "backend.server.http_server"]

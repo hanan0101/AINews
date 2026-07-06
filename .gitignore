@@ -3,3 +3,7 @@ venv/
 __pycache__/
 *.pyc
 .env
+backend/logs/
+backend/backups/
+backend/versions.db*
+data/

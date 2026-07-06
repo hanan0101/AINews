@@ -1,0 +1,68 @@
+{
+  "selections": [
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-04T23:20:05.934146+00:00",
+      "course_url": "https://learn.microsoft.com/en-us/training/modules/what-generative-ai",
+      "platform": "Microsoft Learn",
+      "level": "beginner"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-04T23:20:05.934146+00:00",
+      "course_url": "https://skills.google/paths/17/course_templates/536",
+      "platform": "Google Skills",
+      "level": "beginner"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-04T23:20:05.934146+00:00",
+      "course_url": "https://academy.openai.com/public/courses/agents-and-workflows-bieml",
+      "platform": "OpenAI Academy",
+      "level": "intermediate"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-04T23:20:05.934146+00:00",
+      "course_url": "https://cloudskillsboost.google/course_templates/959",
+      "platform": "Google Cloud Skills Boost",
+      "level": "intermediate"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-04T23:20:05.934146+00:00",
+      "course_url": "https://semrush.com/academy/courses/content-toolkit-crash-course",
+      "platform": "Semrush Academy",
+      "level": "advanced"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-04T23:20:05.934146+00:00",
+      "course_url": "https://academy.hubspot.com/courses/ai-for-marketing-sales-and-service-bootcamp",
+      "platform": "HubSpot Academy",
+      "level": "advanced"
+    }
+  ],
+  "updated_at": "2026-07-04T23:20:05.995760+00:00",
+  "schema": "course_selection_history_v1",
+  "platform_rotation": {
+    "cycle": 1,
+    "selected_platforms": [
+      "openai academy",
+      "make academy",
+      "google skills",
+      "semrush academy",
+      "hubspot academy",
+      "microsoft learn"
+    ],
+    "remaining_platforms": [
+      "google cloud skills boost"
+    ],
+    "active_platform_count": 7,
+    "target_platform_count": 6,
+    "reshuffled": true,
+    "updated_at": "2026-07-04T23:20:05.995760+00:00",
+    "last_issue_id": "2026-W27",
+    "last_issue_date": "2026-07-04T23:20:05.934146+00:00"
+  }
+}

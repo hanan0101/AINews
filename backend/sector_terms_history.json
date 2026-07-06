@@ -1,6 +1,6 @@
 {
   "schema": "sector_terms_history_v1",
-  "updated": "2026-06-08T13:08:36.060471+00:00",
+  "updated": "2026-07-05T12:31:12.659150+00:00",
   "sectors": {
     "museums": {
       "base_terms": "museum gallery exhibition visitor guide curation collections",
@@ -156,228 +156,407 @@
     },
     "الأفلام": {
       "learned_terms": [
-        "google",
-        "artificial",
-        "intelligence",
-        "latest",
-        "updates",
-        "مهرجان",
-        "أفلام",
-        "runway",
-        "يعرض",
-        "أعمال"
+        "يضيف",
+        "توليد",
+        "فيديو",
+        "إطلاق",
+        "modify",
+        "داخل",
+        "luma",
+        "site",
+        "lumalabs",
+        "news"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-07-05"
     },
     "إنتاجية العمل": {
       "learned_terms": [
+        "notes",
         "إطلاق",
-        "claude",
-        "opus",
-        "بتحسينات",
-        "التفكير",
-        "والبرمجة",
-        "anthropic",
-        "artificial",
-        "intelligence",
-        "latest"
+        "نماذج",
+        "fugu",
+        "لتنسيق",
+        "مهام",
+        "متعددة",
+        "ultra",
+        "sakana",
+        "update"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-07-05"
     },
     "الصحة الجسدية": {
       "learned_terms": [
-        "اشتراكات",
-        "وجبات",
-        "صحية",
-        "مجدولة",
-        "zomato",
-        "cooking",
-        "meal",
-        "planning",
-        "feature",
-        "product"
+        "شفافية",
+        "الأثر",
+        "البيئي",
+        "للذكاء",
+        "environmental",
+        "transparency",
+        "initiative",
+        "united",
+        "nations",
+        "vision"
       ],
-      "last_updated": "2026-06-04"
+      "last_updated": "2026-06-29"
     },
     "المكتبات": {
       "learned_terms": [
-        "القفل",
-        "chatgpt",
-        "لمنع",
-        "الأوامر",
-        "openai",
-        "artificial",
-        "intelligence",
-        "latest",
-        "updates",
-        "feature"
+        "online",
+        "تحديد",
+        "الشاشة",
+        "لوحة",
+        "gemini",
+        "chrome",
+        "panel",
+        "flash",
+        "google",
+        "artificial"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-06-26"
     },
     "الأزياء": {
       "learned_terms": [
-        "المزعومة",
-        "باسم",
-        "dreaming",
-        "openai",
-        "artificial",
-        "intelligence",
-        "latest",
-        "توسيع",
-        "بنمط",
-        "updates"
+        "لتجربة",
+        "الأزياء",
+        "styling",
+        "rollout",
+        "vision",
+        "fashion",
+        "لصور",
+        "بالملابس",
+        "virtual",
+        "feature"
       ],
-      "last_updated": "2026-06-06"
+      "last_updated": "2026-06-29"
     },
     "الموسيقى": {
       "learned_terms": [
         "tool",
         "تحديث",
-        "songengine",
-        "بميزات",
-        "جديدة",
-        "لكتابة",
-        "الأغاني",
-        "feelyoursound",
-        "feature",
+        "kling",
+        "يدعم",
+        "الصوت",
+        "أصلي",
+        "video",
+        "kuaishou",
+        "site",
         "release"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-07-05"
     },
     "التراث": {
       "learned_terms": [
-        "release",
-        "تطبيق",
-        "ollie",
-        "scan",
-        "يشرح",
-        "القطع",
-        "بالمسح",
-        "داخل",
-        "clos",
-        "lucé"
+        "مهمة",
+        "بهاراتام",
+        "gyan",
+        "bharatam",
+        "manuscript",
+        "digitisation",
+        "india",
+        "today",
+        "coverage",
+        "heritage"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-06-25"
     },
     "الصحة النفسية": {
       "learned_terms": [
-        "voice",
-        "narration",
-        "product",
-        "ميزة",
-        "google",
-        "phone",
-        "ترصد",
-        "مكالمات",
-        "انتحال",
-        "صوتي"
+        "صوتي",
+        "canary",
+        "ambient",
+        "يتوفر",
+        "داخل",
+        "تطبيقات",
+        "zoom",
+        "speech",
+        "wellness",
+        "assistant"
       ],
-      "last_updated": "2026-06-03"
+      "last_updated": "2026-06-29"
     },
     "الفنون البصرية": {
       "learned_terms": [
-        "ملاحظات",
-        "إصدار",
+        "lite",
+        "creative",
+        "توسيع",
         "figma",
-        "تعرض",
-        "تحديثات",
-        "المنتجات",
-        "library",
-        "research",
-        "product",
-        "update"
+        "design",
+        "agent",
+        "بأدوات",
+        "مخصصة",
+        "وسياق",
+        "أكبر"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-07-05"
     },
     "الأدب": {
       "learned_terms": [
-        "يتيح",
-        "التفكير",
-        "الموس",
-        "مجان",
-        "artificial",
-        "intelligence",
-        "latest",
-        "يفتح",
-        "الممتد",
-        "updates"
+        "سدايا",
+        "تنال",
+        "جائزة",
+        "أممية",
+        "البيانات",
+        "national",
+        "data",
+        "bank",
+        "estishraf",
+        "sdaia"
       ],
-      "last_updated": "2026-06-07"
+      "last_updated": "2026-06-29"
     },
     "الذكاء الاصطناعي والتعليم والتدريب والمهام اليومية": {
       "learned_terms": [
-        "rollout",
-        "تحديثات",
-        "claude",
-        "مركز",
-        "المساعدة",
-        "anthropic",
-        "artificial",
-        "intelligence",
-        "latest",
-        "updates"
+        "launches",
+        "introducing",
+        "announces",
+        "إطلاق",
+        "perplexity",
+        "computer",
+        "counsel",
+        "للمحامين",
+        "update",
+        "changelog"
       ],
-      "last_updated": "2026-06-06"
+      "last_updated": "2026-06-29"
     },
     "العمارة": {
       "learned_terms": [
+        "siemens",
         "design",
-        "tool",
-        "release",
-        "ميزة",
-        "building",
-        "layout",
-        "explorer",
-        "التجريبية",
-        "forma",
-        "autodesk"
+        "planner",
+        "وكيل",
+        "تصميم",
+        "داخلي",
+        "agent",
+        "update",
+        "changelog",
+        "feature"
       ],
-      "last_updated": "2026-06-04"
+      "last_updated": "2026-06-29"
     },
     "المسرح": {
       "learned_terms": [
-        "product",
-        "update",
-        "naver",
-        "shopping",
-        "يجعل",
-        "مساعد",
-        "التسوق",
-        "يقترح",
-        "تلقائي",
-        "agent"
+        "agent",
+        "إطلاق",
+        "إضافات",
+        "مدمج",
+        "داخل",
+        "grok",
+        "build",
+        "site",
+        "release",
+        "notes"
       ],
-      "last_updated": "2026-06-03"
+      "last_updated": "2026-06-13"
     },
     "الطهي": {
       "learned_terms": [
-        "بالصور",
-        "والصوت",
-        "إطلاق",
-        "healthy",
-        "subscriptions",
-        "zomato",
-        "لجدولة",
-        "وجبات",
-        "صحية",
-        "cooking"
+        "planner",
+        "feature",
+        "norish",
+        "يضيف",
+        "وتحسينات",
+        "واجهة",
+        "recipes",
+        "cooking",
+        "meal",
+        "product"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-06-25"
     },
     "المتاحف": {
       "learned_terms": [
-        "تجربة",
-        "ذكاء",
-        "اصطناعي",
-        "تربط",
-        "الزائر",
-        "بلوحة",
-        "متحف",
-        "gogh",
-        "matching",
-        "feature"
+        "women",
+        "google",
+        "vids",
+        "يضيف",
+        "تخصيص",
+        "وحركات",
+        "للأفاتار",
+        "avatars",
+        "presentation",
+        "tool"
       ],
-      "last_updated": "2026-06-08"
+      "last_updated": "2026-06-29"
+    },
+    "الذكاء الاصطناعي والتعلي": {
+      "learned_terms": [
+        "gemini",
+        "يطرح",
+        "دفاتر",
+        "دراسة",
+        "دروس",
+        "مخصصة",
+        "google",
+        "study",
+        "notebooks",
+        "learning"
+      ],
+      "last_updated": "2026-06-29"
+    },
+    "Ã˜Â§Ã™â€žÃ˜Â£Ã™ÂÃ™â€žÃ˜Â§Ã™â€¦": {
+      "learned_terms": [
+        "runwayml",
+        "update",
+        "إضافة",
+        "تعديل",
+        "الفيديو",
+        "بالأوامر",
+        "luma",
+        "ray3",
+        "lumalabs",
+        "news"
+      ],
+      "last_updated": "2026-07-05"
+    },
+    "Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â²Ã™Å Ã˜Â§Ã˜Â¡": {
+      "learned_terms": [
+        "google",
+        "claude",
+        "sonnet",
+        "نموذج",
+        "جديد",
+        "anthropic",
+        "بقدرات",
+        "وكلاء",
+        "أقوى",
+        "site"
+      ],
+      "last_updated": "2026-07-04"
+    },
+    "Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜Â§Ã˜Â­Ã™Â": {
+      "learned_terms": [
+        "الإتاحة",
+        "العامة",
+        "experience",
+        "generator",
+        "لصناعة",
+        "تجارب",
+        "تفاعلية",
+        "للمتحاف",
+        "ومراكز",
+        "الزوار"
+      ],
+      "last_updated": "2026-07-04"
+    },
+    "Ã˜Â§Ã™â€žÃ™â€¦Ã™Æ’Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Âª": {
+      "learned_terms": [
+        "onlyoffice",
+        "docspace",
+        "developer",
+        "توليد",
+        "ملفات",
+        "بالذكاء",
+        "الاصطناعي",
+        "وأدوات",
+        "إضافات",
+        "أوسع"
+      ],
+      "last_updated": "2026-07-04"
+    },
+    "Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â³Ã™Å Ã™â€šÃ™â€°": {
+      "learned_terms": [
+        "والأفكار",
+        "الموسيقية",
+        "blog",
+        "microsoft",
+        "copilot",
+        "إتاحة",
+        "claude",
+        "opus",
+        "داخل",
+        "site"
+      ],
+      "last_updated": "2026-07-04"
+    },
+    "Ã˜Â§Ã™â€žÃ™ÂÃ™â€ Ã™Ë†Ã™â€  Ã˜Â§Ã™â€žÃ˜Â¨Ã˜ÂµÃ˜Â±Ã™Å Ã˜Â©": {
+      "learned_terms": [
+        "واستخدامهم",
+        "للذكاء",
+        "الاصطناعي",
+        "إضافة",
+        "apps",
+        "لربط",
+        "أدواتك",
+        "داخل",
+        "kittl",
+        "update"
+      ],
+      "last_updated": "2026-07-05"
+    },
+    "Ã˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€¦Ã™â€ž": {
+      "learned_terms": [
+        "إطلاق",
+        "automate",
+        "ومشغلات",
+        "جديدة",
+        "cursor",
+        "anysphere",
+        "update",
+        "ملاحظات",
+        "إصدار",
+        "الجديدة"
+      ],
+      "last_updated": "2026-07-05"
+    },
+    "Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â±Ã˜Â§Ã˜Â«": {
+      "learned_terms": [
+        "anthropic",
+        "claude",
+        "science",
+        "ورشة",
+        "للباحثين",
+        "وكلاء",
+        "لإدارة",
+        "مهام",
+        "المختبر"
+      ],
+      "last_updated": "2026-07-04"
+    },
+    "Ã˜Â§Ã™â€žÃ˜Â°Ã™Æ’Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â§Ã˜ÂµÃ˜Â·Ã™â€ Ã˜Â§Ã˜Â¹Ã™Å  Ã™Ë†Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¹Ã™â€žÃ™Å Ã™â€¦ Ã™Ë†Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¯Ã˜Â±Ã™Å Ã˜Â¨ Ã™Ë†Ã˜Â§Ã™â€žÃ™â€¦Ã™â€¡Ã˜Â§Ã™â€¦ Ã˜Â§Ã™â€žÃ™Å Ã™Ë†Ã™â€¦Ã™Å Ã˜Â©": {
+      "learned_terms": [
+        "site",
+        "update",
+        "creator",
+        "platform",
+        "تحديثات",
+        "changelog",
+        "لمنصة",
+        "بناء",
+        "البوتات",
+        "quora"
+      ],
+      "last_updated": "2026-07-04"
+    },
+    "والتدريب والمهام اليومية": {
+      "learned_terms": [
+        "blog",
+        "إطلاق",
+        "مساعدات",
+        "صوتية",
+        "grok",
+        "voice",
+        "agent",
+        "builder",
+        "site",
+        "news"
+      ],
+      "last_updated": "2026-07-05"
+    },
+    "الذكاء الاصطناعي والتعليم": {
+      "learned_terms": [
+        "blog",
+        "innovation",
+        "إطلاق",
+        "مساحة",
+        "claude",
+        "science",
+        "لعمل",
+        "العلماء",
+        "anthropic",
+        "site"
+      ],
+      "last_updated": "2026-07-05"
     }
   }
 }
