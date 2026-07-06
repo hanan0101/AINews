@@ -1,4 +1,4 @@
-# AINewsletter_v02 User Setup Guide
+# AINewsletter_v0.1 User Setup Guide
 
 This guide is for users who want to run the project locally. You can run it in two ways:
 
@@ -8,7 +8,7 @@ This guide is for users who want to run the project locally. You can run it in t
 After the server starts, open the app in your browser:
 
 ```text
-http://127.0.0.1:8000/News.html
+http://127.0.0.1:8000/UI.html
 ```
 
 ## Requirements
@@ -47,7 +47,7 @@ This starts the app and the supporting SearXNG service.
 1. Open PowerShell in the project folder:
 
 ```powershell
-cd C:\AINewsletter_v02
+cd C:\AINewsletter_v0.1
 ```
 
 2. Make sure the environment file exists:
@@ -68,7 +68,7 @@ docker compose up --build
 4. Open the app:
 
 ```text
-http://127.0.0.1:8000/News.html
+http://127.0.0.1:8000/UI.html
 ```
 
 5. To stop the services, press `Ctrl + C` in the PowerShell window.
@@ -106,7 +106,7 @@ Use this option if you want to run the app directly on your machine.
 1. Open PowerShell in the project folder:
 
 ```powershell
-cd C:\AINewsletter_v02
+cd C:\AINewsletter_v0.1
 ```
 
 2. Create a virtual environment:
@@ -143,13 +143,13 @@ notepad backend\.env
 7. Start the server:
 
 ```powershell
-python -m backend.server.http_server
+python backend\server.py
 ```
 
 8. Open the app:
 
 ```text
-http://127.0.0.1:8000/News.html
+http://127.0.0.1:8000/UI.html
 ```
 
 ## Quick Windows Restart
@@ -177,7 +177,7 @@ powershell -ExecutionPolicy Bypass -File scripts\restart_backend.ps1 -NoStart
 1. Open:
 
 ```text
-http://127.0.0.1:8000/News.html
+http://127.0.0.1:8000/UI.html
 ```
 
 2. Click **Generate** to generate the newsletter.
@@ -251,6 +251,5 @@ Then restart the server.
 
 - Do not share `backend/.env`; it contains private API keys.
 - When using Docker, the `backend` and `frontend` folders are mounted into the container, so generated files appear directly in the project folder.
-- The local app URL is `http://127.0.0.1:8000/News.html`.
+- The local app URL is `http://127.0.0.1:8000/UI.html`.
 - The local SearXNG URL when using Docker is `http://127.0.0.1:8080`.
-
