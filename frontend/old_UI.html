@@ -4276,7 +4276,7 @@
       const link = document.createElement('a');
       link.href = url;
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      link.download = `AINewsletter_v0.1_${stamp}.pdf`;
+      link.download = `AINewsletter_v02_${stamp}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();

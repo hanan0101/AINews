@@ -1430,7 +1430,7 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
             trace("Client disconnected before JSON response was sent")
 
     # Server role: Send generated PDF responses.
-    def send_pdf(self, payload, filename="AINewsletter_v0.1.pdf"):
+    def send_pdf(self, payload, filename="AINewsletter_v02.pdf"):
         self.send_response(200)
         self.send_header("Content-Type", "application/pdf")
         self.send_header("Content-Disposition", f'attachment; filename="{filename}"')

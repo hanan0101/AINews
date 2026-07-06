@@ -400,7 +400,7 @@ def build_image_pdf_document(jpeg_base64: str, width: float, height: float, link
     }}
   </style>
 </head>
-<body><img alt="AINewsletter_v0.1" src="data:image/jpeg;base64,{jpeg_base64}"><div class="pdf-link-layer">{''.join(link_html)}</div></body>
+<body><img alt="AINewsletter_v02" src="data:image/jpeg;base64,{jpeg_base64}"><div class="pdf-link-layer">{''.join(link_html)}</div></body>
 </html>"""
 
 

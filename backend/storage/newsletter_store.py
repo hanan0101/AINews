@@ -261,8 +261,10 @@ def format_footer_text(*parts):
 
 # Performs the newsletter template from settings helper step.
 def newsletter_template_from_settings(settings):
+    raw_settings = settings if isinstance(settings, dict) else {}
     settings = normalize_newsletter_settings(settings)
-    month_year = settings["month_year_override"] or current_arabic_month_year()
+    stored_month_year = clean_setting_text(raw_settings.get("month_year"), "")
+    month_year = settings["month_year_override"] or stored_month_year or current_arabic_month_year()
     footer_text = format_footer_text(
         settings["footer_prefix"],
         month_year,
@@ -334,11 +336,12 @@ def load_store():
         except Exception:
             raw = {}
     raw_news_items = news_items_from_payload(raw)
+    raw_template = raw.get("template") if isinstance(raw.get("template"), dict) else None
     store = {
         "items": [normalize_item(i, "news") for i in raw_news_items],
         "movies": [normalize_item(i, "movie") for i in raw.get("movies", []) if is_current_schema_item(i, "movie")],
         "courses": [normalize_item(i, "course") for i in raw.get("courses", []) if is_current_schema_item(i, "course")],
-        "template": newsletter_template_from_settings(load_newsletter_settings()),
+        "template": newsletter_template_from_settings(raw_template or load_newsletter_settings()),
         "feature_mode": raw.get("feature_mode", "course"),
         # Level-balanced newsletter fields are preserved separately from the
         # legacy visible lists so filters can switch views without regenerating.
@@ -367,11 +370,12 @@ def load_store_from_file(path):
     if not isinstance(raw, dict):
         raw = {}
     raw_news_items = news_items_from_payload(raw)
+    raw_template = raw.get("template") if isinstance(raw.get("template"), dict) else None
     store = {
         "items": [normalize_item(i, "news") for i in raw_news_items],
         "movies": [normalize_item(i, "movie") for i in raw.get("movies", []) if is_current_schema_item(i, "movie")],
         "courses": [normalize_item(i, "course") for i in raw.get("courses", []) if is_current_schema_item(i, "course")],
-        "template": newsletter_template_from_settings(load_newsletter_settings()),
+        "template": newsletter_template_from_settings(raw_template or load_newsletter_settings()),
         "feature_mode": raw.get("feature_mode", "course"),
         # Level-balanced newsletter fields are preserved when loading versions
         # or snapshots so the frontend filter has the same content bank.
@@ -559,8 +563,7 @@ def save_store(store, *, rebalance_news=False):
             payload[key] = values if isinstance(values, list) else []
 
     if "template" in store:
-        settings = save_newsletter_settings(store.get("template") or {})
-        payload["template"] = newsletter_template_from_settings(settings)
+        payload["template"] = newsletter_template_from_settings(store.get("template") or {})
 
     if "feature_mode" in store:
         payload["feature_mode"] = store.get("feature_mode", "course")

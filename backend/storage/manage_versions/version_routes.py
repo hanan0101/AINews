@@ -1399,7 +1399,7 @@ def handle_versions_put(handler, path, data):
                 cur.execute(
                     """
                     UPDATE versions
-                    SET issue_number = %s, title = %s, content = %s, created_at = CURRENT_TIMESTAMP
+                    SET issue_number = %s, title = %s, content = %s
                     WHERE id = %s
                     """,
                     (issue_number, title, content, version_id),

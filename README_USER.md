@@ -1,4 +1,4 @@
-﻿# AINewsletter_v0.1 User Setup Guide
+# AINewsletter_v02 User Setup Guide
 
 This guide is for users who want to run the project locally. You can run it in two ways:
 
@@ -47,7 +47,7 @@ This starts the app and the supporting SearXNG service.
 1. Open PowerShell in the project folder:
 
 ```powershell
-cd C:\AINewsletter_v0.1
+cd C:\AINewsletter_v02
 ```
 
 2. Make sure the environment file exists:
@@ -106,7 +106,7 @@ Use this option if you want to run the app directly on your machine.
 1. Open PowerShell in the project folder:
 
 ```powershell
-cd C:\AINewsletter_v0.1
+cd C:\AINewsletter_v02
 ```
 
 2. Create a virtual environment:
