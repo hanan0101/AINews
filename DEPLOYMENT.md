@@ -30,6 +30,7 @@ Main containers:
 - `postgres`: stores newsletter versions and scheduled backups.
 - `searxng`: local metasearch used by discovery.
 - `keycloak`: authentication provider.
+- `qdrant`: vector database for semantic duplicate memory.
 
 Check status:
 

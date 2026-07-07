@@ -51,6 +51,9 @@ Gemini free-tier limits are project-level, not key-level; changing only the API 
 
 - `AI_UPDATES_MEMORY_ENABLED`: enables memory checks.
 - `AI_UPDATES_SEMANTIC_MEMORY_ENABLED`: enables Qdrant semantic duplicate checks.
+- `AI_UPDATES_QDRANT_URL`: Qdrant HTTP URL. Docker default: `http://qdrant:6333`. Leave empty for local embedded fallback.
+- `AI_UPDATES_QDRANT_API_KEY`: optional Qdrant API key for secured deployments.
+- `AI_UPDATES_QDRANT_COLLECTION`: Qdrant collection name. Default: `content_memory`.
 - `AI_UPDATES_SEMANTIC_DUPLICATE_SCORE`: old-story duplicate threshold. Default: `0.925`.
 - `AI_UPDATES_SAME_RUN_SEMANTIC_SCORE`: same-run duplicate threshold. Default: `0.90`.
 - `AI_UPDATES_MEMORY_EXACT_LIMIT`: maximum exact-memory records loaded. Default: `3000`.

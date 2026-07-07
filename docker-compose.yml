@@ -79,6 +79,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ainewsletter_local}
       HOST: 0.0.0.0
       AI_UPDATES_SEARXNG_URL: http://searxng:8080
+      AI_UPDATES_QDRANT_URL: http://qdrant:6333
       NEWS_JSON_PATH: /app/data/news/news.json
       PREVIOUS_NEWS_JSON_PATH: /app/data/news/news_previous.json
       AI_UPDATES_RUN_REPORT_PATH: /app/data/news/ai_updates_run_report.json
@@ -95,13 +96,12 @@ services:
         condition: service_started
       keycloak:
         condition: service_started
+      qdrant:
+        condition: service_started
     volumes:
       - ./data:/app/data
       - ./backend:/app/backend
       - ./scripts:/app/scripts
-      # Embedded Qdrant persistence: this named volume protects vector data
-      # independently while the broader backend source bind mount remains.
-      - qdrant_data:/app/backend/qdrant_db
       - ./frontend:/app/frontend
     logging:
       driver: json-file
@@ -130,6 +130,22 @@ services:
     # Search command is provided by the upstream SearXNG image. The app calls
     # it through AI_UPDATES_SEARXNG_URL=http://searxng:8080.
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - newsletter_network
+    restart: always
+
 # PostgreSQL change: use a named volume so database records survive container
 # recreation independently from the legacy SQLite backup in data/versions/.
 volumes:
@@ -137,8 +153,8 @@ volumes:
   # Scheduled PostgreSQL backups: this named volume stores the newest seven
   # daily SQL dumps from the PostgreSQL container.
   postgres_backups:
-  # Embedded Qdrant storage: preserves semantic-memory embeddings across
-  # application-container recreation and server deployments.
+  # Qdrant vector database storage: preserves semantic-memory embeddings
+  # independently from the application container.
   qdrant_data:
 
 networks:

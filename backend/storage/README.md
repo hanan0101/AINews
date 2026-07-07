@@ -13,8 +13,7 @@ This folder documents storage ownership. Runtime storage still lives in the moun
 - `backend/sector_terms_history.json`: مصطلحات القطاعات المتعلمة لتحسين الاستعلامات لاحقا.
 - `backend/monthly_tools-site.json`: tool registry and official-site seed data.
 - `backend/monthly_tools-site.json`: سجل الأدوات وبيانات المواقع الرسمية الأولية.
-- `backend/qdrant_db/`: embedded Qdrant semantic-memory files for duplicate detection.
-- `backend/qdrant_db/`: ملفات ذاكرة Qdrant الدلالية لاكتشاف التكرار.
+- `qdrant_data`: Docker volume for Qdrant semantic-memory vectors.
 - `postgres_data`: Docker volume for saved newsletter versions.
 - `postgres_data`: مجلد Docker لحفظ إصدارات النشرة.
 - `postgres_backups`: Docker volume for PostgreSQL SQL backups.
@@ -27,4 +26,3 @@ Generated state is separated from source code when Docker runs by mounting `/app
 
 Small JSON state files remain under `backend/` because the current pipeline reads them directly during local development and Docker bind mounts.
 تبقى ملفات JSON الصغيرة داخل `backend/` لأن المسار الحالي يقرأها مباشرة أثناء التطوير المحلي وتركيبات Docker.
-

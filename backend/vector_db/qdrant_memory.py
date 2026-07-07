@@ -7,7 +7,9 @@ import threading
 from backend.config.settings import (
     AI_UPDATES_EMBED_SIZE,
     AI_UPDATES_MEMORY_ENABLED,
+    AI_UPDATES_QDRANT_API_KEY,
     AI_UPDATES_QDRANT_COLLECTION,
+    AI_UPDATES_QDRANT_URL,
     QDRANT_DB_DIR,
 )
 
@@ -48,14 +50,20 @@ def ensure_qdrant_collection(qdrant) -> bool:
         return False
 
 
-# Opens the local embedded Qdrant memory when vector memory is enabled.
+# Opens the configured Qdrant memory when vector memory is enabled.
 def open_qdrant_memory():
     global _QDRANT_LOCK_WARNING_SHOWN
     if not AI_UPDATES_MEMORY_ENABLED or QdrantClient is None:
         return None
     try:
-        QDRANT_DB_DIR.mkdir(parents=True, exist_ok=True)
-        qdrant = QdrantClient(path=str(QDRANT_DB_DIR))
+        if AI_UPDATES_QDRANT_URL:
+            client_kwargs = {"url": AI_UPDATES_QDRANT_URL}
+            if AI_UPDATES_QDRANT_API_KEY:
+                client_kwargs["api_key"] = AI_UPDATES_QDRANT_API_KEY
+            qdrant = QdrantClient(**client_kwargs)
+        else:
+            QDRANT_DB_DIR.mkdir(parents=True, exist_ok=True)
+            qdrant = QdrantClient(path=str(QDRANT_DB_DIR))
         ensure_qdrant_collection(qdrant)
         return qdrant
     except Exception as exc:

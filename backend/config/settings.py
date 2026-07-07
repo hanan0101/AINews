@@ -365,6 +365,8 @@ AI_UPDATES_MEMORY_EXACT_LIMIT = env_int("AI_UPDATES_MEMORY_EXACT_LIMIT", "3000")
 AI_UPDATES_EMBED_MODEL = os.getenv("AI_UPDATES_EMBED_MODEL", "text-embedding-3-small").strip() or "text-embedding-3-small"
 AI_UPDATES_EMBED_INPUT_LIMIT = env_int("AI_UPDATES_EMBED_INPUT_LIMIT", "1200")
 AI_UPDATES_EMBED_SIZE = env_int("AI_UPDATES_EMBED_SIZE", "1536")
+AI_UPDATES_QDRANT_URL = os.getenv("AI_UPDATES_QDRANT_URL", "").strip()
+AI_UPDATES_QDRANT_API_KEY = os.getenv("AI_UPDATES_QDRANT_API_KEY", "").strip()
 AI_UPDATES_QDRANT_COLLECTION = os.getenv("AI_UPDATES_QDRANT_COLLECTION", "content_memory").strip() or "content_memory"
 # Duplicate thresholds are intentionally high: below these values the same
 # company can have different legitimate updates. Lower only after audit review.
