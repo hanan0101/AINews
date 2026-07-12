@@ -5,5 +5,13 @@ __pycache__/
 .env
 backend/logs/
 backend/backups/
-backend/versions.db*
-data/
+backend/versions.db-shm
+backend/versions.db-wal
+data/*
+!data/.gitkeep
+!data/news/
+!data/news/.gitkeep
+!data/backups/
+!data/backups/.gitkeep
+!data/versions/
+!data/versions/.gitkeep
