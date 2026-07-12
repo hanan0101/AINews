@@ -1,115 +1,86 @@
 # Model Cost Estimate
 
 Generated: 2026-07-05
+Updated: 2026-07-12 — refreshed with real measured Gemini usage from the first fully successful automated run (18/18 news items, 6 courses, 5 movies).
 
 ## Scope
 
-This document estimates only the editorial model cost for the AI newsletter pipeline.
-It does not include Exa, SearXNG hosting, TMDb, server hosting, database, or manual labor.
+This document estimates only the editorial model cost for the AI newsletter pipeline (news selection, news rewrite, courses/movies selection, semantic-memory embeddings). It does not include Exa, SearXNG hosting, TMDb, server hosting, database, or manual labor.
 
-## Local Usage Evidence
+## Current Configuration
 
-Source files:
+- `AI_UPDATES_MODEL_PROVIDER=gemini` — Gemini is the active provider.
+- `GEMINI_SELECTION_MODEL=gemini-flash-lite-latest` — news/course/movie candidate selection (mechanical filtering, highest call volume).
+- `GEMINI_REWRITE_MODEL=gemini-flash-latest` — Arabic rewrite (the one stage most sensitive to language quality, so it gets the stronger of the two Flash tiers).
+- `GEMINI_EMBEDDING_MODEL=gemini-embedding-001` — semantic-memory deduplication.
+- `gemini-pro-latest` requires Cloud Billing to be enabled on this project. See the note at the end of this document if billing gets enabled later.
 
-- `data/news/model_usage_summary.json`
-- `data/news/ai_updates_run_report.json`
-- `backend/config/settings.py`
-- `backend/pipeline/modeling/model_client.py`
+## Measured Gemini Usage (real run, not estimated)
 
-Current logged OpenAI model:
+Source: `backend/logs/ai_updates_run.jsonl`, `run_id: full-20260712T013103Z-0f3762d5`, 2026-07-12. This is the first run after the Exa content-fix (see `UPDATES.md` §16) to complete fully automated end-to-end and hit the 18-item target with 6 courses and 5 movies saved.
 
-- `gpt-5.2`
+| Stage | Model | Calls | Input tokens | Output tokens |
+| --- | --- | ---: | ---: | ---: |
+| News selection (primary + 3 top-up rounds) | `gemini-flash-lite-latest` | 6 | 80,675 | 15,650 |
+| News rewrite (primary + 3 top-up rounds) | `gemini-flash-latest` | 6 | 25,744 | 5,700 |
+| **News subtotal (measured)** | | **12** | **106,419** | **21,350** |
 
-Current configured provider behavior:
+Courses and movies also called Gemini in this run (`courses_gpt_seconds: 73.6`, `movies_gpt_seconds: 19.22`, both via `supporting_prompt_gpt`) but are not yet emitting the same per-call token log as news selection — a logging gap, not a cost-free operation. Their share is estimated below by scaling the measured news cost by the share of total model time they took (92.8s of 349.3s total model time this run, ≈27%):
 
-- `AI_UPDATES_MODEL_PROVIDER` defaults to `gemini`.
-- When provider is OpenAI, `OPENAI_MODEL` defaults to `gpt-5.2`.
-- When provider is Gemini, the configured model defaults to `gemini-2.5-flash`.
+| Component | Basis | Estimated cost |
+| --- | --- | ---: |
+| News (selection + rewrite) | Measured directly | $0.1336 |
+| Courses + movies selection | Estimated from time-share (not token-logged yet) | ≈$0.0480 |
+| Embeddings (semantic memory) | Measured separately (see below) | ≈$0.0002 |
+| **Total, this run** | | **≈$0.182** |
 
-## Measured OpenAI Usage
+Embedding usage: 18 items × ~85 tokens average ≈ 1,530 input tokens at $0.15/1M ≈ $0.0002/run.
 
-The estimate uses the 6 OpenAI full-ish runs in `data/news/model_usage_summary.json` with 3+ successful model calls.
-This avoids counting tiny one-card/manual replacement runs as a full newsletter run.
+**Caveat:** this run needed 3 top-up rounds to reach 18/18 — more top-ups than a run that hits the target on the first pass. Cost per run will vary; treat $0.182 as a realistic upper-typical figure, not a fixed number. A lighter run (fewer top-ups) measured earlier this session came in around $0.09.
 
-| Metric | Average per full-ish run |
-| --- | ---: |
-| Model calls | 13.17 |
-| Input tokens | 73,293 |
-| Output tokens | 25,813 |
-| Total tokens | 99,106 |
-| Estimated input tokens | 76,917 |
+## Gemini Pricing (sourced from ai.google.dev/gemini-api/docs/pricing, checked 2026-07-12)
 
-Notes:
-
-- Some runs used top-up calls, which increases cost.
-- Gemini calls in the current app often log actual tokens as `0`; therefore Gemini is estimated using the same token shape as OpenAI.
-
-## Pricing Assumptions
-
-Official pricing pages checked:
-
-- OpenAI API pricing: https://openai.com/api/pricing/
-- Gemini API pricing: https://ai.google.dev/gemini-api/docs/pricing
-
-OpenAI note:
-
-- The local logs show `gpt-5.2`.
-- The current public pricing page may list newer/current OpenAI model names instead of `gpt-5.2`.
-- For budgeting, this document uses a comparable current OpenAI standard model rate and also shows an upper-bound OpenAI rate.
-
-| Provider / model assumption | Input per 1M tokens | Output per 1M tokens |
+| Model | Input $/1M tokens | Output $/1M tokens |
 | --- | ---: | ---: |
-| OpenAI comparable current standard model | $1.25 | $7.50 |
-| OpenAI upper-bound standard model | $2.50 | $15.00 |
-| Gemini 2.5 Flash standard | $0.30 | $2.50 |
-| Gemini 2.5 Flash batch/flex | $0.15 | $1.25 |
-| Gemini 2.5 Flash-Lite standard | $0.10 | $0.40 |
+| `gemini-flash-latest` (Gemini 3.5 Flash) | $1.50 | $9.00 |
+| `gemini-flash-lite-latest` (Gemini 3.1 Flash-Lite) | $0.25 | $1.50 |
+| `gemini-pro-latest` (Gemini 3.1 Pro Preview, ≤200k context) — requires Cloud Billing | $2.00 | $12.00 |
+| `gemini-embedding-001` | $0.15 | — |
 
-## Run Volume Assumptions
+## Run Volume Assumptions (testing + reserve margin)
 
-| Scenario | Run equivalents per year |
-| --- | ---: |
-| Production only: 4 generations per week | 208 |
-| Production + tests: 4 generations + 1 test per week | 260 |
-| Recommended budget: production + tests + 30% contingency | 338 |
-| High safety: production + tests + 50% contingency | 390 |
+| Scenario | Runs/year | Runs/month |
+| --- | ---: | ---: |
+| Production only: 1 generation/week | 52 | 4.33 |
+| Production + weekly test run | 104 | 8.67 |
+| Recommended budget: production + tests + 30% contingency | 135 | 11.25 |
+| High safety: production + tests + 50% contingency | 156 | 13.00 |
 
-## Estimated Cost Per Run
+## Estimated Cost — Monthly and Annual
 
-| Provider / model assumption | Estimated cost per full run |
-| --- | ---: |
-| OpenAI comparable current standard model | $0.285 |
-| OpenAI upper-bound standard model | $0.570 |
-| Gemini 2.5 Flash standard | $0.087 |
-| Gemini 2.5 Flash batch/flex | $0.043 |
-| Gemini 2.5 Flash-Lite standard | $0.018 |
+Using the measured/estimated $0.182 per full run (Gemini, current model split):
 
-## Annual Cost Estimate
-
-| Provider / model assumption | Production only | Production + tests | Recommended budget | High safety |
-| --- | ---: | ---: | ---: | ---: |
-| OpenAI comparable current standard model | $59.32/year | $74.15/year | $96.40/year | $111.23/year |
-| OpenAI upper-bound standard model | $118.65/year | $148.31/year | $192.80/year | $222.46/year |
-| Gemini 2.5 Flash standard | $18.00/year | $22.50/year | $29.24/year | $33.74/year |
-| Gemini 2.5 Flash batch/flex | $9.00/year | $11.25/year | $14.62/year | $16.87/year |
-| Gemini 2.5 Flash-Lite standard | $3.67/year | $4.59/year | $5.97/year | $6.89/year |
+| Scenario | Monthly | Annual |
+| --- | ---: | ---: |
+| Production only | $0.79 | $9.46 |
+| Production + tests | $1.58 | $18.93 |
+| **Recommended budget (+30% contingency)** | **$2.05** | **$24.61** |
+| High safety (+50% contingency) | $2.37 | $28.39 |
 
 ## Recommended Budget
 
-For the current pipeline shape, use this annual budget:
-
-| Option | Recommended annual budget |
+| Option | Recommended budget |
 | --- | ---: |
-| OpenAI normal budget | About $100/year |
-| OpenAI conservative budget | About $200/year |
-| Gemini 2.5 Flash normal budget | About $30/year |
-| Gemini 2.5 Flash conservative budget | About $35/year |
+| Gemini Flash (current setup) | ~$25/year (~$2.10/month) |
+| Gemini Flash, conservative (with margin for growth in candidate volume) | ~$35/year (~$3/month) |
+
+### Future: Upgrading to Gemini Pro
+
+If Cloud Billing is enabled later and `gemini-pro-latest` replaces `gemini-flash-latest` for the rewrite stage, expect roughly +$0.02–0.03/run based on the token volumes measured above. This would increase the annual budget to approximately **$28–33/year**, still well under $40/year.
 
 ## Important Caveats
 
-- The estimate assumes the current prompt size and top-up behavior stay similar.
-- If the pipeline repeatedly fails selection and retries many times, cost can rise.
-- If the shortlist is reduced or top-up calls are reduced, cost drops.
-- If Gemini actual token accounting becomes available in logs, replace the estimated Gemini calculation with actual usage.
-- Embedding costs are not included here because this document focuses on the editorial generation model. If semantic memory with OpenAI embeddings is enabled heavily, add a separate embedding budget.
-
+- Courses/movies cost above is an estimate extrapolated from model call duration, not directly token-logged. If `backend/pipeline/enrichment/supporting.py`'s model call path adds the same `model.token_usage` event news selection already emits, replace this estimate with a measured figure.
+- Cost per run varies with how many top-up rounds are needed to reach the 18-item target; the figure here reflects a real run that needed 3 top-ups, so it leans toward the higher end of normal.
+- If the shortlist size or top-up ceiling changes, re-measure rather than reusing this document's numbers as-is.
+- Embedding cost is negligible at current volume and was not a material factor in this estimate.

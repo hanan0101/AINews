@@ -315,6 +315,21 @@ def increment_newsletter_issue():
     return save_newsletter_settings(settings)
 
 
+# Flattens a level-balanced bank ({"beginner": [...], ...}) into one list,
+# in level order. Used as a fallback when a payload only carries the banked
+# form (e.g. a hand-edited/manually curated newsletter JSON) instead of the
+# flat items/backup_news/courses arrays the admin editor reads directly.
+def flatten_level_bank(bank):
+    if not isinstance(bank, dict):
+        return []
+    flattened = []
+    for level_key in ("beginner", "intermediate", "advanced"):
+        values = bank.get(level_key)
+        if isinstance(values, list):
+            flattened.extend(item for item in values if isinstance(item, dict))
+    return flattened
+
+
 # Performs the news items from payload helper step.
 def news_items_from_payload(raw):
     if not isinstance(raw, dict):
@@ -327,7 +342,30 @@ def news_items_from_payload(raw):
         for item in values:
             if is_current_schema_item(item, "news"):
                 merged.append(item)
+    if not merged:
+        # Hit in production 2026-07-12: a manually-edited newsletter JSON
+        # only had news_bank (no items/backup_news), so every card editor
+        # request against it returned "News item not found" - the id existed
+        # in news_bank but load_store() never looked there.
+        for item in flatten_level_bank(raw.get("news_bank")):
+            if is_current_schema_item(item, "news"):
+                merged.append(item)
     return dedupe_store_items(merged)
+
+
+# Same fallback as news_items_from_payload, for courses: reads the flat
+# courses array first, and only flattens courses_bank if that's empty.
+def courses_items_from_payload(raw):
+    if not isinstance(raw, dict):
+        return []
+    values = raw.get("courses", [])
+    courses = [item for item in values if is_current_schema_item(item, "course")] if isinstance(values, list) else []
+    if not courses:
+        courses = [
+            item for item in flatten_level_bank(raw.get("courses_bank"))
+            if is_current_schema_item(item, "course")
+        ]
+    return courses
 
 
 # Reads load store from the current store or request context.
@@ -344,7 +382,7 @@ def load_store():
     store = {
         "items": [normalize_item(i, "news") for i in raw_news_items],
         "movies": [normalize_item(i, "movie") for i in raw.get("movies", []) if is_current_schema_item(i, "movie")],
-        "courses": [normalize_item(i, "course") for i in raw.get("courses", []) if is_current_schema_item(i, "course")],
+        "courses": [normalize_item(i, "course") for i in courses_items_from_payload(raw)],
         "template": newsletter_template_from_settings(raw_template or load_newsletter_settings()),
         "feature_mode": raw.get("feature_mode", "course"),
         # Level-balanced newsletter fields are preserved separately from the
@@ -411,7 +449,7 @@ def load_store_from_file(path):
     store = {
         "items": [normalize_item(i, "news") for i in raw_news_items],
         "movies": [normalize_item(i, "movie") for i in raw.get("movies", []) if is_current_schema_item(i, "movie")],
-        "courses": [normalize_item(i, "course") for i in raw.get("courses", []) if is_current_schema_item(i, "course")],
+        "courses": [normalize_item(i, "course") for i in courses_items_from_payload(raw)],
         "template": newsletter_template_from_settings(raw_template or load_newsletter_settings()),
         "feature_mode": raw.get("feature_mode", "course"),
         # Level-balanced newsletter fields are preserved when loading versions

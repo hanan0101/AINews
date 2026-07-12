@@ -1,0 +1,114 @@
+{
+  "selections": [
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-05T07:50:01.030180+00:00",
+      "course_url": "https://skills.google/paths/1951/course_templates/1268",
+      "platform": "Google Skills",
+      "level": "beginner"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-05T07:50:01.030180+00:00",
+      "course_url": "https://skills.google/course_templates/1268",
+      "platform": "Google Skills",
+      "level": "beginner"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-05T07:50:01.030180+00:00",
+      "course_url": "https://stagging.maharatech.gov.eg/course/view.php",
+      "platform": "Stagging Maharatech Gov Eg",
+      "level": "intermediate"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-05T07:50:01.030180+00:00",
+      "course_url": "https://academy.openai.com/public/courses/agents-and-workflows-bieml",
+      "platform": "OpenAI Academy",
+      "level": "intermediate"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-05T07:50:01.030180+00:00",
+      "course_url": "https://learn.zapier.com/courses/zapier-academy-published-preview/sections/2b59c703-2893-44d9-ae08-d1f8e9c379ef/blocks/7bee8fc4-9bf4-4585-a5a1-490a0db1b6fc",
+      "platform": "Zapier Academy",
+      "level": "advanced"
+    },
+    {
+      "issue_id": "2026-W27",
+      "issue_date": "2026-07-05T07:50:01.030180+00:00",
+      "course_url": "https://learn.zapier.com/courses/zapier-academy-published-preview",
+      "platform": "Zapier Academy",
+      "level": "advanced"
+    },
+    {
+      "issue_id": "2026-W28",
+      "issue_date": "2026-07-12T01:40:24.732738+00:00",
+      "course_url": "https://learn.microsoft.com/en-us/training/paths/build-foundation-extend-microsoft-365-copilot",
+      "platform": "Microsoft Learn",
+      "level": "beginner"
+    },
+    {
+      "issue_id": "2026-W28",
+      "issue_date": "2026-07-12T01:40:24.732738+00:00",
+      "course_url": "https://semrush.com/academy/courses/ai-for-marketing-course",
+      "platform": "Semrush Academy",
+      "level": "beginner"
+    },
+    {
+      "issue_id": "2026-W28",
+      "issue_date": "2026-07-12T01:40:24.732738+00:00",
+      "course_url": "https://maharatech.gov.eg/course/view.php",
+      "platform": "Maharatech Gov Eg",
+      "level": "intermediate"
+    },
+    {
+      "issue_id": "2026-W28",
+      "issue_date": "2026-07-12T01:40:24.732738+00:00",
+      "course_url": "https://cloudskillsboost.google/course_templates/959",
+      "platform": "Google Cloud Skills Boost",
+      "level": "intermediate"
+    },
+    {
+      "issue_id": "2026-W28",
+      "issue_date": "2026-07-12T01:40:24.732738+00:00",
+      "course_url": "https://academy.hubspot.com/courses/digital-marketing",
+      "platform": "HubSpot Academy",
+      "level": "advanced"
+    },
+    {
+      "issue_id": "2026-W28",
+      "issue_date": "2026-07-12T01:40:24.732738+00:00",
+      "course_url": "https://academy.hubspot.com/courses/ai-for-marketing-sales-and-service-bootcamp",
+      "platform": "HubSpot Academy",
+      "level": "advanced"
+    }
+  ],
+  "updated_at": "2026-07-12T01:40:24.896992+00:00",
+  "schema": "course_selection_history_v1",
+  "platform_rotation": {
+    "cycle": 14,
+    "selected_platforms": [
+      "zapier academy",
+      "microsoft learn",
+      "stagging maharatech gov eg",
+      "semrush academy",
+      "datacamp",
+      "hubspot academy"
+    ],
+    "remaining_platforms": [
+      "maharatech gov eg",
+      "openai academy",
+      "google cloud skills boost",
+      "google skills",
+      "make academy"
+    ],
+    "active_platform_count": 11,
+    "target_platform_count": 6,
+    "reshuffled": true,
+    "updated_at": "2026-07-12T01:40:24.896980+00:00",
+    "last_issue_id": "2026-W28",
+    "last_issue_date": "2026-07-12T01:40:24.732738+00:00"
+  }
+}

@@ -86,8 +86,8 @@ More detail: [backend/storage/README.md](../backend/storage/README.md) (storage 
 Start with `backend/pipeline/orchestrator.py` — it shows the whole flow in order. Then read the stage modules only as you need detail:
 
 1. `backend/pipeline/tool_discovery` — query sources
-2. `backend/pipeline/fetching/sources.py` — external APIs and candidate shape
-3. `backend/pipeline/filtering/candidates.py` — why items get removed
+2. `backend/pipeline/fetching/news_discovery.py` — external APIs and candidate shape (renamed from `sources.py` 2026-07)
+3. `backend/pipeline/filtering/memory.py` — why items get removed (dedup/semantic memory)
 4. `backend/pipeline/modeling/selection.py` — prompts and model output requirements
-5. `backend/pipeline/enrichment/cards.py` — final JSON shape consumed by the frontend
+5. `backend/pipeline/enrichment/news.py` — final JSON shape consumed by the frontend
 6. `backend/server/http_server.py` — API routes and UI integration
