@@ -90,6 +90,7 @@ from backend.auth.authentication import (
     require_user,
     user_from_headers_with_refresh,
 )
+from backend.auth.keycloak_bootstrap import bootstrap_keycloak_if_missing
 
 # Runtime paths used by the static UI server and local Python launcher.
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -2018,6 +2019,7 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "127.0.0.1")
     port = 8000
     try:
+        bootstrap_keycloak_if_missing()
         init_versions_db()
         # Start the AI updates background daemon
         start_background_daemon()

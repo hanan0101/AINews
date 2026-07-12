@@ -19,7 +19,13 @@ except ImportError:
 KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL", "http://localhost:8180/").strip()
 KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "newsletter").strip()
 KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "newsletter-app").strip()
-KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "YOUR_CLIENT_SECRET").strip()
+# "dev-local-secret" is a real usable default, not a placeholder to fill in -
+# backend/auth/keycloak_bootstrap.py provisions the Keycloak client with
+# this exact same default when KEYCLOAK_CLIENT_SECRET isn't set in .env, so
+# a fresh environment logs in successfully with zero manual Keycloak setup.
+# Set a real KEYCLOAK_CLIENT_SECRET in backend/.env before this ever runs
+# somewhere other than your own machine.
+KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "dev-local-secret").strip()
 AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "access_token").strip() or "access_token"
 AUTH_REFRESH_COOKIE_NAME = os.getenv("AUTH_REFRESH_COOKIE_NAME", "refresh_token").strip() or "refresh_token"
 AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "0").strip().lower() in {"1", "true", "yes", "on"}
