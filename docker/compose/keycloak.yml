@@ -12,9 +12,21 @@ services:
     ports:
       - "8180:8080"
     command: start-dev
+    # Without this, Keycloak's embedded H2 database (realm, client, roles,
+    # users - everything from SETUP.md Step 4) lives only inside the
+    # container's own filesystem. Any container recreation (docker compose
+    # up --build, down+up, etc.) wiped it silently, so Step 4 had to be
+    # redone from scratch after every rebuild - this is what made admin
+    # login "stop working" after a fresh build even on an environment that
+    # had already been set up once (hit in production 2026-07-12).
+    volumes:
+      - keycloak_data:/opt/keycloak/data
     networks:
       - newsletter_network
     restart: always
+
+volumes:
+  keycloak_data:
 
 networks:
   newsletter_network:

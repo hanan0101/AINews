@@ -90,6 +90,73 @@ def init_versions_db():
         con.commit()
     finally:
         con.close()
+    seed_versions_from_sqlite_if_empty()
+
+
+# backend/versions.db ships in the repo with real version history (see
+# UPDATES.md), but a genuinely fresh PostgreSQL volume (first-time clone/
+# setup, or a collaborator's machine) starts with an empty versions table -
+# init_versions_db() only does CREATE TABLE IF NOT EXISTS, it never
+# populates data. Without this, "previous versions" is silently empty on
+# every fresh environment even though the repo has the history. Runs once:
+# after the first successful seed the table is non-empty, so every later
+# call is just a cheap COUNT(*) short-circuit.
+SEED_VERSIONS_DB_FILE = Path(__file__).resolve().parents[2] / "versions.db"
+
+
+def seed_versions_from_sqlite_if_empty():
+    if not SEED_VERSIONS_DB_FILE.exists():
+        return
+    con = versions_db()
+    try:
+        with con.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM versions")
+            (count,) = cur.fetchone()
+        if count:
+            return
+        import sqlite3
+        sconn = sqlite3.connect(str(SEED_VERSIONS_DB_FILE))
+        try:
+            rows = sconn.execute(
+                "SELECT id, issue_number, title, created_at, content, kind, "
+                "pdf_path, original_filename, pdf_data, hidden_from_users "
+                "FROM versions ORDER BY id"
+            ).fetchall()
+        finally:
+            sconn.close()
+        if not rows:
+            return
+        with con.cursor() as cur:
+            for row in rows:
+                (vid, issue_number, title, created_at, content, kind,
+                 pdf_path, original_filename, pdf_data, hidden) = row
+                cur.execute(
+                    """
+                    INSERT INTO versions (id, issue_number, title, created_at, content,
+                                           kind, pdf_path, original_filename, pdf_data, hidden_from_users)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO NOTHING
+                    """,
+                    (
+                        vid, issue_number, title, created_at, content, kind,
+                        pdf_path, original_filename,
+                        psycopg2.Binary(pdf_data) if pdf_data is not None else None,
+                        bool(hidden),
+                    ),
+                )
+            # Explicit ids bypass the identity sequence - advance it past the
+            # seeded max so the next user-saved version doesn't collide.
+            cur.execute(
+                "SELECT setval(pg_get_serial_sequence('versions', 'id'), "
+                "COALESCE((SELECT MAX(id) FROM versions), 1))"
+            )
+        con.commit()
+        trace(f"Seeded {len(rows)} versions from {SEED_VERSIONS_DB_FILE} into empty PostgreSQL table")
+    except Exception as exc:
+        con.rollback()
+        trace(f"Version seed from SQLite failed: {exc}")
+    finally:
+        con.close()
 
 
 # PostgreSQL change: centralize psycopg2 connection creation for every existing
