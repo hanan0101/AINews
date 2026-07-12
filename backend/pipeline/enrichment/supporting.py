@@ -23,6 +23,7 @@ from backend.pipeline.filtering.level_balancing import (
     build_level_bank,
     build_recommended_view,
     classify_course_item,
+    course_platform_topic_diversity_key,
 )
 from backend.pipeline.modeling.courses import select_supporting_content_cards
 from backend.logging.pipeline_logging import log_event, set_run_context, summarize_items
@@ -280,7 +281,16 @@ def apply_supporting_content(built: dict, pre_run_payload: dict | None = None) -
         # Level-balanced newsletter change: save all selected courses as a
         # level bank, but keep the legacy `courses` field as the default
         # recommended 2-card view.
-        courses_bank, bank_courses, course_bank_notes = build_level_bank(course_cards, COURSES_PER_LEVEL, classify_course_item)
+        courses_bank, bank_courses, course_bank_notes = build_level_bank(
+            course_cards,
+            COURSES_PER_LEVEL,
+            classify_course_item,
+            diversity_key_fn=course_platform_topic_diversity_key,
+            # Prefer free courses at ties; does not override a stronger paid
+            # candidate since ordering only affects which item breaks a tie
+            # within the diversity selection, not the level/topic filtering.
+            sort_key_fn=lambda item: 0 if item.get("is_free") else 1,
+        )
         news_bank = payload.get("news_bank") if isinstance(payload.get("news_bank"), dict) else {}
         recommended_view = build_recommended_view(
             news_bank,

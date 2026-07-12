@@ -8,14 +8,22 @@ balanced bank first, then choose the visible view from that bank.
 
 from __future__ import annotations
 
+import math
 import re
 from collections import Counter
 from typing import Iterable
 
+from backend.config.settings import normalized_text
+
 
 LEVELS = ("beginner", "intermediate", "advanced")
 NEWS_PER_LEVEL = 4
-COURSES_PER_LEVEL = 2
+# Bank target raised from a flat 2/level (6 total) to match the same
+# "backing pool bigger than the visible view" pattern already used for news
+# (enrichment/news.py computes news_per_level = ceil(required_total / 3));
+# the default *visible* view (DEFAULT_COURSE_VIEW below) is unchanged.
+COURSES_TOTAL_TARGET = 18
+COURSES_PER_LEVEL = max(2, math.ceil(COURSES_TOTAL_TARGET / len(LEVELS)))
 DEFAULT_NEWS_VIEW = {"beginner": 2, "intermediate": 1, "advanced": 1}
 DEFAULT_COURSE_VIEW = {"beginner": 2, "intermediate": 2, "advanced": 2}
 
@@ -99,7 +107,22 @@ def classify_course_item(item: dict) -> dict:
     result["level"] = display_level(platform_level)
     result["course_level"] = normalize_level(platform_level)
     result["topic_group"] = result.get("topic_group") or infer_topic_group(result)
+    result["platform"] = result.get("platform") or result.get("provider") or result.get("source") or ""
     return result
+
+
+# Diversity key: news only cares about topic_group (repeat platform doesn't
+# apply). Courses should reject a candidate only when BOTH the platform and
+# the topic already appear in that level's picks - a platform repeating with
+# a different topic is fine, matching the "same platform+topic" rule.
+def _topic_diversity_key(item: dict) -> str:
+    return item.get("topic_group") or "general"
+
+
+def course_platform_topic_diversity_key(item: dict) -> str:
+    platform = normalized_text(item.get("platform") or "")
+    topic = item.get("topic_group") or "general"
+    return f"{platform}|{topic}"
 
 
 # Performs the item key helper step.
@@ -108,8 +131,14 @@ def _item_key(item: dict) -> str:
 
 
 # Performs the select topic diverse helper step.
-def select_topic_diverse(items: list[dict], count: int, *, used_keys: set[str] | None = None) -> tuple[list[dict], list[str]]:
-    """Select items while avoiding more than two of one topic when possible."""
+def select_topic_diverse(
+    items: list[dict],
+    count: int,
+    *,
+    used_keys: set[str] | None = None,
+    diversity_key_fn=_topic_diversity_key,
+) -> tuple[list[dict], list[str]]:
+    """Select items while avoiding more than two sharing the same diversity key."""
     selected: list[dict] = []
     fallbacks: list[dict] = []
     topic_counts: Counter[str] = Counter()
@@ -119,7 +148,7 @@ def select_topic_diverse(items: list[dict], count: int, *, used_keys: set[str] |
         key = _item_key(item)
         if key in used_keys:
             continue
-        topic = item.get("topic_group") or "general"
+        topic = diversity_key_fn(item)
         if topic_counts[topic] >= 2:
             fallbacks.append(item)
             continue
@@ -141,16 +170,31 @@ def select_topic_diverse(items: list[dict], count: int, *, used_keys: set[str] |
 
 
 # Builds build level bank for the next pipeline or API step.
-def build_level_bank(items: list[dict], per_level: int, classifier) -> tuple[dict[str, list[dict]], list[dict], list[str]]:
-    """Create a complete Beginner/Intermediate/Advanced bank with fallbacks."""
+def build_level_bank(
+    items: list[dict],
+    per_level: int,
+    classifier,
+    *,
+    diversity_key_fn=_topic_diversity_key,
+    sort_key_fn=None,
+) -> tuple[dict[str, list[dict]], list[dict], list[str]]:
+    """Create a complete Beginner/Intermediate/Advanced bank with fallbacks.
+
+    sort_key_fn (optional) orders each level's candidate pool before topic
+    diversity picks from it - used to break ties toward preferred items
+    (e.g. free courses) without overriding a stronger candidate.
+    """
     classified = [classifier(item) for item in items or [] if isinstance(item, dict)]
     grouped = {level: [item for item in classified if normalize_level(item.get("level")) == level] for level in LEVELS}
+    if sort_key_fn is not None:
+        for level in LEVELS:
+            grouped[level] = sorted(grouped[level], key=sort_key_fn)
     bank = {level: [] for level in LEVELS}
     used_keys: set[str] = set()
     notes: list[str] = []
 
     for level in LEVELS:
-        picked, level_notes = select_topic_diverse(grouped[level], per_level, used_keys=used_keys)
+        picked, level_notes = select_topic_diverse(grouped[level], per_level, used_keys=used_keys, diversity_key_fn=diversity_key_fn)
         bank[level].extend(picked)
         notes.extend(f"{level}:{note}" for note in level_notes)
 
@@ -161,7 +205,7 @@ def build_level_bank(items: list[dict], per_level: int, classifier) -> tuple[dic
         missing = per_level - len(bank[level])
         if missing <= 0:
             continue
-        extra, _ = select_topic_diverse(fallback_pool, missing, used_keys=used_keys)
+        extra, _ = select_topic_diverse(fallback_pool, missing, used_keys=used_keys, diversity_key_fn=diversity_key_fn)
         for item in extra:
             copied = dict(item)
             copied["level_bank_fallback_for"] = level

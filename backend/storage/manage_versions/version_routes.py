@@ -26,6 +26,7 @@ from backend.utils.debug_logging import trace
 from backend.storage.newsletter_store import (
     DISPLAY_COUNTS,
     NEWS_JSON_FILE,
+    publish_current_store,
     load_newsletter_settings,
     newsletter_template_from_settings,
     safe_int,
@@ -1312,6 +1313,7 @@ def handle_versions_post(handler, path):
         finally:
             con.close()
         backup_versions_db()
+        publish_current_store()
         handler.send_json({"id": new_id})
         return True
 
@@ -1429,6 +1431,7 @@ def handle_versions_put(handler, path, data):
         return True
     if save_current:
         backup_versions_db()
+        publish_current_store()
     response = {"ok": True, "id": version_id, "updated_content": save_current}
     if hidden_present:
         response["hidden_from_users"] = hidden_from_users

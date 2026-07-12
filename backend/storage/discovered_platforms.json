@@ -22,9 +22,11 @@
     "first_seen": "2026-07-04",
     "url_path": "/course/view.php",
     "paths": {
-      "/course/view.php": 2
+      "/course/view.php": 3
     },
-    "times_selected": 2
+    "times_selected": 3,
+    "promoted": true,
+    "promoted_at": "2026-07-11"
   },
   "stagging.maharatech.gov.eg": {
     "domain": "stagging.maharatech.gov.eg",
@@ -34,5 +36,16 @@
       "/course/view.php": 1
     },
     "times_selected": 1
+  },
+  "tonex.com": {
+    "domain": "tonex.com",
+    "first_seen": "2026-07-08",
+    "url_path": "/training-courses/advanced-prompting-for-chatgpt-and-copilot",
+    "paths": {
+      "/training-courses/advanced-prompting-for-chatgpt-and-copilot": 3
+    },
+    "times_selected": 3,
+    "promoted": true,
+    "promoted_at": "2026-07-11"
   }
 }

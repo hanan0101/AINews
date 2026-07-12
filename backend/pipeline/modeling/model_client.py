@@ -11,6 +11,22 @@ from backend.pipeline.modeling import gemini_client, openai_client
 MODEL_PROVIDER = AI_UPDATES_MODEL_PROVIDER if AI_UPDATES_MODEL_PROVIDER in {"gemini", "openai"} else "gemini"
 MODEL_FLASH_MODEL = OPENAI_MODEL if MODEL_PROVIDER == "openai" else gemini_client.GEMINI_FLASH_MODEL
 
+# Role -> model resolution for the 3-model split (selection / rewrite /
+# embedding). OpenAI keeps using one model for every role (it is not the
+# focus of this split); Gemini gets a distinct model per role so the cheaper,
+# higher-quota model handles the higher-frequency rewrite work while the
+# stronger model is reserved for the harder editorial-judgment (selection) work.
+_ROLE_MODELS_GEMINI = {
+    "selection": gemini_client.GEMINI_SELECTION_MODEL,
+    "rewrite": gemini_client.GEMINI_REWRITE_MODEL,
+}
+
+
+def model_for_role(role: str) -> str:
+    if MODEL_PROVIDER == "openai":
+        return OPENAI_MODEL
+    return _ROLE_MODELS_GEMINI.get(role, MODEL_FLASH_MODEL)
+
 
 def model_available() -> bool:
     if MODEL_PROVIDER == "openai":
@@ -29,6 +45,19 @@ def generate_json(system_prompt: str, user_payload: Any, *, model: str | None = 
     if MODEL_PROVIDER == "openai":
         return openai_client.generate_json(system_prompt, user_payload, model=selected_model)
     return gemini_client.generate_json(system_prompt, user_payload, model=selected_model)
+
+
+# Role-based entry point (role in {"selection", "rewrite"}) - resolves the
+# model via model_for_role() instead of the caller having to know which env
+# var/constant backs each role.
+def generate_json_for_role(role: str, system_prompt: str, user_payload: Any) -> dict[str, Any]:
+    return generate_json(system_prompt, user_payload, model=model_for_role(role))
+
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    if MODEL_PROVIDER == "openai":
+        return openai_client.embed_texts(texts)
+    return gemini_client.embed_texts(texts)
 
 
 def model_error_details(exc: Exception) -> dict[str, Any]:

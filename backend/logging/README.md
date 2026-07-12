@@ -1,18 +1,17 @@
 # Logging
 
-This folder contains pipeline logging he.
+This folder contains pipeline logging helpers.
 
 ## What Gets Logged
 
-- Pipeline run ids and stage nam
-- Stage durations for source fetching, filtering, model selection, saving, and supporting conte
+- Pipeline run ids and stage names
+- Stage durations for source fetching, filtering, model selection, saving, and supporting content
 - Candidate summaries and model token estimates
-- Errors from external services such as Gemini, Exa, SearXNG, Qdrant, or PostgreSQL-adjacent flow
+- Errors from external services such as Gemini, Exa, SearXNG, Qdrant, or PostgreSQL-adjacent flows
 
 ## Where Logs Go
 
 The active JSONL event stream is written under `backend/logs/ai_updates_run.jsonl` unless environment settings change it.
-
 
 ## Why This Exists
 

@@ -1,0 +1,21 @@
+# SearXNG: self-hosted metasearch used by discovery.
+# Search behavior itself comes from the upstream image; the app reaches it
+# through AI_UPDATES_SEARXNG_URL=http://searxng:8080.
+services:
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../searxng:/etc/searxng
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - newsletter_network
+    restart: always
+
+networks:
+  newsletter_network:

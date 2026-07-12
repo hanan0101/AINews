@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from backend.pipeline.fetching.sources import *  # Shared fetching helpers.
+from backend.pipeline.fetching.news_discovery import *  # Generic low-level fetch/text helpers (not news logic).
 
 TMDB_AI_KEYWORD_IDS = (310,)
 

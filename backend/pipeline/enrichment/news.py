@@ -367,6 +367,28 @@ def save_news_report(report: dict, performance: dict) -> bool:
     news_per_level = max(NEWS_PER_LEVEL, math.ceil(required_total / 3))
     news_bank, bank_items, news_bank_notes = build_level_bank(items, news_per_level, classify_news_item)
     performance["news_saved_count"] = len(bank_items)
+
+    # Regression guard (2026-07-12, hit in production: a background top-up
+    # run whose Exa calls failed with "exa_no_credits" still unconditionally
+    # overwrote a healthy 8-item saved news.json with a worse 3-item one,
+    # since this function never looked at what was already saved before
+    # writing). Never let a run save fewer news items than what's already
+    # live - keep the existing news content and only refresh non-news fields
+    # (movies/courses/etc. are saved through their own paths, not this one).
+    existing_metadata = existing.get("metadata") if isinstance(existing.get("metadata"), dict) else {}
+    existing_news_total = int(existing_metadata.get("news_total_count") or 0)
+    if existing_news_total and len(bank_items) < existing_news_total:
+        performance["news_save_skipped_worse_than_existing"] = True
+        performance["news_save_skipped_existing_count"] = existing_news_total
+        performance["news_save_skipped_new_count"] = len(bank_items)
+        print(
+            f"[AI Updates] news.json save skipped: new run has {len(bank_items)} items, "
+            f"existing saved news.json already has {existing_news_total} - keeping existing.",
+            flush=True,
+        )
+        performance["semantic_memory_saved"] = save_news_memory(bank_items, performance)
+        write_news_fetch_state(performance, bank_items)
+        return True
     recommended_view = build_recommended_view(
         news_bank,
         existing.get("courses_bank") if isinstance(existing.get("courses_bank"), dict) else {},

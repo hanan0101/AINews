@@ -44,10 +44,12 @@ from backend.storage.newsletter_store import (
     SECTION_TO_CONTENT_TYPE,
     find_item,
     get_feature_item,
+    ensure_published_store,
     increment_newsletter_issue,
     load_newsletter_settings,
     load_news_fetch_state_server,
     load_store,
+    load_published_store,
     missing_display_sections,
     missing_sections,
     newsletter_template_from_settings,
@@ -97,6 +99,10 @@ API_BASE = "/api"
 DEFAULT_UI_PATH = "/News.html"
 LOGIN_SUCCESS_PATH = f"{DEFAULT_UI_PATH}?from=login"
 load_dotenv(ROOT_DIR / ".env", override=True)
+
+# Preserve the newsletter that existed at startup as the initial public issue.
+# Subsequent Generate runs stay admin-only drafts until Save publishes them.
+ensure_published_store()
 
 # AUTH BLOCK: Paths that can be opened before a Keycloak session exists.
 # Reason: Login and browser metadata must remain reachable while every app/API
@@ -1541,7 +1547,8 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
         if path == f"{API_BASE}/refill/progress":
             return self.send_json(current_single_refill_state())
         if path == f"{API_BASE}/news":
-            store = load_store()
+            user = self.current_user()
+            store = load_store() if user.get("is_admin") else load_published_store()
             hidden_news = store.get("items", [])[DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"]):]
             feedback = []
             missing = missing_sections(store)

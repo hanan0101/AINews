@@ -40,6 +40,10 @@ def env_path(name: str, default: Path) -> Path:
 
 
 NEWS_JSON_FILE = env_path("NEWS_JSON_PATH", FRONTEND_DIR / "news.json")
+PUBLISHED_NEWS_JSON_FILE = env_path(
+    "PUBLISHED_NEWS_JSON_PATH",
+    NEWS_JSON_FILE.with_name("news_published.json"),
+)
 PREVIOUS_NEWS_JSON_FILE = env_path("PREVIOUS_NEWS_JSON_PATH", NEWS_JSON_FILE.with_name("news_previous.json"))
 
 REQUIRED_COUNTS = {
@@ -356,6 +360,39 @@ def load_store():
     store["movies"] = reorder_positions(dedupe_store_items(store["movies"]))
     store["courses"] = reorder_positions(dedupe_store_items(store["courses"]))
     return store
+
+
+def ensure_published_store():
+    """Seed the public newsletter once, before future generations become drafts."""
+    if PUBLISHED_NEWS_JSON_FILE.exists() or not NEWS_JSON_FILE.exists():
+        return False
+    try:
+        PUBLISHED_NEWS_JSON_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temp_file = PUBLISHED_NEWS_JSON_FILE.with_suffix(".json.tmp")
+        temp_file.write_bytes(NEWS_JSON_FILE.read_bytes())
+        safe_replace_json(temp_file, PUBLISHED_NEWS_JSON_FILE)
+        trace(f"Initialized published newsletter: {PUBLISHED_NEWS_JSON_FILE}")
+        return True
+    except Exception as exc:
+        trace(f"Published newsletter initialization failed: {exc}")
+        return False
+
+
+def load_published_store():
+    """Load the last explicitly saved newsletter shown to non-admin users."""
+    return load_store_from_file(PUBLISHED_NEWS_JSON_FILE)
+
+
+def publish_current_store():
+    """Atomically promote the current admin draft to the public newsletter."""
+    if not NEWS_JSON_FILE.exists():
+        return False
+    PUBLISHED_NEWS_JSON_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = PUBLISHED_NEWS_JSON_FILE.with_suffix(".json.tmp")
+    temp_file.write_bytes(NEWS_JSON_FILE.read_bytes())
+    safe_replace_json(temp_file, PUBLISHED_NEWS_JSON_FILE)
+    trace(f"Published current newsletter: {PUBLISHED_NEWS_JSON_FILE}")
+    return True
 
 
 # Reads load store from file from the current store or request context.

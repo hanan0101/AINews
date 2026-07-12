@@ -33,10 +33,27 @@ ROOT_DIR = BACKEND_DIR.parent
 load_dotenv(BACKEND_DIR / ".env", override=False)
 logger = logging.getLogger(__name__)
 
+# Defaults use Google's "-latest" alias model ids, not dated/preview ids -
+# a dated id (e.g. gemini-2.5-flash) can get retired for new users with a
+# hard 404 (hit in production 2026-07-11); "-latest" auto-resolves to
+# whatever Google currently considers current, so a retirement degrades
+# gracefully instead of hard-breaking every Gemini call.
+#
+# CHANGE (2026-07-12, reverted same day): briefly consolidated selection AND
+# rewrite onto gemini-pro-latest, assuming this project's Google Cloud
+# billing was active. A direct API probe (bypassing our own quota tracker
+# entirely) proved it is NOT: every gemini-3.1-pro call returns 429 with
+# "limit: 0" - not "used up", a zero free-tier allowance for this model on
+# this project, so it fails 100% of the time regardless of retries or time
+# of day. gemini-flash-latest / gemini-flash-lite-latest / gemini-embedding-001
+# all probed SUCCESS on the same key. Back to role-split defaults until
+# billing is enabled on the Cloud project (see docs/GEMINI_MODEL_AND_BUDGET.md).
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_SELECTION_MODEL = os.getenv("GEMINI_SELECTION_MODEL", "gemini-flash-lite-latest").strip() or "gemini-flash-lite-latest"
+GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001").strip() or "gemini-embedding-001"
+GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
 _GEMINI_RATE_LIMIT_LOCK = threading.RLock()
 _LAST_GEMINI_CALL_STARTED_AT = 0.0
 # Temporary testing limiter: 4 seconds keeps Gemini calls under 15 requests/minute.
@@ -337,3 +354,60 @@ def generate_json(system_prompt: str, user_payload: Any, *, model: str | None = 
             "raw": usage,
         }
     return parsed
+
+
+@retry(
+    retry=retry_if_exception_type(_RETRYABLE_GEMINI_EXCEPTIONS),
+    wait=wait_exponential(multiplier=2, min=15, max=300),
+    stop=stop_after_attempt(6),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
+def _embed_content_with_retry(client: genai.Client, *, model: str, contents: list[str]) -> Any:
+    try:
+        return client.models.embed_content(
+            model=model,
+            contents=contents,
+            # gemini-embedding-001 defaults to 3072-dim output, but the
+            # Qdrant collection was created for OpenAI's 1536-dim
+            # text-embedding-3-small and every semantic-memory upsert/search
+            # was failing with "Vector dimension error: expected dim: 1536,
+            # got 3072" (hit in production 2026-07-11) until this was set.
+            # gemini-embedding-001 supports truncating to 1536 via Matryoshka
+            # representation learning without retraining/recreating anything.
+            config=types.EmbedContentConfig(output_dimensionality=1536),
+        )
+    except genai_errors.ClientError as exc:
+        message = str(exc).lower()
+        if any(signal in message for signal in ("429", "resource_exhausted", "deadline", "timeout", "500", "503")):
+            raise _RetryableGeminiClientError(str(exc)) from exc
+        raise
+
+
+# WHAT: Gemini embeddings (greenfield - no Gemini embedding path existed
+#       before; embed_texts in openai_client.py was OpenAI-only).
+# HOW: ONE request for the WHOLE batch of texts, never one request per text -
+#      embeddings must not become a second per-item request-count multiplier
+#      after the tool-validation fix (see tools_aware.model_allows_tool_records_batch).
+# INPUT: texts list.
+# OUTPUT: list[list[float]], same length/order as the input, or [] on any
+#         failure (matches openai_client.embed_texts's silent-failure contract
+#         so callers in filtering/memory.py don't need provider-specific handling).
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    cleaned = [str(text or "") for text in texts or []]
+    if not GEMINI_API_KEY or not cleaned:
+        return []
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    with _GEMINI_RATE_LIMIT_LOCK:
+        quota = _reserve_gemini_request(GEMINI_EMBEDDING_MODEL)
+        _wait_for_gemini_test_rate_limit()
+    try:
+        response = _embed_content_with_retry(client, model=GEMINI_EMBEDDING_MODEL, contents=cleaned)
+    except Exception as exc:
+        _record_gemini_error(quota, exc, GEMINI_EMBEDDING_MODEL)
+        return []
+    embeddings = getattr(response, "embeddings", None) or []
+    vectors = [list(getattr(item, "values", None) or []) for item in embeddings]
+    if len(vectors) == len(cleaned):
+        _record_gemini_usage(quota, {"embedded_count": len(vectors)}, GEMINI_EMBEDDING_MODEL)
+    return vectors

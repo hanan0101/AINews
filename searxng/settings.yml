@@ -178,9 +178,18 @@ ui:
 #
 outgoing:
   # default timeout in seconds, can be override by engine
-  request_timeout: 3.0
+  # Raised from 3.0: at 3s, slower upstream engines (Bing, Startpage) were
+  # timing out under normal load and getting counted as failures/zero
+  # results even when they would have succeeded with a bit more time.
+  request_timeout: 8.0
   # the maximum timeout in seconds
-  # max_request_timeout: 10.0
+  # Raised from 12.0 2026-07-11: our backend's own client-side timeout
+  # (AI_UPDATES_SEARXNG_TIMEOUT in backend/.env) must stay above this value
+  # or our client gives up before SearXNG's own per-engine budget expires -
+  # raised together (backend now waits 16s) after the SearXNG tool-query
+  # rotation fix increased load and started tripping client-side read
+  # timeouts under normal conditions.
+  max_request_timeout: 14.0
   # suffix of searxng_useragent, could contain information like an email address
   # to the administrator
   useragent_suffix: ""

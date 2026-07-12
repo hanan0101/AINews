@@ -1095,7 +1095,7 @@
             <button class="level-filter-option" type="button" data-news-count="6"><span>6 أخبار</span><span class="level-filter-check"></span></button>
           </div>
         </div>
-        <button class="toolbar-btn save-version-btn" data-action="save-version" onclick="saveVersion()" aria-label="حفظ نسخة" title="حفظ نسخة"><span>حفظ نسخة</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h7"/></svg></button>
+        <button class="toolbar-btn save-version-btn" data-action="save-version" onclick="saveVersion()" aria-label="حفظ ونشر" title="حفظ ونشر"><span>حفظ ونشر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h7"/></svg></button>
         <button class="toolbar-btn" data-action="download" aria-label="تحميل" title="تحميل"><span>تحميل</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
         <button class="toolbar-btn" data-action="preview" aria-label="معاينة" title="معاينة"><span>معاينة</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="toolbar-btn" data-action="settings" aria-label="الإعدادات" title="الإعدادات"><span>الإعدادات</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.3.37.8.6 1.4.6H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.4Z"/></svg></button>
@@ -1283,6 +1283,14 @@
 
   <script>
     const API_BASE = "/api";
+    // Raised from 150 (225s) 2026-07-12: a real full pipeline run measured
+    // 650-800+ seconds end to end (source fetch + 2 news-selection cycles +
+    // courses/movies), so the old window gave up mid-run and showed
+    // "incompleteContent" even when the backend was still working correctly
+    // and later finished successfully. 1000 attempts * 1.5s = 1500s (25 min)
+    // gives real margin above the worst observed run plus Gemini retry
+    // backoff.
+    const GENERATOR_POLL_MAX_ATTEMPTS = 1000;
     const LANGUAGE_KEY = "aiNewsletterLanguage";
     const PINNED_STATE_KEY = "aiNewsletterPinnedState";
     const EDITING_VERSION_KEY = "aiNewsletterEditingVersionId";
@@ -5612,7 +5620,7 @@
       let lastFeedback = '';
       let lastCounts = null;
       let stalledAfterFinish = 0;
-      for(let attempt=0; attempt<150; attempt++){
+      for(let attempt=0; attempt<GENERATOR_POLL_MAX_ATTEMPTS; attempt++){
         await new Promise(resolve => setTimeout(resolve, 1500));
         const data = await request(`${API_BASE}/news?auto=0`);
         applyState(data);
@@ -5641,7 +5649,7 @@
     }
     async function pollForAdditionalContent(section, previousCount){
       let lastFeedback = '';
-      for(let attempt=0; attempt<150; attempt++){
+      for(let attempt=0; attempt<GENERATOR_POLL_MAX_ATTEMPTS; attempt++){
         await new Promise(resolve => setTimeout(resolve, 1500));
         const data = await request(`${API_BASE}/news?auto=0`);
         applyState(data);
@@ -5659,7 +5667,7 @@
     }
     async function pollForGeneratorDone(options={}){
       const applyWhileRunning = options.applyWhileRunning !== false;
-      for(let attempt=0; attempt<150; attempt++){
+      for(let attempt=0; attempt<GENERATOR_POLL_MAX_ATTEMPTS; attempt++){
         await new Promise(resolve => setTimeout(resolve, 1500));
         const data = await request(`${API_BASE}/news?auto=0`);
         setLandingProgressFromBackend(data.generator);

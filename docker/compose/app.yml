@@ -1,0 +1,60 @@
+# Application container: the interactive server, which calls the pipeline
+# stages in-process so Generate can stream progress to the UI. This is the
+# only application container by design — its state is coupled to the running
+# server, unlike the independent services in the other compose files.
+services:
+  ainewsletter:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../backend/.env
+    # Command documented in Dockerfile: python -m backend.server.http_server
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-ainewsletter}
+      POSTGRES_USER: ${POSTGRES_USER:-ainewsletter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ainewsletter_local}
+      HOST: 0.0.0.0
+      AI_UPDATES_SEARXNG_URL: http://searxng:8080
+      AI_UPDATES_QDRANT_URL: http://qdrant:6333
+      NEWS_JSON_PATH: /app/data/news/news.json
+      PREVIOUS_NEWS_JSON_PATH: /app/data/news/news_previous.json
+      AI_UPDATES_RUN_REPORT_PATH: /app/data/news/ai_updates_run_report.json
+      VERSIONS_BACKUP_DIR: /app/data/backups
+      KEYCLOAK_SERVER_URL: http://keycloak:8080/
+      KEYCLOAK_REALM: newsletter
+      KEYCLOAK_CLIENT_ID: newsletter-app
+      # KEYCLOAK_CLIENT_SECRET is intentionally NOT set here. It must come from
+      # backend/.env via env_file below. Setting it here as
+      # ${KEYCLOAK_CLIENT_SECRET:-YOUR_CLIENT_SECRET} would resolve from the
+      # shell/root .env at compose parse time (not backend/.env) and silently
+      # override the real secret with the literal fallback string.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      searxng:
+        condition: service_started
+      keycloak:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    volumes:
+      - ../../data:/app/data
+      - ../../backend:/app/backend
+      - ../../scripts:/app/scripts
+      - ../../frontend:/app/frontend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - newsletter_network
+    restart: always
+
+networks:
+  newsletter_network:

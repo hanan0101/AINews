@@ -1,0 +1,45 @@
+# PostgreSQL: durable storage for newsletter versions, with scheduled SQL
+# backups running inside the same container (see docker/postgres/).
+services:
+  postgres:
+    build:
+      context: ..
+      dockerfile: postgres/Dockerfile
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ainewsletter}
+      POSTGRES_USER: ${POSTGRES_USER:-ainewsletter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ainewsletter_local}
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-ainewsletter}
+      PGUSER: ${POSTGRES_USER:-ainewsletter}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-ainewsletter_local}
+      BACKUP_DIR: /backups
+      BACKUP_CRON: ${POSTGRES_BACKUP_CRON:-0 2 * * *}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ainewsletter} -d ${POSTGRES_DB:-ainewsletter}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - newsletter_network
+    restart: always
+
+    # Manual backup command (run from the project root at any time):
+    # docker compose exec postgres /usr/local/bin/postgres-backup
+
+volumes:
+  postgres_data:
+  postgres_backups:
+
+networks:
+  newsletter_network:

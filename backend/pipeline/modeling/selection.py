@@ -38,11 +38,13 @@ from backend.pipeline.modeling.model_client import (
     MODEL_FLASH_MODEL,
     MODEL_PROVIDER,
     generate_json,
+    generate_json_for_role,
     model_available,
     model_error_details,
+    model_for_role,
     model_quota_remaining,
 )
-from backend.pipeline.fetching.sources import (
+from backend.pipeline.fetching.news_discovery import (
     candidate_owner_key,
     domain_blocked,
     infer_sector,
@@ -50,7 +52,7 @@ from backend.pipeline.fetching.sources import (
 )
 from backend.pipeline.fetching.course_bank import COURSE_WEEKLY_TARGET_COUNT, select_weekly_courses, upsert_course_bank
 from backend.pipeline.filtering.level_balancing import normalize_level
-from backend.pipeline.modeling.prompts.news_prompt import build_news_prompt
+from backend.pipeline.modeling.prompts.news_prompt import build_news_rewrite_prompt, build_news_selection_prompt
 from backend.pipeline.modeling.prompts.supporting_prompt import build_supporting_prompt
 
 MODEL_USAGE_FILE = AI_UPDATES_RUN_REPORT_FILE.with_name("model_usage_summary.json")
@@ -554,51 +556,143 @@ def compact_model_candidate(item: dict) -> dict:
         "product_update_signal": item.get("product_update_signal") or "",
     }
 
+# Selection and rewriting are now two separate model calls (see
+# build_news_selection_prompt's docstring comment), so the old single
+# filter_model_items() is split into three stages that ask_model() runs in
+# order: attach_source_items() (structural checks that don't need
+# title/whats_new, since those don't exist until after the rewrite call),
+# rewrite_selected_items() (the rewrite call itself), and
+# finalize_selected_items() (the quality/rejection-text checks that DO need
+# the rewritten text).
+
+
 # Prepares filter model items so downstream stages receive consistent data.
-def filter_model_items(items: list[dict], diagnostics: dict, source_by_url: dict[str, dict]) -> list[dict]:
-    """Validate GPT output against the live candidate URLs it was given."""
-    kept = []
+def attach_source_items(items: list[dict], source_by_url: dict[str, dict], diagnostics: dict) -> list[dict]:
+    """Match selection-stage output back to its raw candidate; drop items
+    with a bad domain, no matching source, a hard source-level rejection, or
+    a stale published date. Does not touch title/whats_new."""
+    matched = []
     rejected = []
-    warnings = []
-    for item in items or []:
+    for index, item in enumerate(items or []):
         url = item.get("official_url") or ""
         domain = source_domain(url)
         if domain_blocked(domain):
-            rejected.append({"title": item.get("title") or item.get("tool_name"), "reason": "disallowed_source_domain", "domain": domain})
+            rejected.append({"title": item.get("tool_name"), "reason": "disallowed_source_domain", "domain": domain})
             continue
         source_item = source_by_url.get(result_url_key(url))
         if not source_item:
-            rejected.append({"title": item.get("title") or item.get("tool_name"), "reason": "source_url_not_in_live_results", "domain": domain})
+            rejected.append({"title": item.get("tool_name"), "reason": "source_url_not_in_live_results", "domain": domain})
             continue
         title = source_item.get("title") or ""
         content = source_item.get("content") or ""
         published_date = source_item.get("published_date") or source_item.get("published_raw") or ""
-        # Editorial policy: re-check the full source after GPT selection because
+        # Editorial policy: re-check the full source after selection because
         # narrow availability can be hidden inside the article body.
         source_reject_reason = source_candidate_hard_reject_reason(source_item)
         if source_reject_reason:
-            rejected.append({
-                "title": item.get("title") or item.get("tool_name"),
-                "reason": source_reject_reason,
-                "domain": domain,
-            })
+            rejected.append({"title": item.get("tool_name"), "reason": source_reject_reason, "domain": domain})
             continue
         # News freshness change: keep rejection diagnostics tied to the
         # configured lookback window instead of the old fixed 14-day label.
         if not result_is_recent_enough(published_date):
-            rejected.append({"title": item.get("title") or item.get("tool_name"), "reason": "outside_lookback_window", "domain": domain})
+            rejected.append({"title": item.get("tool_name"), "reason": "outside_lookback_window", "domain": domain})
             continue
-        item["title"] = normalize_editorial_text(item.get("title") or "")
-        item["whats_new"] = normalize_editorial_text(item.get("whats_new") or "")
+        item["rewrite_id"] = str(index)
         item["tool_name"] = flatten_nested_parentheses(clean_text(item.get("tool_name") or ""))
         item["company_name"] = flatten_nested_parentheses(clean_text(item.get("company_name") or ""))
+        item["source_item"] = source_item
+        item["source_title"] = title
+        item["source_domain"] = source_item.get("source_domain") or domain
+        item["published_date"] = published_date
+        item["source_query"] = source_item.get("query") or ""
+        item["source_bucket"] = source_item.get("bucket") or ""
+        if item.get("sector") not in NEWS_SECTORS:
+            item["sector"] = infer_sector(title, content, "")
+        matched.append(item)
+    if rejected:
+        diagnostics.setdefault("gpt_output_rejected", []).extend(rejected)
+    return matched
+
+
+# Sends every matched item to the rewrite model in ONE request (never one
+# request per item) and merges the Arabic title/whats_new back by
+# rewrite_id. An item missing from the rewrite response is dropped, matching
+# the old fused-prompt behavior of rejecting candidates too weak to write a
+# grounded card for.
+def rewrite_selected_items(matched: list[dict], diagnostics: dict, stage: str) -> list[dict]:
+    if not matched:
+        return []
+    payload = [
+        {
+            "id": item["rewrite_id"],
+            "source_title": item.get("source_title") or "",
+            "source_text": clean_text((item.get("source_item") or {}).get("content") or "")[:900],
+        }
+        for item in matched
+    ]
+    rewrite_model = model_for_role("rewrite")
+    log_event(
+        "prompt.news_rewrite.started",
+        stage=stage,
+        model=rewrite_model,
+        provider=MODEL_PROVIDER,
+        items=len(payload),
+    )
+    started = time.time()
+    try:
+        parsed = generate_json_for_role("rewrite", build_news_rewrite_prompt(), {"items": payload})
+    except Exception as exc:
+        details = model_failure_details(exc)
+        diagnostics[f"{MODEL_PROVIDER}_{stage}_rewrite_failure"] = details
+        record_model_failure(f"{stage}_rewrite", rewrite_model, MODEL_PROVIDER, details, {"items": len(payload)})
+        log_event(
+            "prompt.news_rewrite.model_failed",
+            stage=stage,
+            model=rewrite_model,
+            provider=MODEL_PROVIDER,
+            **{key: value for key, value in details.items() if key not in {"provider", "model"}},
+        )
+        print(f"[AI Updates] {MODEL_PROVIDER} rewrite failed stage={stage} category={details['category']} error={details['error']}", flush=True)
+        return []
+    if not isinstance(parsed, dict):
+        return []
+    usage = parsed.pop("__model_usage", None)
+    if usage:
+        log_token_usage(f"{stage}_rewrite", rewrite_model, MODEL_PROVIDER, usage, payload_candidates=len(payload))
+    by_id = {}
+    for row in parsed.get("rewritten") or []:
+        rid = str(row.get("id") or "")
+        if rid:
+            by_id[rid] = row
+    log_event(
+        "prompt.news_rewrite.finished",
+        stage=stage,
+        seconds=round(time.time() - started, 2),
+        requested=len(payload),
+        rewritten=len(by_id),
+    )
+    result = []
+    for item in matched:
+        row = by_id.get(item["rewrite_id"])
+        if not row:
+            continue
+        item["title"] = normalize_editorial_text(row.get("title") or "")
+        item["whats_new"] = normalize_editorial_text(row.get("whats_new") or "")
+        result.append(item)
+    return result
+
+
+# Quality/rejection-text checks that need the rewritten title/whats_new -
+# the part of the old filter_model_items() that had to move after the
+# rewrite call.
+def finalize_selected_items(items: list[dict], diagnostics: dict) -> list[dict]:
+    kept = []
+    rejected = []
+    for item in items or []:
+        source_item = item.get("source_item") if isinstance(item.get("source_item"), dict) else {}
         quality_reject_reason = selected_item_quality_reject_reason(item, source_item)
         if quality_reject_reason:
-            rejected.append({
-                "title": item.get("title") or item.get("tool_name"),
-                "reason": quality_reject_reason,
-                "domain": domain,
-            })
+            rejected.append({"title": item.get("title") or item.get("tool_name"), "reason": quality_reject_reason})
             continue
         rejection_reason = model_rejection_text_reason(item)
         if rejection_reason:
@@ -606,36 +700,25 @@ def filter_model_items(items: list[dict], diagnostics: dict, source_by_url: dict
                 "title": item.get("title") or item.get("tool_name"),
                 "reason": "model_returned_rejection_explanation",
                 "match": rejection_reason,
-                "domain": domain,
             })
             continue
-        item["source_item"] = source_item
-        item["source_title"] = title
-        item["source_domain"] = source_item.get("source_domain") or domain
         item["owner_key"] = candidate_owner_key(
             {
                 **source_item,
                 "company_name": item.get("company_name") or source_item.get("company_name"),
                 "tool_name": item.get("tool_name") or source_item.get("tool_name"),
             },
-            url=url,
-            title=f"{item.get('title') or ''} {title}",
-            content=f"{item.get('whats_new') or ''} {content}",
+            url=item.get("official_url") or "",
+            title=f"{item.get('title') or ''} {item.get('source_title') or ''}",
+            content=f"{item.get('whats_new') or ''} {source_item.get('content') or ''}",
         )
-        item["published_date"] = source_item.get("published_date") or source_item.get("published_raw") or ""
-        item["source_query"] = source_item.get("query") or ""
-        item["source_bucket"] = source_item.get("bucket") or ""
-        if item.get("sector") not in NEWS_SECTORS:
-            item["sector"] = infer_sector(title, content, "")
         kept.append(item)
     if rejected:
         diagnostics.setdefault("gpt_output_rejected", []).extend(rejected)
-    if warnings:
-        diagnostics.setdefault("gpt_output_warnings", []).extend(warnings)
     return kept
 
 # Prepares balance for diversity so downstream stages receive consistent data.
-def balance_for_diversity(items: list[dict], target_limit: int, diagnostics: dict) -> list[dict]:
+def balance_for_diversity(items: list[dict], target_limit: int, diagnostics: dict, *, company_cap: int = 2) -> list[dict]:
     """Preserve quality while enforcing duplicates, owner caps, and level balance."""
     items = dedupe_selected_updates(items, diagnostics)
     if not items:
@@ -653,7 +736,7 @@ def balance_for_diversity(items: list[dict], target_limit: int, diagnostics: dic
             )
         owner = item.get("owner_key") or candidate_owner_key(item, url=item.get("official_url") or "")
         item["owner_key"] = owner
-        if owner and company_counts[owner] >= 2:
+        if owner and company_counts[owner] >= company_cap:
             continue
         preselected.append(item)
         if owner:
@@ -736,7 +819,7 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
             diagnostics["gpt_payload_candidates"] = len(compact)
         print(f"[AI Updates] Sending {len(compact)} live results to GPT ({stage})", flush=True)
         prompt_started = time.time()
-        initial_model = MODEL_FLASH_MODEL
+        initial_model = model_for_role("selection")
         initial_provider = MODEL_PROVIDER
         log_event(
             "prompt.news_selection.started",
@@ -750,7 +833,7 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
         )
         selected_model = initial_model
         selected_provider = initial_provider
-        prompt_text = build_news_prompt(ask_limit, single=single, batch_mode=bool(NEWS_MODEL_BATCHING_ENABLED and stage.endswith(tuple(str(i) for i in range(1, NEWS_MODEL_MAX_BATCHES + 1)))))
+        prompt_text = build_news_selection_prompt(ask_limit, single=single, batch_mode=bool(NEWS_MODEL_BATCHING_ENABLED and stage.endswith(tuple(str(i) for i in range(1, NEWS_MODEL_MAX_BATCHES + 1)))))
         estimate = estimate_prompt_tokens(prompt_text, compact)
         log_event(
             "model.token_estimate",
@@ -761,13 +844,13 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
             **estimate,
         )
         try:
-            parsed_data = generate_json(prompt_text, compact, model=MODEL_FLASH_MODEL)
+            parsed_data = generate_json_for_role("selection", prompt_text, compact)
         except Exception as model_exc:
             details = model_failure_details(model_exc)
             diagnostics[f"{MODEL_PROVIDER}_{stage}_failure"] = details
             record_model_failure(
                 stage,
-                MODEL_FLASH_MODEL,
+                selected_model,
                 MODEL_PROVIDER,
                 details,
                 {"payload_candidates": len(compact)},
@@ -775,7 +858,7 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
             log_event(
                 "prompt.news_selection.model_failed",
                 stage=stage,
-                model=MODEL_FLASH_MODEL,
+                model=selected_model,
                 provider=MODEL_PROVIDER,
                 **{key: value for key, value in details.items() if key not in {"provider", "model"}},
             )
@@ -791,14 +874,23 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
             raise RuntimeError(f"model_prompt_format_incompatible:{type(parsed_data).__name__}")
         usage = parsed_data.pop("__model_usage", None) if isinstance(parsed_data, dict) else None
         log_token_usage(stage, selected_model, selected_provider, usage, estimate, payload_candidates=len(compact))
-        selected = filter_model_items(list(parsed_data.get("latest_updates") or [])[:ask_limit], diagnostics, source_by_url)
+        raw_selected = list(parsed_data.get("latest_updates") or [])[:ask_limit]
+        # Two-call flow: selection just ran above; attach_source_items does
+        # the structural checks that don't need Arabic text, then
+        # rewrite_selected_items makes ONE rewrite request for the whole
+        # matched batch, then finalize_selected_items runs the quality checks
+        # that need the rewritten title/whats_new. See the docstring comment
+        # on build_news_selection_prompt for why this is split in two calls.
+        matched = attach_source_items(raw_selected, source_by_url, diagnostics)
+        rewritten = rewrite_selected_items(matched, diagnostics, stage)
+        selected = finalize_selected_items(rewritten, diagnostics)
         log_event(
             "prompt.news_selection.finished",
             stage=stage,
             model=selected_model,
             provider=selected_provider,
             seconds=round(time.time() - prompt_started, 2),
-            raw_selected=len(parsed_data.get("latest_updates") or []),
+            raw_selected=len(raw_selected),
             selected=len(selected),
             selected_sample=summarize_items(selected, limit=8),
         )
@@ -904,6 +996,12 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
                 except Exception as topup_exc:
                     diagnostics[f"gpt_topup_{attempt}_error"] = str(topup_exc)
                     break
+        # Exposed so orchestrator.py can do a zero-extra-API-call last-resort
+        # rebalance (relaxed company_cap) across cycles if the run still ends
+        # up short of the target after normal selection - these items already
+        # passed structural checks and got rewritten, they were only dropped
+        # here for exceeding the diversity cap, not for quality reasons.
+        data["preselected_pool"] = list(selected)
         data["timestamp"] = utc_now().isoformat()
         required_selected = 1 if single else target_limit
         data["success"] = bool(data["latest_updates"])

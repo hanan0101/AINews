@@ -24,8 +24,9 @@ from backend.config.settings import (
     source_domain,
     utc_now,
 )
-from backend.pipeline.modeling.openai_client import embed_texts
-from backend.pipeline.fetching.sources import (
+from backend.logging.pipeline_logging import log_event
+from backend.pipeline.modeling.model_client import embed_texts
+from backend.pipeline.fetching.news_discovery import (
     candidate_owner_key,
     infer_sector,
     inferred_date_from_text,
@@ -443,11 +444,11 @@ def semantic_duplicate(qdrant, item: dict, vector: list[float], *, content_type:
     item_url = memory_url_key(item.get("url") or "")
     sorted_points = sorted(points, key=lambda p: float(getattr(p, "score", 0) or 0), reverse=True)
     top_score = float(getattr(sorted_points[0], "score", 0) or 0) if sorted_points else 0
-    print(
-        f"[AI Updates] semantic debug title={str(item.get('title') or '')[:120]!r} "
-        f"top_score={top_score:.4f} matches={len(sorted_points)}",
-        flush=True,
-    )
+    top_payload = getattr(sorted_points[0], "payload", {}) or {} if sorted_points else {}
+    # Structured event per candidate so semantic-dedup accuracy can actually
+    # be reviewed after a run instead of guessing from the always-zero
+    # counter that showed up when this layer was disabled - see
+    # docs/FETCHING_FIXES_2026-07.md workstream E.
     for point in sorted_points:
         score = float(getattr(point, "score", 0) or 0)
         payload = getattr(point, "payload", {}) or {}
@@ -456,10 +457,32 @@ def semantic_duplicate(qdrant, item: dict, vector: list[float], *, content_type:
         if score < threshold:
             continue
         if item_url and item_url == memory_url_key(payload.get("url") or ""):
-            return True, "semantic_same_url_memory_duplicate"
-        if item_story and item_story == str(payload.get("story_key") or payload.get("story_signature") or ""):
-            return True, "semantic_same_story_memory_duplicate"
-        return True, "semantic_rejected_memory_duplicate" if stage == "rejected" else "semantic_memory_duplicate"
+            reason = "semantic_same_url_memory_duplicate"
+        elif item_story and item_story == str(payload.get("story_key") or payload.get("story_signature") or ""):
+            reason = "semantic_same_story_memory_duplicate"
+        else:
+            reason = "semantic_rejected_memory_duplicate" if stage == "rejected" else "semantic_memory_duplicate"
+        log_event(
+            "semantic_dedup.decision",
+            content_type=content_type,
+            decision="duplicate",
+            reason=reason,
+            score=round(score, 4),
+            threshold=threshold,
+            candidate_title=str(item.get("title") or "")[:160],
+            matched_title=str(payload.get("title") or "")[:160],
+        )
+        return True, reason
+    log_event(
+        "semantic_dedup.decision",
+        content_type=content_type,
+        decision="kept",
+        reason="",
+        score=round(top_score, 4),
+        threshold=AI_UPDATES_SEMANTIC_DUPLICATE_SCORE,
+        candidate_title=str(item.get("title") or "")[:160],
+        matched_title=str(top_payload.get("title") or "")[:160] if top_payload else "",
+    )
     return False, ""
 
 
@@ -581,10 +604,15 @@ def filter_candidates(items: list[dict], diagnostics: dict, *, semantic_limit: i
                 best_score = score
                 best_item = kept_item
         if best_item is not None and best_score >= near_threshold:
-            print(
-                f"[AI Updates] same-run dup title={str(item.get('title') or '')[:120]!r} "
-                f"score={best_score:.4f} kept_title={str(best_item.get('title') or '')[:120]!r}",
-                flush=True,
+            log_event(
+                "semantic_dedup.decision",
+                content_type=content_type,
+                decision="duplicate" if best_score >= AI_UPDATES_SAME_RUN_SEMANTIC_SCORE else "kept",
+                reason="same_run_semantic_duplicate" if best_score >= AI_UPDATES_SAME_RUN_SEMANTIC_SCORE else "",
+                score=round(best_score, 4),
+                threshold=AI_UPDATES_SAME_RUN_SEMANTIC_SCORE,
+                candidate_title=str(item.get("title") or "")[:160],
+                matched_title=str(best_item.get("title") or "")[:160],
             )
         if best_item is not None and best_score >= AI_UPDATES_SAME_RUN_SEMANTIC_SCORE:
             same_run_semantic_skipped += 1

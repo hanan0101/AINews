@@ -1,0 +1,20 @@
+# Keycloak: authentication provider. Runs independently of the app.
+# Port 8180 (host) avoids a conflict with SearXNG's 8080.
+# Dev-mode credentials below are for local use only — change them, and drop
+# `start-dev` for a real production run. See docs/DEPLOYMENT.md.
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+    ports:
+      - "8180:8080"
+    command: start-dev
+    networks:
+      - newsletter_network
+    restart: always
+
+networks:
+  newsletter_network:

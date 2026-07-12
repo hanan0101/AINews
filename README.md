@@ -1,38 +1,55 @@
 # AI Newsletter System
 
-This project builds and serves an AI-newsletter workflow for Arabic editorial review. It discovers recent AI product updates, filters duplicates and weak sources, asks the configured model to select and rewrite cards, enriches the cards with logos/metadata, and serves the result through a local web UI.
+An editorial workflow that discovers recent AI product updates, filters out duplicates and weak sources, uses an AI model to select and rewrite cards, enriches them with logos and metadata, and serves the result through a review UI for Arabic editorial output.
 
-## What The System Does
+## What It Does
 
 - Finds AI updates from tool registries, official sites, Exa, and SearXNG.
 - Fetches supporting courses and AI-themed films.
-- Filters stale, duplicate, low-quality, or off-topic candidates.
-- Uses OpenAI or Gemini-compatible model calls for editorial selection and rewriting.
+- Filters stale, duplicate, low-quality, or off-topic candidates (including semantic dedup via Qdrant).
+- Uses OpenAI- or Gemini-compatible model calls for editorial selection and rewriting.
 - Saves the newsletter JSON consumed by the frontend.
 - Stores versions and PDF exports through the backend server.
 
-## Main Folders
+## Where to go next
 
-- `backend/pipeline/tool_discovery`: tool registry, official-site lookup, query building, diagnostics.
-- `backend/pipeline/fetching`: live candidate fetching for news, courses, and films.
-- `backend/pipeline/filtering`: quality filtering, deduplication, and memory checks.
-- `backend/pipeline/modeling`: prompt construction and model-based selection.
-- `backend/pipeline/enrichment`: final newsletter card shaping and JSON saving.
-- `backend/pipeline/courses`, `backend/pipeline/films`, `backend/pipeline/news`: content-type entrypoints for each stage.
-- `backend/pipeline/orchestrator.py`: runs the full pipeline in order.
-- `prompts`: isolated model prompts for courses, films, and news.
-- `backend/config`: environment defaults and shared settings.
-- `backend/logging`: pipeline run logging.
-- `backend/interfaces`: external model/client interfaces.
-- `backend/server`: HTTP API, auth, versioning, PDF export, and frontend serving.
-- `frontend`: review UI and static assets.
-- `docker`: container support, including PostgreSQL backup scripts.
+Pick whichever matches what you're trying to do right now:
+
+- **Never run this before, want it working on your machine?** Start at [docs/SETUP.md](docs/SETUP.md). It walks through every step in order — cloning, API keys, Docker, and the one-time login setup — with the exact command for each one.
+- **Trying to understand how the code fits together?** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) covers the folder layout, what happens when you click Generate, and where to start reading.
+- **Already running it and need to operate it day to day?** [docs/MAINTENANCE.md](docs/MAINTENANCE.md) has restarts, logs, backups, key rotation, and the common things that go wrong.
+- **Putting this on a server?** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) covers what's different from a local run — securing Keycloak, persisting data, and confirming a deployment actually works.
+- **Need one specific environment variable?** The full list is in [backend/config/ENVIRONMENT_GUIDE.md](backend/config/ENVIRONMENT_GUIDE.md).
+- **Curious what changed recently, or what a run costs?** [CHANGELOG.md](CHANGELOG.md) and [docs/COST_ESTIMATE.md](docs/COST_ESTIMATE.md).
 
 ## Quick Start
 
-1. Create `backend/.env` from `backend/config/.env.example`.
-2. Install dependencies: `pip install -r requirements.txt`.
-3. Start the server: `python -m backend.server.http_server`.
-4. Open `http://127.0.0.1:8000/News.html`.
+If you just want to see it running and will read [docs/SETUP.md](docs/SETUP.md) for anything that doesn't work:
 
-For daily operating steps, see `RUN_GUIDE.md`. For server deployment, see `DEPLOYMENT.md`.
+```powershell
+copy backend\config\.env.example backend\.env
+notepad backend\.env
+docker compose up --build
+```
+
+Then open `http://127.0.0.1:8000/News.html`. Note that Generate won't work yet at this point — that needs the one-time Keycloak login setup, which is Step 4 in [docs/SETUP.md](docs/SETUP.md).
+
+## Project Structure
+
+```text
+backend/
+  pipeline/        # discovery -> fetching -> filtering -> modeling -> enrichment
+  server/          # HTTP API, auth, versioning, PDF export
+  auth/            # Keycloak + local-viewer login
+  config/          # environment defaults and shared settings
+  logging/         # pipeline run logging
+  interfaces/      # external model (OpenAI/Gemini) interfaces
+frontend/          # review UI (News.html) and static assets
+prompts/           # isolated model prompts for news, courses, films
+docker/
+  compose/        # one file per service (app, postgres, keycloak, searxng, qdrant), assembled by docker-compose.yml
+  postgres/       # PostgreSQL image + backup/entrypoint scripts
+docs/              # setup, architecture, deployment, maintenance guides
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how these pieces fit together at runtime.

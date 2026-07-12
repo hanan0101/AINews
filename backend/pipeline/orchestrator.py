@@ -59,11 +59,12 @@ from backend.pipeline.modeling.model_client import (
     model_quota_remaining,
 )
 from backend.pipeline.fetching.films import fetch_movie_candidates
-from backend.pipeline.news.fetching import fetch_news_candidates
-from backend.pipeline.news.filtering import filter_news_candidates, items_same_story
-from backend.pipeline.news.processing import select_news_updates
-from backend.pipeline.news.tool_discovery import flag_weak_sectors, update_sector_terms
-from backend.pipeline.modeling.news import save_model_report
+from backend.pipeline.fetching.news import fetch_news_candidates
+from backend.pipeline.fetching.news_discovery import flag_weak_sectors, update_sector_terms
+from backend.pipeline.tool_discovery.tools_aware import apply_tool_activity_signal
+from backend.pipeline.filtering.news import filter_news_candidates, items_same_story
+from backend.pipeline.modeling.news import save_model_report, select_news_updates
+from backend.pipeline.modeling.selection import balance_for_diversity
 from backend.logging.pipeline_logging import (
     file_status,
     log_event,
@@ -278,6 +279,11 @@ def save_candidate_audit(candidates: list[dict], report: dict, diagnostics: dict
             "status": "selected" if is_selected else "rejected",
             "reason": "selected_by_model" if is_selected else _candidate_audit_reason(item, selected_company_counts, selected_sector_counts),
             "title": item.get("title") or "",
+            # Kept alongside title/metadata so this file is a faithful copy of
+            # what compact_model_candidate() actually sent the selection model
+            # (selection.py:535-557) - lets a saved run be replayed against a
+            # different model for a fair side-by-side comparison.
+            "content": clean_text(item.get("content") or item.get("summary") or "")[:700],
             "company": item.get("company") or item.get("company_name") or item.get("owner_key") or "",
             "tool": item.get("tool") or item.get("tool_name") or "",
             "source_domain": item.get("source_domain") or source_domain(item.get("url") or ""),
@@ -787,12 +793,15 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
     source_fetch_seconds = 0.0
     filter_seconds = 0.0
     gpt_seconds = 0.0
+    tool_activity_queried: set[str] = set()
+    tool_activity_seen: set[str] = set()
+    all_preselected_pool: list[dict] = []
     for cycle in range(1, NEWS_FETCH_CYCLES + 1):
         _notify(progress_callback, f"Starting news fetch cycle {cycle}/{NEWS_FETCH_CYCLES} with Exa and SearXNG")
         fetch_started = time.time()
         try:
             with timed_stage("source_fetch", target_hint=sector or "", cycle=cycle):
-                cycle_candidates, cycle_diagnostics = fetch_news_candidates(target_hint=sector or "")
+                cycle_candidates, cycle_diagnostics = fetch_news_candidates(target_hint=sector or "", cycle=cycle)
         except Exception as fetch_exc:
             cycle_candidates = []
             cycle_diagnostics = {
@@ -804,6 +813,9 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
                 "source_failures": {"source_fetch": "source_fetch_exception"},
                 "source_failures_detail": {"source_fetch": str(fetch_exc)},
             }
+        exa_cycle_diag = (cycle_diagnostics.get("source_diagnostics") or {}).get("exa") or {}
+        tool_activity_queried.update(exa_cycle_diag.get("tool_activity_queried") or [])
+        tool_activity_seen.update(exa_cycle_diag.get("tool_activity_seen") or [])
         cycle_candidates = _apply_sector_filter(cycle_candidates, cycle_diagnostics, sector)
         candidates = _merge_candidate_pools(candidates, cycle_candidates)
         diagnostics = _merge_cycle_diagnostics(diagnostics, cycle_diagnostics, cycle, len(candidates or []))
@@ -852,28 +864,104 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
         _notify(progress_callback, f"Sending cycle {cycle} shortlist ({len(gpt_candidates)}) to GPT")
         cycle_gpt_started = time.time()
         with timed_stage("gpt_news_selection", candidates=len(gpt_candidates or []), cycle=cycle):
-            report = select_news_updates(gpt_candidates, diagnostics, single=False)
+            cycle_report = select_news_updates(gpt_candidates, diagnostics, single=False)
         cycle_gpt_seconds = time.time() - cycle_gpt_started
         gpt_seconds += cycle_gpt_seconds
+        if cycle_report.get("preselected_pool"):
+            all_preselected_pool.extend(cycle_report["preselected_pool"])
+        # CHANGE: `report` used to be unconditionally overwritten by whatever
+        # this cycle returned, so a cycle 2 failure (e.g. a real Gemini
+        # provider-side quota_or_billing error mid-run, hit in production
+        # 2026-07-11) discarded a perfectly good cycle 1 report (6 selected
+        # items) and left the whole run with 0 saved. Keep the best
+        # successful report seen so far instead of the most recent one.
+        cycle_selected_count = len(cycle_report.get("latest_updates") or [])
+        previous_selected_count = len(report.get("latest_updates") or [])
+        if cycle_report.get("success") and (not report.get("success") or cycle_selected_count >= previous_selected_count):
+            report = cycle_report
+        elif not report:
+            report = cycle_report
         selected_now = len(report.get("latest_updates") or [])
         diagnostics.setdefault("gpt_cycle_results", []).append({
             "cycle": cycle,
-            "selected": selected_now,
+            "selected": cycle_selected_count,
+            "banked": selected_now,
             "required": TOTAL_NEWS_TARGET,
             "seconds": round(cycle_gpt_seconds, 2),
         })
         log_event(
             "gpt_news_selection.summary",
             cycle=cycle,
-            selected=selected_now,
-            selected_sample=summarize_items(report.get("latest_updates") or [], limit=12),
-            success=bool(report.get("success")),
-            error=report.get("error"),
+            selected=cycle_selected_count,
+            banked=selected_now,
+            selected_sample=summarize_items(cycle_report.get("latest_updates") or [], limit=12),
+            success=bool(cycle_report.get("success")),
+            error=cycle_report.get("error"),
         )
-        _notify(progress_callback, f"AI model cycle {cycle} selected={selected_now}/{TOTAL_NEWS_TARGET}")
+        _notify(progress_callback, f"AI model cycle {cycle} selected={cycle_selected_count} banked={selected_now}/{TOTAL_NEWS_TARGET}")
         if selected_now >= TOTAL_NEWS_TARGET or cycle >= NEWS_FETCH_CYCLES:
             break
+        # CHANGE: previously kept fetching (~90-150s of Exa/SearXNG queries)
+        # for every remaining cycle even after the model itself reported the
+        # provider quota was exhausted (hit in production 2026-07-11/12: a
+        # daily Gemini quota ran out mid-run and cycle 2's entire fetch stage
+        # ran anyway, guaranteed to hit the same quota error again). If the
+        # model has no quota left, no later cycle can succeed either -
+        # stop fetching and go straight to save/finalize with what exists.
+        if model_quota_remaining() <= 0:
+            diagnostics["cycle_loop_stopped_early"] = "model_quota_exhausted"
+            _notify(progress_callback, f"Stopping after cycle {cycle}: {MODEL_PROVIDER} quota exhausted for today")
+            break
         _notify(progress_callback, f"Only {selected_now}/{TOTAL_NEWS_TARGET} news selected; starting fetch cycle {cycle + 1}")
+
+    # Last-resort backfill (2026-07-12, explicit user request: "guarantee 12,
+    # widen diversity instead of the date window"): after every normal cycle
+    # and topup is exhausted, some model-selected, already-rewritten,
+    # already-structurally-valid items get dropped only for exceeding the
+    # >2-per-company cap (balance_for_diversity). If the run is still short
+    # of target, re-run that same cap logic once more with a relaxed cap over
+    # the union of everything selected across all cycles - zero new Exa/
+    # SearXNG/Gemini calls, since nothing here is re-fetched or re-asked.
+    # Only swapped in if it strictly improves the count; items from this pass
+    # are tagged so it stays auditable which cards came from the relaxed tier.
+    if len(report.get("latest_updates") or []) < TOTAL_NEWS_TARGET and all_preselected_pool:
+        relaxed_diagnostics: dict = {}
+        relaxed_selection = balance_for_diversity(
+            all_preselected_pool, TOTAL_NEWS_TARGET, relaxed_diagnostics, company_cap=4,
+        )
+        if len(relaxed_selection) > len(report.get("latest_updates") or []):
+            previous_count = len(report.get("latest_updates") or [])
+            # Tag the 3rd+ card from any one company - those are the ones
+            # that only exist here because the cap was relaxed from 2 to 4.
+            owner_seen: Counter = Counter()
+            for item in relaxed_selection:
+                owner = item.get("owner_key") or ""
+                owner_seen[owner] += 1
+                item["diversity_relaxed_fallback"] = bool(owner) and owner_seen[owner] > 2
+            report = dict(report)
+            report["latest_updates"] = relaxed_selection
+            report["success"] = True
+            report["diversity_relaxed_fallback_used"] = True
+            diagnostics["diversity_relaxed_fallback"] = {
+                "before": previous_count,
+                "after": len(relaxed_selection),
+                "company_cap": 4,
+            }
+            log_event(
+                "gpt_news_selection.diversity_relaxed_fallback",
+                before=previous_count,
+                after=len(relaxed_selection),
+                company_cap=4,
+            )
+            _notify(progress_callback, f"Relaxed company diversity cap to reach {len(relaxed_selection)}/{TOTAL_NEWS_TARGET} news")
+
+    if tool_activity_queried:
+        try:
+            diagnostics["tool_activity_signal"] = apply_tool_activity_signal(
+                sorted(tool_activity_queried), sorted(tool_activity_seen)
+            )
+        except Exception as activity_exc:
+            diagnostics["tool_activity_signal_error"] = str(activity_exc)
 
     fetch_seconds = source_fetch_seconds + filter_seconds
     save_query_results_audit(diagnostics)

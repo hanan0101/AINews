@@ -1,6 +1,6 @@
 {
   "schema": "sector_terms_history_v1",
-  "updated": "2026-07-05T12:31:12.659150+00:00",
+  "updated": "2026-07-12T01:39:44.888355+00:00",
   "sectors": {
     "museums": {
       "base_terms": "museum gallery exhibition visitor guide curation collections",
@@ -156,63 +156,63 @@
     },
     "الأفلام": {
       "learned_terms": [
-        "يضيف",
-        "توليد",
-        "فيديو",
-        "إطلاق",
-        "modify",
-        "داخل",
-        "luma",
-        "site",
-        "lumalabs",
-        "news"
+        "أداة",
+        "ذكاء",
+        "اصطناعي",
+        "لترجمة",
+        "مقاطع",
+        "الفيديو",
+        "بدقة",
+        "heygen",
+        "video",
+        "translate"
       ],
-      "last_updated": "2026-07-05"
+      "last_updated": "2026-07-12"
     },
     "إنتاجية العمل": {
       "learned_terms": [
-        "notes",
-        "إطلاق",
-        "نماذج",
-        "fugu",
-        "لتنسيق",
-        "مهام",
-        "متعددة",
-        "ultra",
-        "sakana",
+        "code",
+        "منصة",
+        "elevenagents",
+        "تتيح",
+        "حماية",
+        "المساعدين",
+        "الأذكياء",
+        "elevenlabs",
+        "site",
         "update"
       ],
-      "last_updated": "2026-07-05"
+      "last_updated": "2026-07-12"
     },
     "الصحة الجسدية": {
       "learned_terms": [
-        "شفافية",
-        "الأثر",
-        "البيئي",
-        "للذكاء",
-        "environmental",
-        "transparency",
-        "initiative",
-        "united",
-        "nations",
-        "vision"
+        "يطورون",
+        "المساعد",
+        "الحيوي",
+        "الذكي",
+        "biomni",
+        "stanford",
+        "university",
+        "search",
+        "assistant",
+        "research"
       ],
-      "last_updated": "2026-06-29"
+      "last_updated": "2026-07-12"
     },
     "المكتبات": {
       "learned_terms": [
-        "online",
-        "تحديد",
-        "الشاشة",
-        "لوحة",
-        "gemini",
-        "chrome",
-        "panel",
-        "flash",
-        "google",
-        "artificial"
+        "artificial",
+        "منصة",
+        "youtube",
+        "اختبار",
+        "أداة",
+        "البحث",
+        "الذكي",
+        "site",
+        "theverge",
+        "flow"
       ],
-      "last_updated": "2026-06-26"
+      "last_updated": "2026-07-12"
     },
     "الأزياء": {
       "learned_terms": [
@@ -232,17 +232,17 @@
     "الموسيقى": {
       "learned_terms": [
         "tool",
-        "تحديث",
-        "kling",
-        "يدعم",
-        "الصوت",
-        "أصلي",
-        "video",
-        "kuaishou",
-        "site",
-        "release"
+        "product",
+        "إطلاق",
+        "أداة",
+        "sunomv",
+        "لإنشاء",
+        "مقاطع",
+        "الفيديو",
+        "الموسيقية",
+        "suno"
       ],
-      "last_updated": "2026-07-05"
+      "last_updated": "2026-07-11"
     },
     "التراث": {
       "learned_terms": [
@@ -261,33 +261,33 @@
     },
     "الصحة النفسية": {
       "learned_terms": [
-        "صوتي",
-        "canary",
-        "ambient",
-        "يتوفر",
-        "داخل",
-        "تطبيقات",
-        "zoom",
-        "speech",
-        "wellness",
-        "assistant"
+        "assistant",
+        "ميزة",
+        "جديدة",
+        "للتأمل",
+        "claude",
+        "بواجهة",
+        "مخصصة",
+        "anthropic",
+        "site",
+        "update"
       ],
-      "last_updated": "2026-06-29"
+      "last_updated": "2026-07-11"
     },
     "الفنون البصرية": {
       "learned_terms": [
-        "lite",
-        "creative",
-        "توسيع",
+        "الرسومات",
+        "بالذكاء",
+        "الاصطناعي",
+        "release",
+        "notes",
+        "منصة",
         "figma",
-        "design",
-        "agent",
-        "بأدوات",
-        "مخصصة",
-        "وسياق",
-        "أكبر"
+        "تطلق",
+        "أداة",
+        "site"
       ],
-      "last_updated": "2026-07-05"
+      "last_updated": "2026-07-12"
     },
     "الأدب": {
       "learned_terms": [
@@ -366,18 +366,18 @@
     },
     "المتاحف": {
       "learned_terms": [
-        "women",
-        "google",
-        "vids",
-        "يضيف",
-        "تخصيص",
-        "وحركات",
-        "للأفاتار",
-        "avatars",
-        "presentation",
-        "tool"
+        "tool",
+        "إطلاق",
+        "التجارب",
+        "التفاعلية",
+        "experience",
+        "generator",
+        "intuiface",
+        "platform",
+        "launches",
+        "agent"
       ],
-      "last_updated": "2026-06-29"
+      "last_updated": "2026-07-08"
     },
     "الذكاء الاصطناعي والتعلي": {
       "learned_terms": [
@@ -530,33 +530,33 @@
     },
     "والتدريب والمهام اليومية": {
       "learned_terms": [
-        "blog",
-        "إطلاق",
-        "مساعدات",
-        "صوتية",
-        "grok",
-        "voice",
-        "agent",
-        "builder",
-        "site",
-        "news"
+        "ميزة",
+        "المحادثة",
+        "الصوتية",
+        "الكاملة",
+        "chatgpt",
+        "live",
+        "openai",
+        "product",
+        "update",
+        "launched"
       ],
-      "last_updated": "2026-07-05"
+      "last_updated": "2026-07-11"
     },
     "الذكاء الاصطناعي والتعليم": {
       "learned_terms": [
-        "blog",
-        "innovation",
-        "إطلاق",
-        "مساحة",
-        "claude",
-        "science",
-        "لعمل",
-        "العلماء",
-        "anthropic",
-        "site"
+        "الذكاء",
+        "الاصطناعي",
+        "الجديد",
+        "للجمهور",
+        "openai",
+        "national",
+        "strategy",
+        "regulation",
+        "policy",
+        "announces"
       ],
-      "last_updated": "2026-07-05"
+      "last_updated": "2026-07-11"
     }
   }
 }

@@ -61,8 +61,13 @@ replace technical terms with plain Arabic:
 
 
 # Builds the full news-selection prompt for the configured target count.
-# Builds the full news-selection prompt for the configured target count.
-def build_news_prompt(target_limit: int, *, single: bool = False, batch_mode: bool = False) -> str:
+# STEP 4 (Arabic rewrite) was split out into build_news_rewrite_prompt() so
+# selection and rewriting can run as two separate model calls, on two
+# different models (see model_client.generate_json_for_role) - this keeps
+# the cheaper/higher-quota rewrite model off the harder editorial-judgment
+# work, and lets selection failures short-circuit before any rewrite tokens
+# are spent.
+def build_news_selection_prompt(target_limit: int, *, single: bool = False, batch_mode: bool = False) -> str:
     _ = single
     target_per_level = max(1, target_limit // 3)
     culture_sectors = (
@@ -299,27 +304,14 @@ Classify every returned news item as Beginner, Intermediate, or Advanced based o
 Return solution_provided, main_user_benefit, likely_user, level, topic_group,
 audience_fit, should_simplify, and classification_reason for each item.
 
-STEP 4 - ARABIC EDITORIAL REWRITE
-For every accepted item, rewrite the card for a polished Arabic newsletter.
-This is not translation and not extraction. It is a concise editorial rewrite
-based only on the provided candidate.
-
-Follow USER_ARABIC_STYLE_RULES exactly.
-If the candidate does not contain enough detail to follow these writing rules,
-reject it instead of returning a weak item.
-
-{USER_ARABIC_STYLE_RULES}
-
 OUTPUT JSON SHAPE:
 Return valid JSON only. The top-level object must be exactly:
 {{
   "latest_updates": [
     {{
-      "title": "Arabic display title",
       "tool_name": "Product/tool name",
       "company_name": "Owner/company",
       "official_url": "URL copied exactly from one provided candidate",
-      "whats_new": "Arabic 3-4 sentence editorial paragraph based only on the candidate",
       "sector": "one approved sector label",
       "solution_provided": "practical solution or use case",
       "main_user_benefit": "main practical user benefit",
@@ -335,4 +327,44 @@ Return valid JSON only. The top-level object must be exactly:
   ],
   "timestamp": "{utc_now().isoformat()}"
 }}
+
+Do not write an Arabic title or summary here - that happens in a separate
+rewrite step. Only "official_url" is used to match this decision back to the
+original candidate.
+""".strip()
+
+
+# Builds the Arabic editorial rewrite prompt for an already-selected batch of
+# items (STEP 4 split out of build_news_selection_prompt - see that
+# function's docstring comment for why). Runs as its own model call, on its
+# own (cheaper/higher-quota) model, over ALL selected items in ONE request
+# rather than one request per item.
+def build_news_rewrite_prompt() -> str:
+    return f"""
+You are the Arabic editorial rewriter for an AI product-update newsletter.
+The input is a JSON array "items", each already selected and classified by an
+earlier editorial step. For EACH item, write the Arabic display card based
+only on "source_title" and "source_text" for that item - this is not
+translation and not extraction, it is a concise editorial rewrite.
+
+Follow USER_ARABIC_STYLE_RULES exactly for every item.
+If one item's source_title/source_text does not contain enough detail to
+follow these writing rules, omit that item from the output entirely instead
+of returning a weak card - do not guess or invent details.
+
+{USER_ARABIC_STYLE_RULES}
+
+OUTPUT JSON SHAPE:
+Return valid JSON only. The top-level object must be exactly:
+{{
+  "rewritten": [
+    {{
+      "id": "copied verbatim from the input item's id",
+      "title": "Arabic display title",
+      "whats_new": "Arabic 3-4 sentence editorial paragraph based only on this item's source_title/source_text"
+    }}
+  ]
+}}
+Return at most one result per input id, and omit ids you could not write a
+grounded card for. Do not invent an id that was not in the input.
 """.strip()

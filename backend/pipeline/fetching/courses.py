@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from backend.pipeline.fetching.sources import *  # Shared fetching helpers.
+from backend.pipeline.fetching.news_discovery import *  # Generic low-level fetch/text helpers (not news logic).
 
 COURSE_BAD_URL_TERMS = (
     "/blog/", "/blogs/", "/news/", "/article/", "/articles/", "/review/", "/reviews/",
@@ -771,6 +771,29 @@ def has_developer_only_course_signal(text: str = "") -> bool:
     return not is_workforce_course_text(normalized)
 
 
+# Hit in production 2026-07-12: an Accenture "AI Bridge" course page passed
+# every other check (direct URL, course + AI signals) but its actual page
+# body said registration had closed - the listing was real, just no longer
+# enrollable. Title/snippet rarely carry this ("AI Bridge | Future Skills
+# Portal" gives no hint), so this checks the full evidence string (which
+# includes page_text) rather than title+snippet like has_ai above.
+EXPIRED_COURSE_TERMS = (
+    "registration has closed", "registration is closed", "registration closed",
+    "enrollment has closed", "enrollment is closed", "enrollment closed",
+    "applications closed", "applications are closed", "no longer accepting",
+    "no longer available", "course has ended", "this course has ended",
+    "registration period has ended", "sign-ups closed", "signups closed",
+    "تم انتهاء فترة التسجيل", "انتهت فترة التسجيل", "انتهاء فترة التسجيل",
+    "انتهى التسجيل", "التسجيل مغلق", "أغلق التسجيل", "تم إغلاق التسجيل",
+    "التسجيل غير متاح", "لم يعد التسجيل متاحًا", "انتهت المدة المحددة للتسجيل",
+)
+
+
+def has_expired_course_signal(text: str = "") -> bool:
+    normalized = str(text or "").lower()
+    return any(term in normalized for term in EXPIRED_COURSE_TERMS)
+
+
 # Returns whether domain matches is true for the current input.
 def domain_matches(domain: str, allowed: tuple[str, ...] | list[str] | set[str]) -> bool:
     domain = (domain or "").lower().replace("www.", "")
@@ -960,6 +983,21 @@ def course_candidate_topic_key(item: dict) -> str:
     return words[0] if words else "general"
 
 
+FREE_COURSE_URL_PATH_HINTS = ("/free-", "-free-", "/free/")
+
+
+# Preferred at selection time (see level_balancing.build_level_bank
+# sort_key_fn) rather than filtered here, so a strong paid course still beats
+# a weak free one - this only breaks ties toward free sources.
+def is_free_course(url: str, domain: str, *, text: str = "") -> bool:
+    if domain in PRIMARY_ADULT_FREE_AI_COURSE_SOURCES or domain in EMPLOYEE_AI_FREE_PLATFORM_URLS_EXTRA:
+        return True
+    lowered_url = str(url or "").lower()
+    if any(hint in lowered_url for hint in FREE_COURSE_URL_PATH_HINTS):
+        return True
+    return bool(re.search(r"\bfree\b", text or "", flags=re.IGNORECASE))
+
+
 # Prepares normalize course candidate so downstream stages receive consistent data.
 def normalize_course_candidate(raw: dict, *, fetch_source: str, query: str = "") -> dict | None:
     title = clean_text(raw.get("title") or "")
@@ -1009,7 +1047,8 @@ def normalize_course_candidate(raw: dict, *, fetch_source: str, query: str = "")
         "provider": platform,
         "platform": platform,
         "company": platform,
-        "level": infer_course_level(f"{text} {url}"), #many platforms encode the level in the URL path (e.g. /advanced-python/). 
+        "is_free": is_free_course(url, domain, text=text),
+        "level": infer_course_level(f"{text} {url}"), #many platforms encode the level in the URL path (e.g. /advanced-python/).
         # Pass the URL into the caller so path tokens are included in the normalized text
         "certificate": "Certificate available" if "certificate" in text or "certification" in text else "",
         "logo": f"https://www.google.com/s2/favicons?sz=128&domain={domain}",
@@ -1460,9 +1499,24 @@ def score_course_platform_result(raw: dict, *, platform: str, domain: str, sourc
     evidence = f"{title} {snippet} {page_text[:1600]}"
     direct = course_url_is_direct(url, title=title, content=evidence)
     has_course = bool(COURSE_PLATFORM_DISCOVERY_RE.search(evidence))
-    has_ai = bool(COURSE_AI_DISCOVERY_RE.search(evidence))
+    # AI-relevance is checked against title+snippet only, not the full
+    # page_text slice: page_text is a raw scrape that often includes site
+    # navigation/sidebar links to unrelated course categories, and a
+    # standalone "AI" mention there was enough to pass a pure digital-
+    # marketing course (hit in production 2026-07-11: HubSpot Academy's
+    # "Digital Marketing Course" was accepted as an Advanced AI course).
+    # The actual course description (title+snippet) is what should decide.
+    has_ai = bool(COURSE_AI_DISCOVERY_RE.search(f"{title} {snippet}"))
     workforce_fit = is_workforce_course_text(evidence)
-    page_blocked_but_exa_enough = page_status.startswith(COURSE_NON_FATAL_PAGE_STATUSES) and title and url and direct and has_course and has_ai
+    # bool() wrap is required: `and` returns the last truthy operand rather
+    # than a real bool, so when title/url are non-empty strings this could
+    # otherwise leak a str into the sum() below and crash the whole scoring
+    # call (hit in practice once SearXNG started feeding real results here -
+    # some of its results have an empty title, which used to short-circuit
+    # this chain to "" instead of False).
+    page_blocked_but_exa_enough = bool(
+        page_status.startswith(COURSE_NON_FATAL_PAGE_STATUSES) and title and url and direct and has_course and has_ai
+    )
     reasons = []
     if not title or not url:
         reasons.append("missing_title_or_url")
@@ -1478,6 +1532,8 @@ def score_course_platform_result(raw: dict, *, platform: str, domain: str, sourc
         reasons.append("student_audience")
     if has_developer_only_course_signal(evidence):
         reasons.append("developer_only_audience")
+    if has_expired_course_signal(evidence):
+        reasons.append("expired_or_closed_registration")
     if page_status != "ok" and not page_blocked_but_exa_enough:
         reasons.append(page_status)
     return {
@@ -1495,6 +1551,11 @@ def score_course_platform_result(raw: dict, *, platform: str, domain: str, sourc
     }
 
 
+# Course discovery used to fire a single Exa request with no retry at all -
+# any transient 429/500/502/503/504 just returned 0 results for that domain
+# with no second attempt, unlike the news fetch path (fetch_exa_query_rows's
+# exa_request_once) which retries with backoff. Mirrors that same resilience
+# here so a single flaky response doesn't silently drop a whole platform.
 def fetch_exa_course_platform_raw(query: str, max_results: int) -> tuple[list[dict], str]:
     if not EXA_API_KEY:
         return [], "missing_exa_api_key"
@@ -1506,17 +1567,61 @@ def fetch_exa_course_platform_raw(query: str, max_results: int) -> tuple[list[di
     }
     if COURSE_QUERY.get("startPublishedDate"):
         payload["startPublishedDate"] = COURSE_QUERY.get("startPublishedDate")
+    headers = {"Accept": "application/json", "Content-Type": "application/json", "x-api-key": EXA_API_KEY}
+    last_error = ""
+    attempts = max(1, AI_UPDATES_EXA_RETRIES + 1)
+    for attempt in range(attempts):
+        try:
+            response = requests.post(
+                "https://api.exa.ai/search",
+                headers=headers,
+                json=payload,
+                timeout=AI_UPDATES_EXA_TIMEOUT,
+            )
+            if response.status_code < 400:
+                return list((response.json() or {}).get("results") or []), ""
+            last_error = exa_http_error(response)
+            retry_after = response.headers.get("Retry-After", "")
+            should_retry = response.status_code in {408, 409, 425, 429, 500, 502, 503, 504}
+        except requests.exceptions.Timeout as exc:
+            last_error = f"exa_request_failed:{exc}"
+            retry_after = ""
+            should_retry = True
+        except Exception as exc:
+            return [], f"exa_request_failed:{type(exc).__name__}"
+        if attempt >= attempts - 1 or not should_retry:
+            return [], last_error
+        try:
+            delay = float(retry_after) if retry_after else AI_UPDATES_EXA_RETRY_BACKOFF_SECONDS * (attempt + 1)
+        except Exception:
+            delay = AI_UPDATES_EXA_RETRY_BACKOFF_SECONDS * (attempt + 1)
+        time.sleep(max(0.5, min(delay, 8)))
+    return [], last_error or "exa_request_failed:unknown"
+
+
+# Course discovery used to be Exa-only even though this module already
+# imports every SearXNG helper via `import *` from news_discovery. SearXNG's
+# literal `site:` matching is a good complement to Exa's neural search for
+# course-catalog pages, which tend to be plain listing pages Exa sometimes
+# ranks below marketing content.
+def fetch_searxng_course_platform_raw(query: str, max_results: int) -> tuple[list[dict], str]:
     try:
-        response = requests.post(
-            "https://api.exa.ai/search",
-            headers={"Accept": "application/json", "Content-Type": "application/json", "x-api-key": EXA_API_KEY},
-            json=payload,
-            timeout=AI_UPDATES_EXA_TIMEOUT,
+        response = requests.get(
+            search_url(),
+            params={
+                "q": query,
+                "format": "json",
+                "language": "en",
+                "engines": SEARXNG_RELIABLE_ENGINES,
+                "categories": "general",
+                "pageno": 1,
+            },
+            timeout=AI_UPDATES_SEARXNG_TIMEOUT,
         )
         response.raise_for_status()
-        return list((response.json() or {}).get("results") or []), ""
+        return list((response.json() or {}).get("results") or [])[: max(1, max_results)], ""
     except Exception as exc:
-        return [], f"exa_request_failed:{type(exc).__name__}"
+        return [], f"searxng_request_failed:{type(exc).__name__}"
 
 
 def fetch_course_platform_discovery(domain: str, max_results: int) -> tuple[list[dict], dict]:
@@ -1528,25 +1633,34 @@ def fetch_course_platform_discovery(domain: str, max_results: int) -> tuple[list
     if seed_raw:
         rows.append(score_course_platform_result(seed_raw, platform=platform, domain=domain, source="direct_seed", query="direct_seed"))
     for query in course_platform_discovery_queries(domain):
-        raw_results, error = fetch_exa_course_platform_raw(query, max_results)
-        attempts.append({"query": query, "raw_results": len(raw_results), "error": error})
+        exa_raw, exa_error = fetch_exa_course_platform_raw(query, max_results)
+        attempts.append({"query": query, "source": "exa", "raw_results": len(exa_raw), "error": exa_error})
         scored = [
             score_course_platform_result(item, platform=platform, domain=domain, source="exa", query=query)
-            for item in raw_results
+            for item in exa_raw
         ]
+        # SearXNG's literal site: matching complements Exa's neural search for
+        # plain course-catalog listing pages (see fetch_searxng_course_platform_raw).
+        searxng_raw, searxng_error = fetch_searxng_course_platform_raw(query, max_results)
+        attempts.append({"query": query, "source": "searxng", "raw_results": len(searxng_raw), "error": searxng_error})
+        scored.extend(
+            score_course_platform_result(item, platform=platform, domain=domain, source="searxng", query=query)
+            for item in searxng_raw
+        )
         rows.extend(scored)
         if any(item["passed"] for item in scored):
             break
     passed = sorted((item for item in rows if item["passed"]), key=lambda item: item["score"], reverse=True)
     output = []
     for item in passed:
+        source_label = item.get("source") or "exa"
         normalized = normalize_course_candidate(
             {
                 "title": item.get("title") or "",
                 "url": item.get("url") or "",
                 "content": item.get("content") or "",
             },
-            fetch_source="exa_course_targeted_search",
+            fetch_source=f"{source_label}_course_targeted_search",
             query="",
         )
         if not normalized:

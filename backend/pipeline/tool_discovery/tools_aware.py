@@ -69,6 +69,20 @@ AI_UPDATES_TOOL_SITE_DISCOVERY_LIMIT = env_int("AI_UPDATES_TOOL_SITE_DISCOVERY_L
 _tool_record_allowed_model_cache: dict[str, tuple[bool, str]] = {}
 _TOOL_CACHE_MAINTAINED_FOR = ""
 
+# Continuous activity score (0-100) replaces the old binary 60-day-silence
+# removal. New tools start at TOOL_ACTIVITY_SCORE_START; each weekly check
+# that finds a real update moves the score up by TOOL_ACTIVITY_SCORE_STEP,
+# each week with no update moves it down by the same step. A tool only
+# drops out of the active query rotation (status "dormant") below
+# TOOL_ACTIVITY_SCORE_DORMANT_THRESHOLD, and nothing is ever hard-deleted:
+# a dormant tool re-activates automatically the next time weekly discovery
+# or a query batch finds it active again.
+TOOL_ACTIVITY_SCORE_START = 60
+TOOL_ACTIVITY_SCORE_STEP = 15
+TOOL_ACTIVITY_SCORE_DORMANT_THRESHOLD = 40
+TOOL_ACTIVITY_SCORE_MAX = 100
+TOOL_ACTIVITY_SCORE_MIN = 0
+
 
 TOOL_DISCOVERY_SECTORS = [
     "museums",
@@ -412,27 +426,60 @@ def normalize_tool_record(raw: dict | str, *, source: str = "") -> dict:
         "inactive_reason": clean_text(item.get("inactive_reason") or ""),
         "updates_last_60_days": item.get("updates_last_60_days"),
         "last_update_seen": item.get("last_update_seen") or item.get("last_news_seen") or "",
+        "activity_score": int(item.get("activity_score")) if item.get("activity_score") is not None else TOOL_ACTIVITY_SCORE_START,
+        "activity_checked_at": item.get("activity_checked_at") or "",
         "source": item.get("source") or source or item.get("sector_classification_source") or "",
     }
 
 
-# WHAT: Asks the discovery model whether a tool belongs in the cache.
-# HOW: Uses Gemini over one normalized JSON record.
+# WHAT: Cheap local rules that can reject a tool record without a model call.
+# HOW: Name-length and business-only-term checks (no API request).
 # INPUT: item dictionary.
-# OUTPUT: Tuple of allowed boolean and reason string.
-def model_allows_tool_record(item: dict) -> tuple[bool, str]:
-    if not _tool_model_available:
-        return True, "model_unavailable"
+# OUTPUT: (False, reason) if a rule rejects the item outright, else None
+#         (meaning the item needs a model decision).
+def tool_record_rule_gate(item: dict) -> tuple[bool, str] | None:
+    tool = clean_text(item.get("tool") or "")
+    if len(tool) < 3:
+        return False, "name_too_short"
+    text = " ".join(
+        str(item.get(key) or "")
+        for key in ("tool", "company", "group", "sector", "sector_hint", "tool_type", "source")
+    ).lower()
+    if text_has_any(text, BUSINESS_ONLY_TERMS):
+        return False, "business_only_terms"
+    return None
+
+
+def _tool_record_cache_key(item: dict) -> str:
     tool = clean_text(item.get("tool") or "")
     company = clean_text(item.get("company") or "")
-    cache_key = normalized_text(f"{tool} {company}")
-    if cache_key in _tool_record_allowed_model_cache:
-        return _tool_record_allowed_model_cache[cache_key]
-    prompt = """
-You are validating whether an AI tool should be kept in a global AI newsletter tool cache.
+    return normalized_text(f"{tool} {company}")
+
+
+def _tool_record_model_payload(item: dict) -> dict:
+    return {
+        "cache_key": _tool_record_cache_key(item),
+        "tool": clean_text(item.get("tool") or ""),
+        "company": clean_text(item.get("company") or ""),
+        "group": item.get("group") or "",
+        "sector": item.get("sector") or "",
+        "sector_hint": item.get("sector_hint") or "",
+        "tool_type": item.get("tool_type") or "",
+        "reason": item.get("reason") or "",
+        "official_site": item.get("official_site") or "",
+        "source": item.get("source") or item.get("sector_classification_source") or "",
+        "popularity_score": item.get("popularity_score") or 0,
+        "mention_count": item.get("mention_count") or 0,
+    }
+
+
+TOOL_VALIDATION_BATCH_PROMPT = """
+You are validating whether AI tools should be kept in a global AI newsletter tool cache.
+The input is a JSON array "tools" - decide allow/reject for EACH tool independently.
 
 Return JSON only:
-{"allow":true|false,"reason":str}
+{"results": [{"cache_key": str, "allow": true|false, "reason": str}, ...]}
+Return exactly one result object per input tool, copying its "cache_key" back verbatim.
 
 Allow only if:
 - It is a real, independent AI product/tool or a major AI product from a major company.
@@ -445,29 +492,62 @@ Reject if:
 - Merely a feature inside another product unless it is a major named product with public updates.
 - Only a GitHub repo, app-store page, subdomain app, directory listing, or press mention.
 """.strip()
-    payload = {
-        "tool": tool,
-        "company": company,
-        "group": item.get("group") or "",
-        "sector": item.get("sector") or "",
-        "sector_hint": item.get("sector_hint") or "",
-        "tool_type": item.get("tool_type") or "",
-        "reason": item.get("reason") or "",
-        "official_site": item.get("official_site") or "",
-        "source": item.get("source") or item.get("sector_classification_source") or "",
-        "popularity_score": item.get("popularity_score") or 0,
-        "mention_count": item.get("mention_count") or 0,
-    }
+
+
+# WHAT: Validates many new tool records in ONE Gemini call instead of one
+#       call per tool - fixes the request-count blowup where a weekly
+#       discovery pass with N new tools used to fire N separate API calls.
+# HOW: Skips items already cached or rejected by tool_record_rule_gate,
+#      sends the rest as a single batch payload, and fills
+#      _tool_record_allowed_model_cache for every item so tool_record_allowed()
+#      never needs its own API call for anything validated here.
+# INPUT: items list (any mix of already-cached/rule-rejected/new items - safe
+#        to call with a superset, it self-filters).
+# OUTPUT: None; side effect is populating the module-level cache.
+def model_allows_tool_records_batch(items: list[dict]) -> None:
+    if not _tool_model_available or not items:
+        return
+    pending = []
+    seen_keys = set()
+    for item in items:
+        cache_key = _tool_record_cache_key(item)
+        if not cache_key or cache_key in _tool_record_allowed_model_cache or cache_key in seen_keys:
+            continue
+        seen_keys.add(cache_key)
+        pending.append(_tool_record_model_payload(item))
+    if not pending:
+        return
+    by_key: dict[str, tuple[bool, str]] = {}
+    fallback_reason = "model_decision"
     try:
-        data = generate_json(prompt, payload, model=GEMINI_FLASH_MODEL)
-        allowed = bool(data.get("allow"))
-        reason = clean_text(data.get("reason") or "")
+        data = generate_json(TOOL_VALIDATION_BATCH_PROMPT, {"tools": pending}, model=GEMINI_FLASH_MODEL)
+        for row in (data.get("results") if isinstance(data, dict) else None) or []:
+            key = normalized_text(str(row.get("cache_key") or ""))
+            if key:
+                by_key[key] = (bool(row.get("allow")), clean_text(row.get("reason") or "") or "model_decision")
     except Exception as exc:
-        allowed = True
-        reason = f"model_error:{type(exc).__name__}"
-    result = (allowed, reason or "model_decision")
-    _tool_record_allowed_model_cache[cache_key] = result
-    return result
+        # Fail open, same as the old single-item path: an API error should
+        # not silently drop tools from the registry.
+        fallback_reason = f"model_error:{type(exc).__name__}"
+    for row in pending:
+        key = row["cache_key"]
+        _tool_record_allowed_model_cache[key] = by_key.get(key, (True, fallback_reason))
+
+
+# WHAT: Asks the discovery model whether a tool belongs in the cache.
+# HOW: Cache-only in the normal path (see model_allows_tool_records_batch);
+#      falls back to a single-item Gemini call only if this exact tool was
+#      never pre-batched, so calling this function directly stays safe.
+# INPUT: item dictionary.
+# OUTPUT: Tuple of allowed boolean and reason string.
+def model_allows_tool_record(item: dict) -> tuple[bool, str]:
+    if not _tool_model_available:
+        return True, "model_unavailable"
+    cache_key = _tool_record_cache_key(item)
+    if cache_key in _tool_record_allowed_model_cache:
+        return _tool_record_allowed_model_cache[cache_key]
+    model_allows_tool_records_batch([item])
+    return _tool_record_allowed_model_cache.get(cache_key, (True, "model_unavailable"))
 
 
 # WHAT: Applies rule and model gates to decide whether a tool record is allowed.
@@ -475,17 +555,11 @@ Reject if:
 # INPUT: item dictionary.
 # OUTPUT: Boolean allowed decision.
 def tool_record_allowed(item: dict) -> bool:
-    tool = clean_text(item.get("tool") or "")
-    if len(tool) < 3:
-        item["tool_record_allowed_reason"] = "name_too_short"
-        return False
-    text = " ".join(
-        str(item.get(key) or "")
-        for key in ("tool", "company", "group", "sector", "sector_hint", "tool_type", "source")
-    ).lower()
-    if text_has_any(text, BUSINESS_ONLY_TERMS):
-        item["tool_record_allowed_reason"] = "business_only_terms"
-        return False
+    gate = tool_record_rule_gate(item)
+    if gate is not None:
+        allowed, reason = gate
+        item["tool_record_allowed_reason"] = reason
+        return allowed
     allowed, reason = model_allows_tool_record(item)
     item["tool_record_allowed_reason"] = reason
     item["tool_record_allowed_source"] = "model" if _tool_model_available else "rules"
@@ -497,8 +571,9 @@ def tool_record_allowed(item: dict) -> bool:
 # INPUT: records list and optional source label.
 # OUTPUT: Tuple of merged records and duplicate count.
 def dedupe_tool_records(records: list[dict | str], *, source: str = "") -> tuple[list[dict], int]:
-    merged: dict[str, dict] = {}
-    duplicates = 0
+    # Phase 1: normalize everything first so we know exactly which items need
+    # a model validation call before making any Gemini request at all.
+    normalized_items = []
     for raw in records or []:
         item = normalize_tool_record(raw, source=source)
         if not clean_text(item.get("tool") or ""):
@@ -509,6 +584,20 @@ def dedupe_tool_records(records: list[dict | str], *, source: str = "") -> tuple
                 site=item.get("official_site") or "",
                 verified=bool(item.get("official_site_verified")),
             )
+        normalized_items.append(item)
+
+    # Phase 2: batch-validate every item that needs a model decision (skips
+    # items already rejected by tool_record_rule_gate and already-cached
+    # items) in ONE Gemini call instead of one call per tool.
+    if source != "monthly_tools_site":
+        needs_model_check = [item for item in normalized_items if tool_record_rule_gate(item) is None]
+        model_allows_tool_records_batch(needs_model_check)
+
+    # Phase 3: merge, reading validation decisions entirely from the cache
+    # that phase 2 just warmed (tool_record_allowed makes zero API calls here).
+    merged: dict[str, dict] = {}
+    duplicates = 0
+    for item in normalized_items:
         if source != "monthly_tools_site" and not tool_record_allowed(item):
             continue
         key = tool_record_key(item)
@@ -624,8 +713,18 @@ def maintain_monthly_tool_files(*, force_refresh: bool = False) -> None:
     _TOOL_CACHE_MAINTAINED_FOR = today
     monthly = load_json(MONTHLY_TOOLS_FILE, {"tool_records": [], "tools": []})
     monthly_stale = force_refresh or tool_cache_is_stale(monthly)
-    log_event("tool_files.maintenance_started", force_refresh=bool(force_refresh), monthly_stale=bool(monthly_stale), registry=file_status(MONTHLY_TOOLS_FILE))
-    if not monthly_stale:
+    # Weekly new-tool discovery (auto_expansion) must not wait on the 30-day
+    # main-registry refresh cycle: it is checked independently here so a
+    # "fresh" registry (< 30 days old) still gets its weekly pass.
+    auto_expansion_due = tool_auto_expansion_is_due(monthly, force_refresh=force_refresh)
+    log_event(
+        "tool_files.maintenance_started",
+        force_refresh=bool(force_refresh),
+        monthly_stale=bool(monthly_stale),
+        auto_expansion_due=bool(auto_expansion_due),
+        registry=file_status(MONTHLY_TOOLS_FILE),
+    )
+    if not monthly_stale and not auto_expansion_due:
         log_event(
             "tool_files.maintenance_finished",
             registry_records=len(monthly.get("tool_records") or []),
@@ -640,7 +739,6 @@ def maintain_monthly_tool_files(*, force_refresh: bool = False) -> None:
         successful_live_records = fetch_successful_tools() if monthly_stale else []
     existing_registry_records = monthly.get("tool_records") or monthly.get("tools") or []
     monthly_records, monthly_dupes = dedupe_tool_records([*live_monthly_records, *successful_live_records, *existing_registry_records], source="monthly_tools_site")
-    auto_expansion_due = bool(monthly_stale) and tool_auto_expansion_is_due(monthly, force_refresh=force_refresh)
     with timed_stage("tool_files.auto_expansion", enabled=bool(auto_expansion_due)):
         auto_expanded_records, auto_expansion_meta = auto_expand_tool_list(monthly_records, force_refresh=force_refresh) if auto_expansion_due else ([], monthly.get("auto_expansion") or {"ran": False})
     if auto_expanded_records:
@@ -771,7 +869,9 @@ def auto_expand_tool_list(existing_records: list[dict] | None = None, *, force_r
             "q": strict_searxng_ai_product_query(query),
             "format": "json",
             "language": "en",
-            "engines": "google,bing,brave",
+            # Brave/Startpage/DuckDuckGo are currently CAPTCHA/rate-limited on
+            # this self-hosted instance; only request the engines that answer.
+            "engines": "google,bing",
             "time_range": "month",
             "categories": AI_UPDATES_SEARXNG_CATEGORIES,
             "pageno": 1,
@@ -913,22 +1013,79 @@ Output rules:
 
 
 
-# WHAT: Marks auto-discovered tools inactive after a quiet 60-day window.
-# HOW: Uses JSON metadata fields updates_last_60_days and last_update_seen.
+# WHAT: Applies the activity_score -> status mapping to every record.
+# HOW: dormant below TOOL_ACTIVITY_SCORE_DORMANT_THRESHOLD, active otherwise.
 # INPUT: records list.
-# OUTPUT: Updated records list.
+# OUTPUT: Updated records list (never removes a record).
 def mark_inactive_auto_tools(records: list[dict]) -> list[dict]:
-    cutoff = utc_now() - timedelta(days=60)
+    """Reconcile each tool's status with its current activity_score.
+
+    Replaces the old binary "0 updates in 60 days -> inactive forever" rule.
+    A tool below the dormant threshold is excluded from the query rotation
+    (see build_tool_queries / discovery_rows) but stays in the registry, so
+    any later weekly check that finds it active raises the score and brings
+    it back automatically.
+    """
     output = []
     for item in records or []:
         row = dict(item)
-        updates_60 = row.get("updates_last_60_days")
-        last_seen = parse_result_datetime(row.get("last_update_seen") or row.get("last_news_seen") or "")
-        if row.get("source") == "auto_discovered" and updates_60 == 0 and last_seen and last_seen < cutoff:
-            row["status"] = "inactive"
-            row["inactive_reason"] = "0 updates for 60 consecutive days"
+        score = int(row.get("activity_score") if row.get("activity_score") is not None else TOOL_ACTIVITY_SCORE_START)
+        score = max(TOOL_ACTIVITY_SCORE_MIN, min(TOOL_ACTIVITY_SCORE_MAX, score))
+        row["activity_score"] = score
+        if score < TOOL_ACTIVITY_SCORE_DORMANT_THRESHOLD:
+            row["status"] = "dormant"
+            row["inactive_reason"] = f"activity_score {score} below dormant threshold {TOOL_ACTIVITY_SCORE_DORMANT_THRESHOLD}"
+        elif row.get("status") in {"dormant", "inactive"}:
+            row["status"] = "active"
+            row["inactive_reason"] = ""
         output.append(row)
     return output
+
+
+# WHAT: Updates each tool's activity_score from this run's real query evidence.
+# HOW: +TOOL_ACTIVITY_SCORE_STEP for tools with a verified recent official
+#      update this week, -TOOL_ACTIVITY_SCORE_STEP for tools that were
+#      actually queried this week but returned nothing verified.
+# INPUT: queried_tools (names queried this run), active_tools (subset that
+#        produced an accepted official-domain result).
+# OUTPUT: None; writes MONTHLY_TOOLS_FILE in place.
+def apply_tool_activity_signal(queried_tools: list[str], active_tools: list[str]) -> dict:
+    queried_keys = {normalized_text(name) for name in queried_tools or [] if clean_text(name)}
+    active_keys = {normalized_text(name) for name in active_tools or [] if clean_text(name)}
+    if not queried_keys:
+        return {"updated": 0, "raised": 0, "lowered": 0}
+    monthly = load_json(MONTHLY_TOOLS_FILE, {"tool_records": [], "tools": []})
+    records = monthly.get("tool_records") or monthly.get("tools") or []
+    if not records:
+        return {"updated": 0, "raised": 0, "lowered": 0}
+    now = utc_now().isoformat()
+    raised = 0
+    lowered = 0
+    updated = []
+    for raw in records:
+        item = dict(raw) if isinstance(raw, dict) else {"tool": str(raw)}
+        key = tool_record_key(item)
+        if key not in queried_keys:
+            updated.append(item)
+            continue
+        score = int(item.get("activity_score") if item.get("activity_score") is not None else TOOL_ACTIVITY_SCORE_START)
+        if key in active_keys:
+            score = min(TOOL_ACTIVITY_SCORE_MAX, score + TOOL_ACTIVITY_SCORE_STEP)
+            raised += 1
+            item["last_update_seen"] = now
+        else:
+            score = max(TOOL_ACTIVITY_SCORE_MIN, score - TOOL_ACTIVITY_SCORE_STEP)
+            lowered += 1
+        item["activity_score"] = score
+        item["activity_checked_at"] = now
+        updated.append(item)
+    updated = mark_inactive_auto_tools(updated)
+    monthly["tool_records"] = updated
+    monthly["tools"] = [item.get("tool") for item in updated if item.get("tool")]
+    safe_write_json(MONTHLY_TOOLS_FILE, monthly)
+    result = {"updated": len(queried_keys), "raised": raised, "lowered": lowered}
+    log_event("tool_files.activity_signal_applied", **result)
+    return result
 
 
 # WHAT: Builds Exa and SearXNG query rows for cached tools.
@@ -980,6 +1137,11 @@ def load_monthly_tool_records(limit: int = 24, *, force_refresh: bool = False) -
     def add(raw: dict | str, source: str) -> None:
         item = normalize_tool_record(raw, source=source)
         if source != "monthly_tools_site" and not tool_record_allowed(item):
+            return
+        # Dormant tools (activity_score below TOOL_ACTIVITY_SCORE_DORMANT_THRESHOLD)
+        # stay in the registry but drop out of the active query rotation until a
+        # later weekly check finds them active again (see apply_tool_activity_signal).
+        if item.get("status") == "dormant":
             return
         key = normalized_text(item.get("tool") or item.get("company") or "")
         if not key:
