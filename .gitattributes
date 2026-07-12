@@ -1,0 +1,13 @@
+# Without this, Git on Windows can check out shell scripts with CRLF line
+# endings (depending on the cloning machine's core.autocrlf setting). A
+# CRLF shebang line ("#!/bin/sh\r") is invalid inside a Linux container -
+# the entrypoint then fails with a misleading "exec ...: no such file or
+# directory" even though the file is right there (confirmed 2026-07-12:
+# docker/postgres/entrypoint.sh crash-looped this way on a fresh Windows
+# clone while the repo's own stored blob was already clean LF). Force LF
+# for anything a Linux container executes or parses as a script, regardless
+# of the cloning machine's git config.
+* text=auto
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.py text eol=lf
