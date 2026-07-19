@@ -5,7 +5,9 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
-    container_name: keycloak
+    # Do not set container_name here. Compose generates a project-scoped name
+    # while the service remains reachable as `keycloak` on the shared network.
+    # A fixed global name prevents parallel checkouts/stacks from starting.
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin123
