@@ -1,45 +1,54 @@
-# هيكلة Docker — خريطة كاملة
+# Docker Setup
 
-جواب مباشر على "كل كونتينر مفروض له ملف؟" — **نعم، وهذا موجود فعلاً**. كل خدمة (كونتينر) لها ملف compose منفصل خاص بها تحت `docker/compose/`. هذا الملف خريطة توضّح وين كل شي.
+The root `docker-compose.yml` assembles one Compose file per service from
+`docker/compose/`. Run all Docker commands from the repository root.
 
-## الخريطة: كونتينر ← ملف ← وظيفة
+## Service Map
 
-| الكونتينر | ملف الإعداد | يبني من | الوظيفة |
-|---|---|---|---|
-| `ainewsletter` (تطبيقنا) | `docker/compose/app.yml` | `Dockerfile` (جذر المشروع) | سيرفر HTTP + الواجهة + محرّك التشغيل (orchestrator) |
-| `postgres` | `docker/compose/postgres.yml` | `docker/postgres/Dockerfile` | تخزين نسخ النشرة + نسخ احتياطية مجدولة تلقائيًا |
-| `keycloak` | `docker/compose/keycloak.yml` | صورة جاهزة (image) | تسجيل الدخول والصلاحيات (admin/user) |
-| `searxng` | `docker/compose/searxng.yml` | صورة جاهزة (image) | محرك البحث الذاتي الاستضافة |
-| `qdrant` | `docker/compose/qdrant.yml` | صورة جاهزة (image) | قاعدة بيانات المتجهات (الذاكرة الدلالية) |
+| Service | Compose file | Purpose |
+| --- | --- | --- |
+| `ainewsletter` | `docker/compose/app.yml` | Application server, UI, and generation pipeline |
+| `postgres` | `docker/compose/postgres.yml` | Versions, course data, and scheduled SQL backups |
+| `keycloak` | `docker/compose/keycloak.yml` | Authentication and roles |
+| `searxng` | `docker/compose/searxng.yml` | Self-hosted web search |
+| `qdrant` | `docker/compose/qdrant.yml` | Semantic duplicate memory |
+| `minio` | `docker/compose/minio.yml` | Object storage |
 
-## ملفات الجذر (root) — وين تبدأ
+The root `Dockerfile` builds only the application image. PostgreSQL-specific
+image and backup scripts are under `docker/postgres/`.
 
-| الملف | الوظيفة |
-|---|---|
-| `docker-compose.yml` | **نقطة البداية** — ما فيه إعدادات فعلية، بس يجمع الـ5 ملفات أعلاه عبر `include:`. شغّل `docker compose up -d` من هنا دايمًا. |
-| `Dockerfile` | يبني صورة كونتينر `ainewsletter` بس (التطبيق الرئيسي) — يثبت المتطلبات وينسخ الكود. |
+## Start and Stop
 
-**ليه هذولا بالجذر مو داخل `docker/`؟** مقصود، مو ملفات ضايعة — هذا الموضع القياسي اللي أدوات Docker تتوقعه تلقائيًا: `docker compose up` بدون أي `-f` يبحث عن `docker-compose.yml` بالمجلد الحالي، ونفس الشي لـ`docker build .` مع `Dockerfile`. لو نقلناهم داخل `docker/` بنحتاج نكتب المسار يدويًا بكل أمر (`docker compose -f docker/docker-compose.yml ...`) — أعقد بلا داعي. البنية الحالية توازن بين المعيار (root) والتنظيم (التفاصيل الفعلية بـ`docker/compose/*.yml`).
-
-## مجلد `docker/postgres/` — تفاصيل خدمة postgres فقط
-
-| الملف | الوظيفة |
-|---|---|
-| `Dockerfile` | يبني صورة postgres مخصصة (فوق postgres الرسمي) تضيف سكربتات النسخ الاحتياطي |
-| `entrypoint.sh` | يشتغل عند بدء الكونتينر — يبدأ postgres + يجدول النسخ الاحتياطي (cron) |
-| `backup.sh` | سكربت النسخ الاحتياطي الفعلي — يشتغل تلقائيًا يوميًا (`POSTGRES_BACKUP_CRON`، افتراضي 2 صباحًا)، وممكن تشغّله يدويًا: `docker compose exec postgres /usr/local/bin/postgres-backup` |
-
-## ليه بنية "include" بدل ملف واحد ضخم؟
-
-كل خدمة مستقلة (تشتغل، تتوقف، تُعاد بناؤها) بدون التأثير على البقية. مثال حقيقي من اليوم: أعدنا تشغيل `searxng` بس (`docker compose restart searxng`) بعد تعديل إعداداته، بدون ما نلمس postgres أو keycloak أو التطبيق الرئيسي.
-
-## أوامر أساسية (من جذر المشروع)
-
-```bash
-docker compose up -d --build     # يبني ويشغّل كل الخدمات (لازم بعد أي تعديل بـ.env أو Dockerfile)
-docker compose restart searxng   # يعيد تشغيل خدمة وحدة بس (يكفي لتعديلات searxng/settings.yml)
-docker compose ps                # يعرض حالة كل الحاويات
-docker compose logs -f ainewsletter   # يتابع سجل التطبيق حي
+```powershell
+docker compose up --build -d
+docker compose ps
+docker compose logs -f ainewsletter
+docker compose down
 ```
 
-**تنبيه مهم (اتكشف اليوم):** تعديل `backend/.env` يحتاج `docker compose up -d --build` (إعادة إنشاء الحاوية) — مو `docker restart` بس، لأن متغيرات البيئة تُخبز داخل الحاوية وقت الإنشاء فقط (`env_file:` بملف `app.yml`).
+## Recreate After Configuration Changes
+
+Environment variables are loaded when a container is created. After editing
+`backend/.env` or a Compose file, recreate the affected service:
+
+```powershell
+docker compose up -d --force-recreate ainewsletter
+```
+
+Rebuild when application dependencies or the root `Dockerfile` change:
+
+```powershell
+docker compose up -d --build ainewsletter
+```
+
+## Service-Specific Operations
+
+```powershell
+docker compose restart searxng
+docker compose logs --tail 100 postgres
+docker compose exec postgres /usr/local/bin/postgres-backup
+```
+
+For first installation, credentials, ports, and Keycloak setup, see
+[SETUP.md](SETUP.md). For production hardening, see
+[DEPLOYMENT.md](DEPLOYMENT.md).

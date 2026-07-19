@@ -6,7 +6,7 @@ Pipeline order:
 1. Fetch live candidates.
 2. Filter, dedupe, and check semantic memory.
 3. Ask the model to select and rewrite.
-4. Enrich cards and save frontend/news.json.
+4. Enrich cards and save data/news/runtime/news.json.
 5. Refresh courses and movies when this is a full Generate run.
 """
 
@@ -24,11 +24,13 @@ from backend.config.settings import (
     DAEMON_ENABLED,
     DAEMON_INTERVAL_SECONDS,
     DISPLAY_COUNTS,
+    CANDIDATE_AUDIT_FILE,
     NEWS_JSON_FILE,
     NEWS_SECTORS,
     SUPPORTING_COURSE_FETCH_POOL,
     SUPPORTING_MOVIE_FETCH_POOL,
     TOTAL_NEWS_TARGET,
+    QUERY_RESULTS_FILE,
     clean_text,
     env_int,
     env_bool,
@@ -36,6 +38,7 @@ from backend.config.settings import (
     normalized_text,
     recency_cutoff_query_token,
     safe_write_json,
+    update_json_file,
     source_domain,
     utc_now,
 )
@@ -50,7 +53,7 @@ from backend.pipeline.enrichment.news import (
     write_news_fetch_state,
 )
 from backend.pipeline.fetching.courses import fetch_course_candidates
-from backend.pipeline.filtering.courses import filter_supporting_candidates
+from backend.pipeline.filtering.courses import filter_supporting_candidates, normalize_level
 from backend.pipeline.modeling.courses import select_supporting_content_cards
 from backend.pipeline.modeling.model_client import (
     MODEL_FLASH_MODEL,
@@ -75,8 +78,6 @@ from backend.logging.pipeline_logging import (
 )
 
 
-CANDIDATE_AUDIT_FILE = NEWS_JSON_FILE.with_name("ai_updates_candidate_audit.json")
-QUERY_RESULTS_FILE = NEWS_JSON_FILE.with_name("ai_updates_query_results.json")
 NEWS_FETCH_CYCLES = max(1, min(2, env_int("AI_UPDATES_NEWS_FETCH_CYCLES", "2")))
 OFFICIAL_FIRST_FALLBACK_PERCENT = max(0, min(100, env_int("AI_UPDATES_OFFICIAL_FIRST_FALLBACK_PERCENT", "30")))
 OFFICIAL_FIRST_MIN_PRIMARY = max(1, env_int("AI_UPDATES_OFFICIAL_FIRST_MIN_PRIMARY", "20"))
@@ -316,7 +317,7 @@ def save_candidate_audit(candidates: list[dict], report: dict, diagnostics: dict
         },
         "candidates": rows,
     }
-    safe_write_json(CANDIDATE_AUDIT_FILE, payload)
+    update_json_file(CANDIDATE_AUDIT_FILE, lambda current: current.update(payload))
     log_event("candidate_audit.saved", path=str(CANDIDATE_AUDIT_FILE), candidates=len(rows), selected=len(selected))
 
 
@@ -993,14 +994,14 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
 
     saved_news = False
     if should_write_news:
-        _notify(progress_callback, "Saving frontend/news.json")
+        _notify(progress_callback, "Saving runtime/news.json")
         save_news_started = time.time()
         with timed_stage("save_news_json", target=str(NEWS_JSON_FILE)):
             saved_news = save_news_report(report, performance)
         performance["news_json_save_seconds"] = round(time.time() - save_news_started, 2)
         performance["news_json_saved"] = bool(saved_news)
         performance["save_seconds"] = round(save_seconds + performance["news_json_save_seconds"], 2)
-        _notify(progress_callback, f"Saved frontend/news.json in {performance['news_json_save_seconds']:.1f}s")
+        _notify(progress_callback, f"Saved runtime/news.json in {performance['news_json_save_seconds']:.1f}s")
 
     selected_count = len(report.get("latest_updates") or [])
     if saved_news:
@@ -1176,6 +1177,7 @@ def run_single_supporting_pipeline(
     *,
     exclude_items: list[dict] | None = None,
     target_count: int = 1,
+    requested_level: str = "",
 ) -> dict:
     """Run the supporting-content pipeline for one replacement card.
 
@@ -1187,6 +1189,9 @@ def run_single_supporting_pipeline(
         return {"success": False, "error": "invalid_supporting_content_type", "cards": []}
 
     target_count = max(1, int(target_count or 1))
+    # Course difficulty is level-aware; films are global and must never be
+    # filtered, tagged, or persisted against the toolbar's level selection.
+    requested_level = normalize_level(requested_level) if content_type == "course" else ""
     run_id = new_run_id(f"single-{content_type or 'support'}")
     set_run_context(run_id, "single_supporting")
     section = "courses" if content_type == "course" else "movies"
@@ -1214,6 +1219,12 @@ def run_single_supporting_pipeline(
         max(target_count + 3, target_count),
         visible_items=exclude_items or [],
     )
+    if content_type == "course" and requested_level:
+        same_level = [
+            item for item in filtered
+            if normalize_level(item.get("level") or item.get("course_level") or "") == requested_level
+        ]
+        filtered = same_level
     filter_seconds = time.time() - filter_started
 
     gpt_started = time.time()
@@ -1223,12 +1234,20 @@ def run_single_supporting_pipeline(
         target_count,
         visible_count=min(target_count, DISPLAY_COUNTS.get(section, target_count)),
     )
+    if content_type == "movie":
+        for card in cards or []:
+            for field in ("level", "course_level", "difficulty", "level_source"):
+                card.pop(field, None)
+    elif requested_level:
+        for card in cards or []:
+            card["level"] = requested_level
     gpt_seconds = time.time() - gpt_started
 
     performance = {
         "mode": "single_supporting",
         "content_type": content_type,
         "target_count": target_count,
+        "requested_level": requested_level,
         "fetch_pool": fetch_pool,
         "raw_candidates": len(raw or []),
         "valid_candidates": len(filtered or []),

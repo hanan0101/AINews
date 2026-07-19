@@ -60,9 +60,10 @@ Gemini free-tier limits are project-level, not key-level; changing only the API 
 
 ## Output Paths
 
-- `NEWS_JSON_PATH`: newsletter JSON output. Default: `frontend/news.json`.
+- `NEWS_JSON_PATH`: newsletter JSON output. Default: `data/news/runtime/news.json`.
 - `PREVIOUS_NEWS_JSON_PATH`: previous output snapshot path.
-- `AI_UPDATES_RUN_REPORT_PATH`: model/run report output.
+- `AI_UPDATES_RUN_REPORT_PATH`: model/run report output. Default: `data/news/diagnostics/ai_updates_run_report.json`.
+- `MODEL_USAGE_SUMMARY_PATH`: model/quota state. Default: `data/news/runtime/model_usage_summary.json`.
 - `VERSIONS_BACKUP_DIR`: version backup directory.
 
 ## Auth And Database

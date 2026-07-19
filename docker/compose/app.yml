@@ -21,9 +21,11 @@ services:
       HOST: 0.0.0.0
       AI_UPDATES_SEARXNG_URL: http://searxng:8080
       AI_UPDATES_QDRANT_URL: http://qdrant:6333
-      NEWS_JSON_PATH: /app/data/news/news.json
-      PREVIOUS_NEWS_JSON_PATH: /app/data/news/news_previous.json
-      AI_UPDATES_RUN_REPORT_PATH: /app/data/news/ai_updates_run_report.json
+      NEWS_JSON_PATH: /app/data/news/runtime/news.json
+      PREVIOUS_NEWS_JSON_PATH: /app/data/news/runtime/news_previous.json
+      PUBLISHED_NEWS_JSON_PATH: /app/data/news/runtime/news_published.json
+      MODEL_USAGE_SUMMARY_PATH: /app/data/news/runtime/model_usage_summary.json
+      AI_UPDATES_RUN_REPORT_PATH: /app/data/news/diagnostics/ai_updates_run_report.json
       VERSIONS_BACKUP_DIR: /app/data/backups
       KEYCLOAK_SERVER_URL: http://keycloak:8080/
       KEYCLOAK_REALM: newsletter

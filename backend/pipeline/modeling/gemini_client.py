@@ -26,6 +26,8 @@ except Exception:
     gexc = None
 
 from backend.services.gemini_limiter import wait_for_gemini_slot
+from backend.config.settings import MODEL_USAGE_SUMMARY_FILE
+from backend.pipeline.modeling.usage_state import load_usage_state, update_usage_state
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -47,7 +49,7 @@ logger = logging.getLogger(__name__)
 # this project, so it fails 100% of the time regardless of retries or time
 # of day. gemini-flash-latest / gemini-flash-lite-latest / gemini-embedding-001
 # all probed SUCCESS on the same key. Back to role-split defaults until
-# billing is enabled on the Cloud project (see docs/GEMINI_MODEL_AND_BUDGET.md).
+# billing is enabled on the Cloud project (see docs/COST_ESTIMATE.md).
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
 GEMINI_SELECTION_MODEL = os.getenv("GEMINI_SELECTION_MODEL", "gemini-flash-lite-latest").strip() or "gemini-flash-lite-latest"
@@ -62,9 +64,13 @@ _GEMINI_TEST_CALL_INTERVAL_SECONDS = float(
     or os.getenv("GEMINI_TEST_CALL_INTERVAL_SECONDS", "6.0")
     or "6.0"
 )
-_GEMINI_RATE_LIMIT_FILE = Path(os.getenv("GEMINI_RATE_LIMIT_FILE", BACKEND_DIR / ".gemini_rate_limit")).resolve()
+_GEMINI_RATE_LIMIT_FILE = Path(
+    os.getenv("GEMINI_RATE_LIMIT_FILE", Path(__file__).resolve().parent / ".gemini_rate_limit")
+).resolve()
 _GEMINI_RATE_LIMIT_STALE_SECONDS = 60.0
-_GEMINI_QUOTA_STATE_FILE = Path(os.getenv("GEMINI_QUOTA_STATE_FILE", ROOT_DIR / "data" / "news" / "gemini_quota_state.json")).resolve()
+_MODEL_USAGE_STATE_FILE = MODEL_USAGE_SUMMARY_FILE.resolve()
+_LEGACY_GEMINI_QUOTA_STATE_FILE = Path(os.getenv("GEMINI_QUOTA_STATE_FILE", ROOT_DIR / "data" / "news" / "gemini_quota_state.json")).resolve()
+_GEMINI_QUOTA_STATE_KEY = "gemini_quota_state"
 _GEMINI_DAILY_REQUEST_BUDGET = int(os.getenv("GEMINI_DAILY_REQUEST_BUDGET", "120") or "120")
 _GEMINI_FULL_RUN_REQUEST_BUDGET = int(os.getenv("GEMINI_FULL_RUN_REQUEST_BUDGET", "0") or "0")
 _GEMINI_STOP_ON_QUOTA = os.getenv("GEMINI_STOP_ON_QUOTA", "0").strip().lower() in {"1", "true", "yes", "on"}
@@ -107,8 +113,10 @@ def _pacific_day() -> str:
 
 
 def _load_quota_state() -> dict[str, Any]:
+    document = load_usage_state(_MODEL_USAGE_STATE_FILE)
+    embedded = document.get(_GEMINI_QUOTA_STATE_KEY)
     try:
-        state = json.loads(_GEMINI_QUOTA_STATE_FILE.read_text(encoding="utf-8"))
+        state = embedded if isinstance(embedded, dict) else json.loads(_LEGACY_GEMINI_QUOTA_STATE_FILE.read_text(encoding="utf-8"))
         if not isinstance(state, dict):
             state = {}
     except Exception:
@@ -131,10 +139,10 @@ def _load_quota_state() -> dict[str, Any]:
 
 
 def _save_quota_state(state: dict[str, Any]) -> None:
-    _GEMINI_QUOTA_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temp = _GEMINI_QUOTA_STATE_FILE.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
-    temp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
-    temp.replace(_GEMINI_QUOTA_STATE_FILE)
+    update_usage_state(
+        _MODEL_USAGE_STATE_FILE,
+        lambda document: document.__setitem__(_GEMINI_QUOTA_STATE_KEY, state),
+    )
 
 
 def _current_run_id() -> str:

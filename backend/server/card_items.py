@@ -114,9 +114,9 @@ def normalize_item(item, default_type="news"):
     if not raw_id:
         stable_seed = json.dumps(item, sort_keys=True, ensure_ascii=False, default=str)
         raw_id = f"{default_type}-{hashlib.sha1(stable_seed.encode('utf-8', errors='ignore')).hexdigest()[:12]}"
-    title = str(item.get("title") or "").strip()
-    url = str(item.get("url") or "").strip() or "#"
-    text = str(item.get("text") or item.get("summary") or "").strip()
+    title = str(item.get("title") or item.get("headline") or item.get("name") or "").strip()
+    url = str(item.get("url") or item.get("official_url") or item.get("source_url") or item.get("link") or "").strip() or "#"
+    text = str(item.get("text") or item.get("summary") or item.get("description") or "").strip()
     item_type = str(item.get("type") or default_type)
     common = {
         "id": str(raw_id),
@@ -163,7 +163,7 @@ def normalize_item(item, default_type="news"):
         **common,
         **logo_fields,
         "company": str(item.get("company", "") or ""),
-        "tool_name": str(item.get("tool_name", "") or ""),
+        "tool_name": str(item.get("tool_name") or item.get("product") or ""),
         "field_primary": str(item.get("field_primary", "") or ""),
         "use_case_bucket": str(item.get("use_case_bucket", "") or ""),
         "topic_family": str(item.get("topic_family", "") or ""),
@@ -179,26 +179,25 @@ def normalize_item(item, default_type="news"):
 
 # Returns whether is current schema item is true for the current input.
 def is_current_schema_item(item, default_type="news"):
-    """Accept only cards that already match the current pipeline/UI schema."""
+    """Accept cards that can be normalized into the editable UI schema.
+
+    Manual/PDF-imported cards are valid editable content even when they do not
+    carry pipeline-only flags such as ``simple_gpt_selected``. Those flags are
+    selection evidence, not a requirement for editing an archived newsletter.
+    """
     if not isinstance(item, dict):
         return False
     expected_type = str(default_type or "").strip()
-    item_type = str(item.get("type") or "").strip()
+    item_type = str(item.get("type") or expected_type).strip()
     if expected_type and item_type != expected_type:
         return False
-    if not str(item.get("id") or "").strip():
+    if not str(item.get("title") or item.get("headline") or item.get("name") or "").strip():
         return False
-    if not str(item.get("title") or "").strip():
-        return False
-    url = str(item.get("url") or "").strip()
+    url = str(item.get("url") or item.get("official_url") or item.get("source_url") or item.get("link") or "").strip()
     if not url or url == "#":
         return False
     if expected_type == "news":
-        if not str(item.get("text") or "").strip():
-            return False
-        if not str(item.get("story_key") or "").strip():
-            return False
-        if not item.get("simple_gpt_selected"):
+        if not str(item.get("text") or item.get("summary") or item.get("description") or "").strip():
             return False
     return True
 
@@ -227,7 +226,10 @@ def dedupe_store_items(items):
             continue
         if item_url and item_url in seen_urls:
             continue
-        if item_title and item_title in seen_titles:
+        # Distinct source URLs are distinct editable cards even when a manual
+        # import gave them the same generic title (for example "المصدر").
+        # URL/story identity remains the primary duplicate boundary.
+        if item_title and item_title in seen_titles and not item_url:
             continue
         if item_story_key and item_story_key in seen_story_keys:
             continue
@@ -451,7 +453,7 @@ def looks_duplicate(candidate, existing_items):
             return True
 
         item_title = normalize_duplicate_text(item.get("title"))
-        if candidate_title and item_title and candidate_title == item_title:
+        if candidate_title and item_title and candidate_title == item_title and not (candidate_url and item_url):
             return True
 
     return False
@@ -497,12 +499,12 @@ def validate_replacement_candidate(candidate, section, current_items, allow_seen
     if section == "items" and not source:
         return False, "missing_source"
 
-    if section == "courses":
+    if section == "courses" and not allow_curated_json:
         reject_reason = supporting_reject_reason(candidate, "course")
         if reject_reason:
             return False, reject_reason
 
-    if section == "movies":
+    if section == "movies" and not allow_curated_json:
         reject_reason = supporting_reject_reason(candidate, "movie")
         if reject_reason:
             return False, reject_reason

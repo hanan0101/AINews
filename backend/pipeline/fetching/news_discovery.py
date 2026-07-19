@@ -565,6 +565,16 @@ UPDATE_TERMS = (
     "introduces",
     "adds",
     "users can now",
+    # 2026-07-18: exact-substring matching missed the -ing/-s verb forms
+    # that real launch headlines actually use ("Introducing Claude Opus 4.8"
+    # has none of the terms above) - confirmed live: that page is on
+    # anthropic.com, Claude's registered official_site, but got rejected by
+    # result_looks_like_update() purely for this reason.
+    "introducing",
+    "announces",
+    "announcing",
+    "unveils",
+    "unveiling",
 )
 
 
@@ -1739,11 +1749,22 @@ def searxng_discovery_parse_date(value: object):
     return parsed.astimezone(timezone.utc)
 
 
+# 2026-07-18: identifying as a bot in the User-Agent gets a real, measured
+# share of page fetches 403'd or timed out by sites with basic bot blocking
+# (confirmed live: 11 HTTPError + 3 ReadTimeout out of 144 SearXNG results in
+# one run) - a browser UA is not deceptive here, it's what any reader's
+# browser would send to load the same public page.
+PAGE_FETCH_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+
 def searxng_discovery_fetch_html(url: str, timeout: int = SEARXNG_DISCOVERY_PAGE_TIMEOUT) -> tuple[str, str, str]:
     try:
         response = requests.get(
             url,
-            headers={"User-Agent": "AINewsletterBot/1.0 (+https://localhost)"},
+            headers={"User-Agent": PAGE_FETCH_USER_AGENT},
             timeout=timeout,
             allow_redirects=True,
         )
@@ -1831,6 +1852,23 @@ def searxng_discovery_extract_date_confident(html: str, url: str) -> dict | None
     if not candidates:
         return None
     return sorted(candidates, key=lambda item: item["confidence"], reverse=True)[0]
+
+
+# 2026-07-18: short/generic tool names collide with unrelated real-world
+# terms in plain SearXNG keyword search - e.g. the "Poe" chatbot query pulls
+# in the video game Path of Exile (often abbreviated "PoE"), and "Runway"
+# pulls in fashion runway coverage. These pages can never carry a real
+# product-update signal for the tool being queried, so fetching+parsing them
+# below is pure wasted latency, not a quality risk (they were already being
+# rejected downstream once fetched) - skip the page fetch entirely instead.
+SEARXNG_UNRELATED_TOPIC_DOMAINS = {
+    "pathofexile.com",
+    "poewiki.net",
+    "poe-vault.com",
+    "maxroll.gg",
+    "vogue.com",
+    "runwaylive.com",
+}
 
 
 # Fetches fetch searxng query rows from the configured external source.
@@ -1935,6 +1973,25 @@ def fetch_searxng_query_rows(rows: list[dict], *, exclude_items: list[dict] | No
                 for key in ("source_type", "tool", "company", "query_mix", "layer", "aggregator_source", "source_lane"):
                     if row.get(key) is not None:
                         item[key] = row.get(key)
+                # 2026-07-18: this url_discovery_only path (the main
+                # "tool_name_update" lane) never checked whether the result
+                # actually mentions the tool it was queried for - confirmed
+                # live: an "Ideogram" query accepted unrelated robotics/model
+                # news from i-scoop.eu, and "LTX Studio" accepted unrelated
+                # Ukrainian politics articles, both with a verified page date
+                # and tagged as if they were real Ideogram/LTX Studio updates.
+                # tool_query_reject_reason() already exists and is used by
+                # the other two fetch branches (Exa, non-url-discovery
+                # SearXNG) for exactly this - just never wired in here.
+                tool_mismatch_reason = tool_query_reject_reason(row, item)
+                if tool_mismatch_reason:
+                    rejected_count += 1
+                    rejected_audit.append({
+                        "title": item.get("title") or "",
+                        "url": item.get("url") or "",
+                        "reason": tool_mismatch_reason,
+                    })
+                    return
                 hard_flags = set(item.get("candidate_flags") or []) & SEARXNG_HARD_REJECT_FLAGS
                 if hard_flags:
                     rejected_count += 1
@@ -1967,6 +2024,10 @@ def fetch_searxng_query_rows(rows: list[dict], *, exclude_items: list[dict] | No
                     rejected_audit.append({"title": title, "url": url, "reason": "duplicate_or_missing_url"})
                     continue
                 seen_candidates.add(key)
+                if source_domain(url) in SEARXNG_UNRELATED_TOPIC_DOMAINS:
+                    rejected_count += 1
+                    rejected_audit.append({"title": title, "url": url, "reason": "known_unrelated_topic_domain"})
+                    continue
                 pages_checked += 1
                 html, final_url, error = searxng_discovery_fetch_html(url)
                 if error:
@@ -2324,7 +2385,7 @@ def exa_recent_date_from_sitemap(url: str, *, timeout: int = EXA_RECENT_PAGE_TIM
         try:
             response = requests.get(
                 sitemap_url,
-                headers={"User-Agent": "AINewsletterBot/1.0 (+https://localhost)"},
+                headers={"User-Agent": PAGE_FETCH_USER_AGENT},
                 timeout=timeout,
             )
             if response.status_code >= 400:
@@ -2349,7 +2410,7 @@ def exa_recent_verify_date_details(url: str, timeout: int = EXA_RECENT_PAGE_TIME
     try:
         response = requests.get(
             url,
-            headers={"User-Agent": "AINewsletterBot/1.0 (+https://localhost)"},
+            headers={"User-Agent": PAGE_FETCH_USER_AGENT},
             timeout=timeout,
             allow_redirects=True,
         )

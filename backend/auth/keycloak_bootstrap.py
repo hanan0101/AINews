@@ -35,6 +35,9 @@ BOOTSTRAP_ADMIN_PASSWORD = os.getenv("KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD", "admin
 BOOTSTRAP_USER_USERNAME = os.getenv("KEYCLOAK_BOOTSTRAP_USER", "admin").strip()
 BOOTSTRAP_USER_PASSWORD = os.getenv("KEYCLOAK_BOOTSTRAP_USER_PASSWORD", "admin123").strip()
 BOOTSTRAP_WAIT_SECONDS = int(os.getenv("KEYCLOAK_BOOTSTRAP_WAIT_SECONDS", "60") or "60")
+ACCESS_TOKEN_LIFESPAN_SECONDS = int(
+    os.getenv("KEYCLOAK_ACCESS_TOKEN_LIFESPAN_SECONDS", "7200") or "7200"
+)
 
 
 def _request(method: str, path: str, token: str = "", body: dict | None = None) -> tuple[int, dict]:
@@ -110,8 +113,7 @@ def _bootstrap_keycloak_if_missing_unsafe() -> None:
         return
 
     status, _ = _request("GET", f"/realms/{KEYCLOAK_REALM}/.well-known/openid-configuration")
-    if status == 200:
-        return  # Already provisioned - the common case on every restart.
+    realm_exists = status == 200
 
     try:
         token = _master_admin_token()
@@ -122,7 +124,25 @@ def _bootstrap_keycloak_if_missing_unsafe() -> None:
         trace("Keycloak bootstrap skipped: master admin token was empty")
         return
 
-    status, _ = _request("POST", "/admin/realms", token, {"realm": KEYCLOAK_REALM, "enabled": True})
+    if realm_exists:
+        # Keep the token lifetime synchronized on existing volumes as well as
+        # fresh environments. Access tokens are renewed on the first protected
+        # request after this two-hour lifetime expires.
+        status, realm = _request("GET", f"/admin/realms/{KEYCLOAK_REALM}", token)
+        if status == 200:
+            realm["accessTokenLifespan"] = ACCESS_TOKEN_LIFESPAN_SECONDS
+            update_status, _ = _request(
+                "PUT", f"/admin/realms/{KEYCLOAK_REALM}", token, realm
+            )
+            if update_status not in (200, 204):
+                trace(f"Keycloak bootstrap: token lifespan update returned {update_status}")
+        return
+
+    status, _ = _request("POST", "/admin/realms", token, {
+        "realm": KEYCLOAK_REALM,
+        "enabled": True,
+        "accessTokenLifespan": ACCESS_TOKEN_LIFESPAN_SECONDS,
+    })
     if status not in (201, 409):
         trace(f"Keycloak bootstrap: realm creation returned {status}, continuing anyway")
 

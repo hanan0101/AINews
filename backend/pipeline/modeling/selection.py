@@ -23,6 +23,7 @@ from backend.config.settings import (
     AI_UPDATES_SINGLE_OUTPUT_LIMIT,
     NEWS_SECTORS,
     AI_UPDATES_RUN_REPORT_FILE,
+    MODEL_USAGE_SUMMARY_FILE,
     NEWS_FETCH_STATE_FILE,
     clean_text,
     env_int,
@@ -44,6 +45,7 @@ from backend.pipeline.modeling.model_client import (
     model_for_role,
     model_quota_remaining,
 )
+from backend.pipeline.modeling.usage_state import load_usage_state, update_usage_state
 from backend.pipeline.fetching.news_discovery import (
     candidate_owner_key,
     domain_blocked,
@@ -55,7 +57,7 @@ from backend.pipeline.filtering.level_balancing import normalize_level
 from backend.pipeline.modeling.prompts.news_prompt import build_news_rewrite_prompt, build_news_selection_prompt
 from backend.pipeline.modeling.prompts.supporting_prompt import build_supporting_prompt
 
-MODEL_USAGE_FILE = AI_UPDATES_RUN_REPORT_FILE.with_name("model_usage_summary.json")
+MODEL_USAGE_FILE = MODEL_USAGE_SUMMARY_FILE
 COURSE_MAJOR_PLATFORM_KEYS = {"coursera", "udemy", "edx", "linkedin learning"}
 NEWS_MODEL_BATCHING_ENABLED = env_int("AI_UPDATES_NEWS_MODEL_BATCHING_ENABLED", "0") == 1
 NEWS_MODEL_BATCH_SIZE = max(1, min(5, env_int("AI_UPDATES_NEWS_MODEL_BATCH_SIZE", "5")))
@@ -114,14 +116,7 @@ def estimate_prompt_tokens(system_prompt: str, user_payload) -> dict:
 # Performs the log token usage helper step.
 # Loads the current model usage summary file.
 def load_model_usage_summary() -> dict:
-    try:
-        if MODEL_USAGE_FILE.exists():
-            with open(MODEL_USAGE_FILE, "r", encoding="utf-8") as handle:
-                data = json.load(handle)
-            return data if isinstance(data, dict) else {}
-    except Exception:
-        pass
-    return {}
+    return load_usage_state(MODEL_USAGE_FILE)
 
 
 # Returns the usage bucket for the current run.
@@ -159,59 +154,61 @@ def add_model_usage_totals(bucket: dict, input_tokens: int, output_tokens: int, 
 
 # Records a successful model call in model_usage_summary.json.
 def record_model_usage(stage: str, model: str, provider: str, usage: dict | None, estimate: dict | None, extra: dict) -> None:
-    summary = load_model_usage_summary()
-    run = model_usage_run(summary)
-    input_tokens = int((usage or {}).get("input_tokens") or 0)
-    output_tokens = int((usage or {}).get("output_tokens") or 0)
-    total_tokens = int((usage or {}).get("total_tokens") or 0)
-    estimated_tokens = int((estimate or {}).get("estimated_input_tokens") or 0)
-    run.setdefault("calls", []).append({
-        "ts": utc_now().isoformat(),
-        "stage": stage,
-        "provider": provider,
-        "model": model,
-        "status": "success",
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": total_tokens,
-        "estimated_input_tokens": estimated_tokens,
-        "payload_candidates": extra.get("payload_candidates"),
-        "request_number_today": (usage or {}).get("request_number_today"),
-        "remaining_daily_requests": (usage or {}).get("remaining_daily_requests"),
-        "daily_request_budget": (usage or {}).get("daily_request_budget"),
-        "run_request_number": (usage or {}).get("run_request_number"),
-        "run_request_budget": (usage or {}).get("run_request_budget"),
-    })
-    totals = run.setdefault("totals", {})
-    add_model_usage_totals(totals, input_tokens, output_tokens, total_tokens, estimated_tokens)
-    provider_totals = totals.setdefault("by_provider", {}).setdefault(provider, {})
-    add_model_usage_totals(provider_totals, input_tokens, output_tokens, total_tokens, estimated_tokens)
-    model_totals = totals.setdefault("by_model", {}).setdefault(model, {})
-    add_model_usage_totals(model_totals, input_tokens, output_tokens, total_tokens, estimated_tokens)
-    summary["updated_at"] = utc_now().isoformat()
-    safe_write_json(MODEL_USAGE_FILE, summary)
+    def update(summary: dict) -> None:
+        run = model_usage_run(summary)
+        input_tokens = int((usage or {}).get("input_tokens") or 0)
+        output_tokens = int((usage or {}).get("output_tokens") or 0)
+        total_tokens = int((usage or {}).get("total_tokens") or 0)
+        estimated_tokens = int((estimate or {}).get("estimated_input_tokens") or 0)
+        run.setdefault("calls", []).append({
+            "ts": utc_now().isoformat(),
+            "stage": stage,
+            "provider": provider,
+            "model": model,
+            "status": "success",
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+            "estimated_input_tokens": estimated_tokens,
+            "payload_candidates": extra.get("payload_candidates"),
+            "request_number_today": (usage or {}).get("request_number_today"),
+            "remaining_daily_requests": (usage or {}).get("remaining_daily_requests"),
+            "daily_request_budget": (usage or {}).get("daily_request_budget"),
+            "run_request_number": (usage or {}).get("run_request_number"),
+            "run_request_budget": (usage or {}).get("run_request_budget"),
+        })
+        totals = run.setdefault("totals", {})
+        add_model_usage_totals(totals, input_tokens, output_tokens, total_tokens, estimated_tokens)
+        provider_totals = totals.setdefault("by_provider", {}).setdefault(provider, {})
+        add_model_usage_totals(provider_totals, input_tokens, output_tokens, total_tokens, estimated_tokens)
+        model_totals = totals.setdefault("by_model", {}).setdefault(model, {})
+        add_model_usage_totals(model_totals, input_tokens, output_tokens, total_tokens, estimated_tokens)
+        summary["updated_at"] = utc_now().isoformat()
+
+    update_usage_state(MODEL_USAGE_FILE, update)
 
 
 # Records a failed model call in model_usage_summary.json.
 def record_model_failure(stage: str, model: str, provider: str, details: dict, extra: dict | None = None) -> None:
-    summary = load_model_usage_summary()
-    run = model_usage_run(summary)
-    run.setdefault("failures", []).append({
-        "ts": utc_now().isoformat(),
-        "stage": stage,
-        "provider": provider,
-        "model": model,
-        "status": "failed",
-        "category": details.get("category"),
-        "quota_error_category": details.get("quota_error_category"),
-        "request_number_today": details.get("request_number_today"),
-        "remaining_daily_requests": details.get("remaining_daily_requests"),
-        "daily_request_budget": details.get("daily_request_budget"),
-        "error": str(details.get("error") or "")[:1200],
-        **(extra or {}),
-    })
-    summary["updated_at"] = utc_now().isoformat()
-    safe_write_json(MODEL_USAGE_FILE, summary)
+    def update(summary: dict) -> None:
+        run = model_usage_run(summary)
+        run.setdefault("failures", []).append({
+            "ts": utc_now().isoformat(),
+            "stage": stage,
+            "provider": provider,
+            "model": model,
+            "status": "failed",
+            "category": details.get("category"),
+            "quota_error_category": details.get("quota_error_category"),
+            "request_number_today": details.get("request_number_today"),
+            "remaining_daily_requests": details.get("remaining_daily_requests"),
+            "daily_request_budget": details.get("daily_request_budget"),
+            "error": str(details.get("error") or "")[:1200],
+            **(extra or {}),
+        })
+        summary["updated_at"] = utc_now().isoformat()
+
+    update_usage_state(MODEL_USAGE_FILE, update)
 
 
 def log_token_usage(stage: str, model: str, provider: str, usage: dict | None, estimate: dict | None = None, **extra) -> None:

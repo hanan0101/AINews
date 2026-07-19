@@ -24,12 +24,15 @@ from dotenv import load_dotenv
 
 from backend.utils.debug_logging import trace
 from backend.storage.newsletter_store import (
+    canonical_newsletter_payload,
     DISPLAY_COUNTS,
     NEWS_JSON_FILE,
     publish_current_store,
     load_newsletter_settings,
     newsletter_template_from_settings,
     safe_int,
+    save_store,
+    store_from_payload,
 )
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -44,8 +47,8 @@ def env_path(name: str, default: Path) -> Path:
     return Path(value) if value else default
 
 
-# PostgreSQL change: version records now use the PostgreSQL service instead of
-# opening backend/versions.db. The legacy SQLite path remains untouched on disk.
+# PostgreSQL change: live version records use PostgreSQL. The bundled SQLite
+# database under manage_versions/seeds is read only when seeding an empty DB.
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost").strip() or "localhost"
 POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432") or "5432")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "ainewsletter").strip() or "ainewsletter"
@@ -57,6 +60,7 @@ PDF_IMPORT_DEBUG_DIR = env_path("PDF_IMPORT_DEBUG_DIR", ROOT_DIR / "logs")
 # PDF BYTEA change: this directory is retained only for the one-time legacy
 # migration. Runtime imports no longer write files here.
 PDF_VERSION_FILES_DIR = env_path("PDF_VERSION_FILES_DIR", ROOT_DIR / "pdf_versions")
+_JSON_VERSIONS_CANONICALIZED = False
 
 
 # PostgreSQL change: create the same versions schema with an identity column so
@@ -91,17 +95,61 @@ def init_versions_db():
     finally:
         con.close()
     seed_versions_from_sqlite_if_empty()
+    migrate_json_versions_to_canonical_schema()
 
 
-# backend/versions.db ships in the repo with real version history (see
-# UPDATES.md), but a genuinely fresh PostgreSQL volume (first-time clone/
+def migrate_json_versions_to_canonical_schema():
+    """One-time runtime migration for old/manual JSON version snapshots."""
+    global _JSON_VERSIONS_CANONICALIZED
+    if _JSON_VERSIONS_CANONICALIZED:
+        return
+    con = versions_db()
+    migrated = 0
+    try:
+        with con.cursor() as cur:
+            cur.execute(
+                "SELECT id, title, content FROM versions "
+                "WHERE COALESCE(kind, 'json') = 'json'"
+            )
+            rows = cur.fetchall()
+        with con.cursor() as cur:
+            for version_id, current_title, content in rows:
+                try:
+                    raw = json.loads(content or "{}")
+                    canonical = canonical_newsletter_payload(raw)
+                except Exception as exc:
+                    trace(f"Version {version_id} canonical migration skipped: {exc}")
+                    continue
+                canonical_text = json.dumps(canonical, ensure_ascii=False, indent=2)
+                metadata = canonical.get("metadata") if isinstance(canonical.get("metadata"), dict) else {}
+                requested_title = str(metadata.get("requested_version_title") or "").strip()
+                next_title = requested_title or str(current_title or "").strip()
+                if canonical_text != str(content or "") or next_title != str(current_title or "").strip():
+                    cur.execute(
+                        "UPDATE versions SET title = %s, content = %s WHERE id = %s",
+                        (next_title, canonical_text, version_id),
+                    )
+                    migrated += 1
+        con.commit()
+        _JSON_VERSIONS_CANONICALIZED = True
+        if migrated:
+            trace(f"Canonicalized {migrated} stored JSON newsletter versions")
+    except Exception:
+        con.rollback()
+        raise
+    finally:
+        con.close()
+
+
+# seeds/initial_versions.db ships with the historical starter versions, but a
+# genuinely fresh PostgreSQL volume (first-time clone/
 # setup, or a collaborator's machine) starts with an empty versions table -
 # init_versions_db() only does CREATE TABLE IF NOT EXISTS, it never
 # populates data. Without this, "previous versions" is silently empty on
 # every fresh environment even though the repo has the history. Runs once:
 # after the first successful seed the table is non-empty, so every later
 # call is just a cheap COUNT(*) short-circuit.
-SEED_VERSIONS_DB_FILE = Path(__file__).resolve().parents[2] / "versions.db"
+SEED_VERSIONS_DB_FILE = Path(__file__).resolve().parent / "seeds" / "initial_versions.db"
 
 
 def seed_versions_from_sqlite_if_empty():
@@ -247,7 +295,23 @@ def parse_version_id(path, suffix=""):
 def load_current_news_json_text():
     if not NEWS_JSON_FILE.exists():
         return ""
-    return NEWS_JSON_FILE.read_text(encoding="utf-8")
+    raw_text = NEWS_JSON_FILE.read_text(encoding="utf-8")
+    try:
+        raw = json.loads(raw_text)
+    except Exception:
+        return raw_text
+    return json.dumps(canonical_newsletter_payload(raw), ensure_ascii=False, indent=2)
+
+
+def requested_version_title_from_news(content_text):
+    try:
+        payload = json.loads(content_text)
+    except Exception:
+        return ""
+    metadata = payload.get("metadata") if isinstance(payload, dict) else {}
+    if not isinstance(metadata, dict):
+        return ""
+    return str(metadata.get("requested_version_title") or "").strip()
 
 
 # Performs the version title from news helper step.
@@ -302,6 +366,35 @@ def automatic_weekly_newsletter_title(today=None):
     else:
         week_index = 3
     return f"نشرة الذكاء الاصطناعي الأسبوع {week_names[week_index]} من {month_names[today.month - 1]}"
+
+
+def unique_version_title(connection, requested_title: str, exclude_id: int | None = None) -> str:
+    """Return a stable human title with (2), (3), ... when needed."""
+    base = re.sub(r"\s+\(\d+\)$", "", str(requested_title or "").strip()) or "نسخة النشرة"
+    query = "SELECT id, title FROM versions WHERE (title = %s OR title LIKE %s)"
+    values: list[object] = [base, f"{base} (%)"]
+    if exclude_id is not None:
+        query += " AND id <> %s"
+        values.append(int(exclude_id))
+    with connection.cursor() as cur:
+        cur.execute(query, tuple(values))
+        rows = cur.fetchall()
+    used = set()
+    pattern = re.compile(rf"^{re.escape(base)} \((\d+)\)$")
+    for _, title in rows:
+        title = str(title or "").strip()
+        if title == base:
+            used.add(1)
+            continue
+        match = pattern.match(title)
+        if match:
+            used.add(max(2, int(match.group(1))))
+    if 1 not in used:
+        return base
+    suffix = 2
+    while suffix in used:
+        suffix += 1
+    return f"{base} ({suffix})"
 
 
 # Reads read json body from handler from the current store or request context.
@@ -993,6 +1086,7 @@ def enrich_imported_pdf_payload_from_urls(payload):
 
 # Saves save imported version to the configured output or state store.
 def save_imported_version(payload, filename=""):
+    payload = canonical_newsletter_payload(payload)
     content = json.dumps(payload, ensure_ascii=False, indent=2)
     issue_number = safe_int((payload.get("template") or {}).get("issue_number"), 1)
     title = f"نسخة مستوردة من PDF — {Path(filename or 'newsletter.pdf').stem}"
@@ -1205,7 +1299,10 @@ def handle_versions_get(handler, path):
         try:
             # PostgreSQL change: retrieve export content through a psycopg2 cursor.
             with con.cursor() as cur:
-                cur.execute("SELECT content, COALESCE(hidden_from_users, FALSE) FROM versions WHERE id = %s", (export_version_id,))
+                cur.execute(
+                    "SELECT content, COALESCE(hidden_from_users, FALSE), title FROM versions WHERE id = %s",
+                    (export_version_id,),
+                )
                 row = cur.fetchone()
         finally:
             con.close()
@@ -1217,9 +1314,20 @@ def handle_versions_get(handler, path):
             handler.send_json({"error": "not found"}, 404)
             return True
         payload = str(row[0] or "{}").encode("utf-8")
+        display_name = re.sub(
+            r"[\r\n\\/]+",
+            "_",
+            str(row[2] or f"version_{export_version_id}"),
+        ).strip("._ ") or f"version_{export_version_id}"
+        if not display_name.lower().endswith(".json"):
+            display_name = f"{display_name}.json"
+        quoted_name = urllib.parse.quote(display_name)
         handler.send_response(200)
         handler.send_header("Content-Type", "application/json")
-        handler.send_header("Content-Disposition", f'attachment; filename="version_{export_version_id}.json"')
+        handler.send_header(
+            "Content-Disposition",
+            f"attachment; filename=newsletter.json; filename*=UTF-8''{quoted_name}",
+        )
         handler.send_header("Content-Length", str(len(payload)))
         handler.end_headers()
         handler.wfile.write(payload)
@@ -1247,7 +1355,7 @@ def handle_versions_get(handler, path):
             handler.send_json({"error": "not found"}, 404)
             return True
         try:
-            content = json.loads(row[4] or "{}")
+            content = canonical_newsletter_payload(json.loads(row[4] or "{}"))
         except Exception:
             content = row[4] or "{}"
         handler.send_json({
@@ -1365,9 +1473,10 @@ def handle_versions_post(handler, path):
             handler.send_json({"error": "no content"}, 400)
             return True
         issue_number, title = version_title_from_news(content)
-        title = automatic_weekly_newsletter_title()
+        title = requested_version_title_from_news(content) or automatic_weekly_newsletter_title()
         con = versions_db()
         try:
+            title = unique_version_title(con, title)
             # PostgreSQL change: save the current newsletter and return its new
             # identity while preserving the existing POST response.
             with con.cursor() as cur:
@@ -1381,7 +1490,7 @@ def handle_versions_post(handler, path):
             con.close()
         backup_versions_db()
         publish_current_store()
-        handler.send_json({"id": new_id})
+        handler.send_json({"id": new_id, "title": title, "published": True})
         return True
 
     restore_version_id = parse_version_id(path, "/restore")
@@ -1402,12 +1511,26 @@ def handle_versions_post(handler, path):
             handler.send_json({"error": "PDF versions open as files and cannot be restored for editing"}, 400)
             return True
         try:
-            json.loads(row[0] or "{}")
+            payload = canonical_newsletter_payload(json.loads(row[0] or "{}"))
         except Exception:
             handler.send_json({"error": "Stored version content is not valid JSON"}, 500)
             return True
-        NEWS_JSON_FILE.write_text(row[0] or "{}", encoding="utf-8")
-        handler.send_json({"ok": True})
+        # news.json is the one editable workspace for every generated/manual
+        # version. Saving through save_store also makes the write atomic and
+        # guarantees the exact same schema used by normal generation.
+        save_store(store_from_payload(payload), existing_payload={})
+        canonical_content = NEWS_JSON_FILE.read_text(encoding="utf-8")
+        con = versions_db()
+        try:
+            with con.cursor() as cur:
+                cur.execute(
+                    "UPDATE versions SET content = %s WHERE id = %s",
+                    (canonical_content, restore_version_id),
+                )
+            con.commit()
+        finally:
+            con.close()
+        handler.send_json({"ok": True, "canonicalized": True})
         return True
 
     return False
@@ -1431,7 +1554,8 @@ def handle_versions_put(handler, path, data):
             return True
         issue_number, derived_title = version_title_from_news(content)
         derived_title = automatic_weekly_newsletter_title()
-        title = title or derived_title
+        # Existing versions retain their human name; new names are resolved
+        # after loading the current row below.
     parsed_created_at = None
     if created_at:
         try:
@@ -1456,7 +1580,7 @@ def handle_versions_put(handler, path, data):
     try:
         # PostgreSQL change: keep PDF overwrite protection using a psycopg2 cursor.
         with con.cursor() as cur:
-            cur.execute("SELECT kind FROM versions WHERE id = %s", (version_id,))
+            cur.execute("SELECT kind, title FROM versions WHERE id = %s", (version_id,))
             existing = cur.fetchone()
         if save_current and existing and (existing[0] or "json") == "pdf":
             handler.send_json({"error": "PDF versions cannot be edited or overwritten"}, 400)
@@ -1465,6 +1589,7 @@ def handle_versions_put(handler, path, data):
         # retaining the same row-count behavior expected by the API.
         with con.cursor() as cur:
             if save_current:
+                title = title or (str(existing[1] or "").strip() if existing else "") or derived_title
                 cur.execute(
                     """
                     UPDATE versions
@@ -1498,8 +1623,17 @@ def handle_versions_put(handler, path, data):
         return True
     if save_current:
         backup_versions_db()
-        publish_current_store()
-    response = {"ok": True, "id": version_id, "updated_content": save_current}
+        # Updating an existing archived version is an edit, not a publish.
+        # Keep news_published.json pointing at the last version created through
+        # POST /api/versions so end users never jump to whichever old version
+        # an admin happened to edit most recently.
+    response = {
+        "ok": True,
+        "id": version_id,
+        "title": title or (str(existing[1] or "").strip() if existing else ""),
+        "updated_content": save_current,
+        "published": False,
+    }
     if hidden_present:
         response["hidden_from_users"] = hidden_from_users
     handler.send_json(response)

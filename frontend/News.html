@@ -33,6 +33,7 @@
       --bg:#EEDFD0;
       --paper:#F5EDDF;
       --paper-2:#F5EDDF;
+      --chrome-bg:linear-gradient(132deg,#f6eee2 0%,#ead9c7 48%,#e3ceb7 100%);
       --card-bg:#FBF6ED;
       --footer-bg:#F0DECC;
       --text:#2e241d;
@@ -90,40 +91,50 @@
 
     .topbar{
       display:flex;direction:ltr;justify-content:space-between;align-items:center;gap:14px;
-      padding:10px 14px;
-      border-radius:24px;
-      border:1px solid var(--ui-border);
-      background:var(--ui-surface);
-      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-      box-shadow:var(--ui-shadow);
+      padding:4px 12px;
+      border-radius:20px;
+      border:1px solid rgba(116,82,58,.18);
+      /* Exact background gradient used by the version-management page. */
+      background:var(--chrome-bg);
+      backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%);
+      box-shadow:0 14px 34px rgba(91,61,38,.15),inset 0 1px 0 rgba(255,255,255,.28);
       position:relative;
       z-index:30;
     }
     .brand{direction:rtl;display:flex;align-items:center;gap:10px;color:var(--text);min-width:0}
-    .brand-mark{width:34px;height:34px;flex:0 0 34px}
-    .brand-mark svg{width:100%;height:100%}
+    .brand-mark{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center}
+    .brand-mark img{width:46px;height:46px;display:block;object-fit:contain}
     .brand-title{font-size:10px;line-height:1.15;font-weight:500;white-space:nowrap}
-    .top-actions{direction:rtl;display:flex;gap:10px;flex-wrap:wrap}
+    .top-actions{direction:rtl;display:flex;gap:6px;flex-wrap:wrap}
     .toolbar-btn{
-      width:48px;height:44px;min-width:48px;padding:0;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;gap:0;
-      border:1px solid var(--ui-border);background:var(--ui-surface);color:var(--guide-text);cursor:pointer;transition:.18s ease;
+      width:38px;height:36px;min-width:38px;padding:0;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:0;
+      border:0;background:transparent;color:#3b302a;cursor:pointer;transition:transform .18s ease,opacity .18s ease,color .18s ease;box-shadow:none;position:relative;
     }
-    .toolbar-btn:hover{background:var(--ui-surface-hover)}
-    .toolbar-btn.primary,.toolbar-btn.active{background:var(--ui-surface-strong)}
-    .toolbar-btn svg{width:20px;height:20px}
+    .toolbar-btn:hover{background:transparent;color:#201915;opacity:.72;transform:translateY(-1px)}
+    .toolbar-btn.primary,.toolbar-btn.active{background:transparent;color:#3b302a}
+    .toolbar-btn svg{width:16px;height:16px}
     .toolbar-btn span{display:none}
+    .toolbar-btn::after{
+      content:attr(aria-label);position:absolute;top:calc(100% + 7px);left:50%;transform:translate(-50%,-3px);z-index:50;
+      width:max-content;max-width:180px;padding:6px 9px;border:1px solid rgba(116,82,58,.16);border-radius:8px;
+      background:var(--chrome-bg);color:#3b302a;
+      box-shadow:0 7px 18px rgba(91,61,38,.14);font-size:11px;font-weight:500;line-height:1.2;white-space:nowrap;
+      opacity:0;visibility:hidden;pointer-events:none;transition:opacity .14s ease,transform .14s ease;
+    }
+    .toolbar-btn:hover::after,.toolbar-btn:focus-visible::after{opacity:1;visibility:visible;transform:translate(-50%,0)}
     .version-nav-btn{
       width:auto;
       min-width:0;
-      padding:0 14px;
-      gap:7px;
-      border-radius:16px;
-      color:#4b3124;
-      background:rgba(245,237,223,.78);
+      padding:0 10px;
+      gap:6px;
+      border-radius:12px;
+      color:#3b302a;
+      background:transparent;
     }
-    .version-nav-btn span{display:inline;font-size:13px;font-weight:500;white-space:nowrap}
-    .version-nav-btn svg{width:17px;height:17px;stroke:#C73D39}
-    .save-version-btn svg{width:19px;height:19px}
+    .version-nav-btn span{display:inline;font-size:11px;font-weight:500;white-space:nowrap}
+    .version-nav-btn svg{width:14px;height:14px;stroke:#3b302a}
+    .version-nav-btn::after{display:none}
+    .save-version-btn svg{width:16px;height:16px}
 
     html[dir="ltr"] .brand,html[dir="ltr"] .top-actions{direction:ltr}
     html[dir="ltr"] .splash-bar-wrap{text-align:left}
@@ -131,7 +142,7 @@
     .workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
     .board{
       position:relative;
-      background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:30px;padding:28px;
+      background:var(--chrome-bg);border:1px solid var(--ui-border);border-radius:30px;padding:28px;
       backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:var(--ui-shadow)
     }
     .page{
@@ -142,10 +153,13 @@
     .page:before{inset:14px;border:1px dashed rgba(181,143,121,.42)}
     .page:after{inset:6px;border:1px solid rgba(var(--line-rgb),.34);box-shadow: inset 0 0 0 1px rgba(var(--line-rgb),.18)}
 
-    .page-head{direction:ltr;display:grid;grid-template-columns:200px 1fr 145px;gap:10px;align-items:start;position:relative;z-index:1}
-    .obs-logo,.moc-logo{object-fit:contain;object-position:top;margin-top:25px;align-self:start}
-    .moc-logo{width:210px;height:132px;justify-self:start;margin-top:-40px}
-    .obs-logo{width:110px;height:70px;justify-self:start;margin-top:-6px;transform:translateX(-20px);}
+    .page-head{direction:ltr;display:grid;grid-template-columns:210px 1fr 210px;gap:10px;align-items:start;position:relative;z-index:1}
+    .obs-brand{position:relative;width:210px;height:132px;margin-top:-46px;transform:translateX(-70px);justify-self:start;align-self:start;overflow:hidden;box-sizing:border-box}
+    .obs-logo,.moc-logo{display:block;align-self:start}
+    /* The Observatory 3 asset has a wide transparent canvas. Scale and offset
+       that canvas so its visible artwork matches the Ministry logo size. */
+    .obs-logo{position:absolute;top:0;left:-33.8%;width:144.3%;height:auto;max-width:none}
+    .moc-logo{width:210px;height:132px;object-fit:contain;object-position:top;justify-self:end;margin-top:-44px;transform:translateX(70px)}
 
     .page-title{text-align:center;padding-top:36px}
     .page-title h1{margin:0;font-family:"Effra Medium Heading","Avenir","Segoe UI",Tahoma,Arial,sans-serif;font-size:32px;line-height:1.22;font-weight:700}
@@ -159,6 +173,9 @@
     .news-card{height:292px;min-height:292px;padding:26px 18px 16px;cursor:grab;overflow:visible;display:grid;grid-template-rows:78px 130px 22px;gap:10px}
     .news-card.dragging{opacity:.45;transform:scale(.985)}
     .news-card.drag-over{outline:2px dashed rgba(var(--line-rgb),.46)}
+    .feature-card.draggable-course{cursor:grab}
+    .feature-card.draggable-course.dragging{opacity:.45;transform:scale(.985)}
+    .feature-card.draggable-course.drag-over{outline:2px dashed rgba(var(--line-rgb),.46)}
     .selected{border-color:rgba(var(--line-rgb),.54);box-shadow:0 12px 24px rgba(var(--line-rgb),.10)}
 
     .card-logo{position:absolute;top:var(--logo-y,-12px);left:var(--logo-x,14px);width:var(--logo-size,30px);height:var(--logo-size,30px);background:transparent;border-radius:0;border:0;box-shadow:none;display:grid;place-items:center;overflow:visible;z-index:2;contain:layout paint;padding:0;cursor:grab;touch-action:none}
@@ -189,7 +206,9 @@
     .logo-google{font-weight:800;font-size:28px}
 
     .card-head{height:78px;min-height:0;display:grid;grid-template-rows:58px 1px;gap:12px;align-content:start}
-    .card-title{margin:0;height:58px;min-height:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:20px;line-height:1.45;font-weight:500;text-align:right;white-space:pre-line}
+    .card-title{margin:0;height:58px;min-height:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:20px;line-height:1.45;font-weight:500;text-align:right;white-space:normal;direction:rtl;unicode-bidi:isolate;overflow-wrap:anywhere}
+    .news-card .card-title.mixed-bidi-title{font-size:18.5px;line-height:1.5}
+    .news-card.selected .card-head{padding-inline-end:190px;box-sizing:border-box}
     .card-title-line{height:1px;width:88px;margin:0 0 0 auto;background:linear-gradient(90deg,transparent 0%, rgba(var(--line-rgb),.68) 55%, transparent 100%)}
     .card-text{margin:0;min-height:0;overflow:visible;display:block;font-size:15px;color:var(--muted);line-height:1.72;text-align:right;white-space:pre-line}
     .card-source{margin-top:0;display:inline-flex;float:none;align-items:center;align-self:end;justify-self:start;gap:8px;font-size:15px;font-weight:400;color:#201915}
@@ -208,7 +227,7 @@
     .card-nav{display:contents}
     .card-nav-btn{width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--guide-text);display:grid;place-items:center;cursor:pointer;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;transition:transform .15s ease,background .15s ease,opacity .15s ease}
     .card-nav-btn:hover{background:var(--ui-surface-hover);transform:translateY(-1px)}
-    .card-nav-btn:disabled{opacity:.78;cursor:pointer;transform:none}
+    .card-nav-btn:disabled{opacity:.3;cursor:default;transform:none;pointer-events:none}
     .card-nav-btn svg{width:15px;height:15px}
 
     .card-progress{
@@ -321,11 +340,12 @@
     .switch-btn{min-width:138px;padding:11px 20px;border-radius:16px;border:1px solid var(--ui-border);background:var(--ui-surface);color:var(--guide-text);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 3px 10px rgba(87,63,43,.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
     .switch-btn.active{background:var(--ui-surface-strong);color:var(--guide-text);border-color:var(--ui-border)}
     .switch-btn svg{width:18px;height:18px}
-    /* Level filter dropdown: matches the existing soft button colors and only swaps the visible bank view. */
+    /* Level/count controls stay clickable but appear as labels and icons, not boxed buttons. */
     .level-filter,.news-count-filter{display:flex;justify-content:center;margin:0;position:relative;z-index:35;direction:rtl}
-    .level-filter-toggle{height:44px;min-width:156px;padding:0 16px;border-radius:16px;border:1px solid var(--ui-border);background:var(--ui-surface);color:var(--guide-text);cursor:pointer;display:inline-flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 3px 10px rgba(87,63,43,.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;font-weight:800}
-    .news-count-filter .level-filter-toggle{min-width:126px}
-    .level-filter-toggle svg{width:17px;height:17px;flex:0 0 17px}
+    .level-filter-toggle{height:36px;min-width:112px;padding:0 5px;border-radius:0;border:0;background:transparent;color:#3b302a;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:none;font-size:11px;font-weight:700;transition:transform .18s ease,opacity .18s ease,color .18s ease}
+    .level-filter-toggle:hover{background:transparent;color:#201915;opacity:.72;transform:translateY(-1px)}
+    .news-count-filter .level-filter-toggle{min-width:82px}
+    .level-filter-toggle svg{width:14px;height:14px;flex:0 0 14px}
     .level-filter-menu{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-4px);width:184px;padding:6px 12px;border-radius:14px;border:1px solid var(--ui-border);background:rgba(248,241,234,.96);box-shadow:0 18px 42px rgba(64,40,24,.14);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:.16s ease}
     .news-count-filter .level-filter-menu{width:150px}
     .level-filter.open .level-filter-menu,.news-count-filter.open .level-filter-menu{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
@@ -616,6 +636,14 @@
       height:var(--course-newsletter-height);
       min-height:var(--course-newsletter-height);
     }
+    .download-loading-overlay{position:fixed;inset:0;z-index:140;display:none;place-items:center;background:rgba(22,18,17,.34);backdrop-filter:blur(12px) saturate(82%);-webkit-backdrop-filter:blur(12px) saturate(82%)}
+    .download-loading-overlay.show{display:grid}
+    .download-loading-content{display:grid;place-items:center;gap:16px;transform:translateY(-2vh)}
+    .download-loading-brand{width:88px;height:88px;display:grid;place-items:center;perspective:700px}
+    .download-loading-brand img{width:82px;height:82px;display:block;object-fit:contain;filter:drop-shadow(0 14px 18px rgba(25,17,14,.25));animation:downloadBrandFlip 1.15s cubic-bezier(.55,.1,.45,.9) infinite}
+    .download-loading-guide{min-width:132px;padding:8px 16px;border:0;background:transparent;color:#fff;text-align:center;font-size:12px;font-weight:500;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+    @keyframes downloadBrandFlip{0%{transform:rotateY(0deg) scale(.96)}50%{transform:rotateY(180deg) scale(1.04)}100%{transform:rotateY(360deg) scale(.96)}}
+    body.download-in-progress .workspace{filter:blur(7px);transition:filter .18s ease}
     .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ui-surface);color:var(--guide-text);padding:12px 18px;border-radius:14px;box-shadow:var(--ui-shadow);opacity:0;pointer-events:none;transition:.2s ease;z-index:120;border:1px solid var(--ui-border);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
     .toast.show{opacity:1}
 
@@ -847,8 +875,9 @@
       .page{box-shadow:none !important;margin:0 !important;width:210mm !important;height:297mm !important;min-height:297mm !important;max-width:none !important;box-sizing:border-box !important;overflow:hidden !important;page-break-after:avoid;break-after:avoid}
       .page.course-layout,.page.movie-layout{height:auto !important;min-height:297mm !important;overflow:visible !important;padding-bottom:8mm !important}
       .page:before{inset:8mm}.page:after{inset:4mm}
-      .page-head{grid-template-columns:34mm 1fr 34mm}
-      .obs-logo{width:28mm;height:20mm}.moc-logo{width:44mm;height:28mm}
+      .page-head{grid-template-columns:44mm 1fr 44mm}
+      .obs-brand{width:44mm;height:28mm;margin-top:-9.5mm;transform:translateX(-11mm)}
+      .moc-logo{width:44mm;height:28mm;margin-top:-9mm;transform:translateX(11mm)}
       .news-grid{gap:4mm 4mm}.news-card{height:48mm;min-height:48mm;padding:10mm 5mm 4mm}.feature-card{height:36mm;min-height:36mm;padding:8mm 5mm 4mm}
       .feature-list{gap:4mm}.page-footer{margin-top:4mm;padding:3mm 4mm}
       .page.course-layout .page-footer,.page.movie-layout .page-footer{position:relative !important;left:auto !important;right:auto !important;bottom:auto !important;margin:3mm 0 0 !important}
@@ -870,8 +899,9 @@
       .toolbar-btn{flex:1 1 calc(50% - 6px);min-width:0}
       .news-grid,.choice-grid{grid-template-columns:1fr}
       .page{padding:18px 14px 0}
-      .page-head{grid-template-columns:110px 1fr 92px}
-      .obs-logo{width:84px;height:60px}.moc-logo{width:100px;height:66px}
+      .page-head{grid-template-columns:100px 1fr 100px}
+      .obs-brand{width:100px;height:66px;margin-top:-23px;transform:translateX(-45px)}
+      .moc-logo{width:100px;height:66px;margin-top:-22px;transform:translateX(45px)}
       .page-title h1{font-size:13px}
       .splash-brand svg{max-width:44vw}
       .splash-content{width:min(100%,calc(100vw - 32px));min-height:360px;padding:64px 22px 54px;border-radius:36px}
@@ -1055,16 +1085,7 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 19L32 14V63L20 68Z" fill="#C73D39"/>
-            <path d="M42 13L54 8V69L42 74Z" fill="#FAC39B"/>
-            <path d="M64 19L76 14V63L64 68Z" fill="#91B9B4" opacity=".62"/>
-            <path d="M6 48C18 46 26 52 42 54C56 56 64 53 88 30" stroke="#F8F1EA" stroke-width="2.4" stroke-linecap="round"/>
-            <circle cx="6" cy="48" r="4.6" fill="#F8F1EA"/>
-            <circle cx="30" cy="53" r="4.6" fill="#F8F1EA"/>
-            <circle cx="54" cy="54" r="4.6" fill="#F8F1EA"/>
-            <circle cx="88" cy="30" r="4.6" fill="#F8F1EA"/>
-          </svg>
+          <img src="image/brand-mark.svg" alt="">
         </div>
       </div>
       <div class="top-actions">
@@ -1107,7 +1128,9 @@
       <div class="board">
         <article class="page newsletter-page" id="newsletterPage">
           <header class="page-head">
-           <img class="obs-logo" src="image/المرصد الثقافي.png" alt="المرصد الثقافي">
+            <div class="obs-brand">
+              <img class="obs-logo" src="image/المرصد الثقافي2.png" alt="المرصد الثقافي">
+            </div>
             <div class="page-title">
               <h1 id="newsletterTitle">نشرة أخبار<br>الذكاء الاصطناعي</h1>
               <div class="title-divider"><span></span></div>
@@ -1133,7 +1156,7 @@
           </p>
             <span aria-hidden="true"></span>
           </section>
-          <footer class="page-footer">المرصد الثقافي		|		مايو		|		الإصدار التاسع</footer>
+          <footer class="page-footer">تطوير : إدارة المرصد الثقافي		|		وكالة الاستراتيجيات والسياسات الثقافية		|		مايو 2026 م		|		الإصدار السابع</footer>
         </article>
       </div>
       <div class="tip-pop choose" id="tipChoose" aria-live="polite">
@@ -1228,7 +1251,7 @@
       <div class="modal-head"><h4>إعدادات الإرسال</h4><button class="icon-btn" data-close="settings">✕</button></div>
       <form id="settingsForm">
         <div class="field"><label for="settingsNewsletterTitle">عنوان الصفحة</label><textarea id="settingsNewsletterTitle" rows="2" placeholder="نشرة أخبار&#10;الذكاء الاصطناعي"></textarea></div>
-        <div class="field"><label for="settingsFooterPrefix">نص بداية الفوتر</label><input id="settingsFooterPrefix" placeholder="المرصد الثقافي"></div>
+        <div class="field"><label for="settingsFooterPrefix">نص بداية الفوتر</label><input id="settingsFooterPrefix" placeholder="تطوير : إدارة المرصد الثقافي"></div>
         <div class="field"><label for="settingsMonthYear">الشهر والسنة</label><input id="settingsMonthYear" placeholder="اتركه فارغًا لاستخدام الشهر الحالي تلقائيًا"></div>
         <div class="field"><label for="settingsIssueNumber">رقم الإصدار</label><input id="settingsIssueNumber" type="number" min="1" step="1" placeholder="16"></div>
         <div class="field"><label for="recipientEmail">البريد الذي ستصل إليه النشرة</label><input id="recipientEmail" type="email" placeholder="name@example.com"></div>
@@ -1273,8 +1296,15 @@
 
   <div class="preview-overlay" id="previewOverlay">
     <div class="preview-window">
-      <div class="preview-toolbar"><button class="toolbar-btn primary" id="printPreviewBtn">تنزيل PDF</button><button class="toolbar-btn" data-close="preview">إغلاق</button></div>
+      <div class="preview-toolbar"><button class="toolbar-btn" data-close="preview">إغلاق</button></div>
       <div id="previewMount"></div>
+    </div>
+  </div>
+
+  <div class="download-loading-overlay" id="downloadLoadingOverlay" aria-live="polite" aria-busy="true">
+    <div class="download-loading-content">
+      <div class="download-loading-brand" aria-hidden="true"><img src="image/brand-mark.svg" alt=""></div>
+      <div class="download-loading-guide">جاري التحميل</div>
     </div>
   </div>
 
@@ -1435,7 +1465,7 @@
         sendNewsletter: "إرسال النشرة",
         downloadPdf: "تنزيل PDF",
         close: "إغلاق",
-        footerText: "المرصد الثقافي\t\t|\t\tمايو\t\t|\t\tالإصدار التاسع",
+        footerText: "تطوير : إدارة المرصد الثقافي\t\t|\t\tوكالة الاستراتيجيات والسياسات الثقافية\t\t|\t\tمايو 2026 م\t\t|\t\tالإصدار السابع",
         tipChooseTitle: "يمكنك اختيار ما سيظهر في القسم السفلي",
         tipChooseText: "اختر بين عرض دورة تدريبية أو فيلم.",
         tipEditTitle: "يمكنك تحرير النشرة",
@@ -1633,7 +1663,10 @@
       "Prepare Preview",
       "Newsletter Ready for Review"
     ];
-    const state = {items:[], all_items:[], movies:[], courses:[], news_bank:{}, courses_bank:{}, recommended_view:{}, selectedLevels:['all'], newsDisplayCount:4, newsViewOverride:null, levelFilterOpen:false, newsCountFilterOpen:false, toolbarFilterOutsideBound:false, feature_mode:"course", feature_item:null, selected:null, undoStack:[], redoStack:[], reorderSupported:true, editTarget:null, logoEditTarget:null, logoDrag:null, logoSaveTimer:null, suppressLogoClickUntil:0, aiTarget:null, alternativeTarget:null, alternativeResolve:null, deleteConfirmResolve:null, cardNav:{}, card_refill_history:{}, contentSignature:'', onboarding:null, language:"ar", cardProgress:{}, cardProgressTimers:{}, cardProgressAbort:{}, tips:{choose:false,edit:false,reorder:false}, tipTimers:{}, generator:null, timeline:[], previous_counts:{}, isAdmin:false};
+    const state = {items:[], all_items:[], movies:[], courses:[], news_bank:{}, courses_bank:{}, recommended_view:{}, saved_views:{}, defaultView:{}, selectedLevels:['all'], newsDisplayCount:4, viewInitialized:false, newsViewOverride:null, coursesViewOverride:null, movieViewOverride:null, levelFilterOpen:false, newsCountFilterOpen:false, toolbarFilterOutsideBound:false, feature_mode:"course", feature_item:null, selected:null, undoStack:[], redoStack:[], reorderSupported:true, editTarget:null, logoEditTarget:null, logoDrag:null, logoSaveTimer:null, suppressLogoClickUntil:0, aiTarget:null, alternativeTarget:null, alternativeResolve:null, deleteConfirmResolve:null, cardNav:{}, cardNavPending:{}, card_refill_history:{}, contentSignature:'', onboarding:null, language:"ar", cardProgress:{}, cardProgressTimers:{}, cardProgressAbort:{}, tips:{choose:false,edit:false,reorder:false}, tipTimers:{}, generator:null, timeline:[], previous_counts:{}, isAdmin:false, versionTitle:''};
+    // Native browser title bubbles cannot be styled; the toolbar uses the
+    // accessible aria-label with the custom tooltip defined above instead.
+    document.querySelectorAll('.topbar [title]').forEach(element => element.removeAttribute('title'));
     const els = {
       splash: document.getElementById('splashScreen'),
       shell: document.getElementById('appShell'),
@@ -1655,6 +1688,7 @@
       editOverlay: document.getElementById('editOverlay'),
       previewOverlay: document.getElementById('previewOverlay'),
       previewMount: document.getElementById('previewMount'),
+      downloadLoadingOverlay: document.getElementById('downloadLoadingOverlay'),
       aiOverlay: document.getElementById('aiOverlay'),
       alternativeOverlay: document.getElementById('alternativeOverlay'),
       alternativeFetchBtn: document.getElementById('alternativeFetchBtn'),
@@ -1747,7 +1781,7 @@
         const button = document.querySelector(`[data-action="${action}"]`);
         if(button){
           button.setAttribute('aria-label', t(key));
-          button.setAttribute('title', t(key));
+          button.removeAttribute('title');
         }
       });
       updatePinnedPageButton();
@@ -1796,7 +1830,6 @@
       setText('#sendOverlay label[for="sendRecipientEmail"]', t('sendTo'));
       setText('#sendOverlay .modal-actions .primary', t('sendNewsletter'));
       setText('#sendOverlay [data-close="send"].btn', t('cancel'));
-      setText('#printPreviewBtn', t('downloadPdf'));
       setText('#previewOverlay [data-close="preview"]', t('close'));
       setText('#tipChoose h4', t('tipChooseTitle'));
       setText('#tipChoose p', t('tipChooseText'));
@@ -1822,7 +1855,35 @@
       updateNewsletterFooter();
     }
     function formatFooterSeparators(text){
-      return String(text || '').replace(/\s*\|\s*/g, '\t\t|\t\t');
+      return String(text || '').replace(/\s*\|\s*/g, '              |              ');
+    }
+    function normalizeFooterTemplate(template={}){
+      const legacyPrefix = 'المرصد الثقافي';
+      const previousPrefix = 'تطوير: إدارة المرصد الثقافي';
+      const currentPrefix = 'تطوير : إدارة المرصد الثقافي';
+      const legacyAgency = 'وكالة الإستراتيجيات والسياسات الثقافية';
+      const agency = 'وكالة الاستراتيجيات والسياسات الثقافية';
+      const normalized = {...(template || {})};
+      const storedPrefix = String(normalized.footer_prefix || '').trim();
+      const knownPrefixes = [legacyPrefix, previousPrefix, currentPrefix];
+      if(knownPrefixes.includes(storedPrefix)) normalized.footer_prefix = currentPrefix;
+      const footerParts = String(normalized.footer_text || '').split(/\s*\|\s*/);
+      const firstPart = String(footerParts[0] || '').trim();
+      if(knownPrefixes.includes(firstPart) || knownPrefixes.includes(storedPrefix)){
+        const storedAgency = String(footerParts[1] || '').trim();
+        const hasAgency = storedAgency === agency || storedAgency === legacyAgency;
+        let monthYear = String(footerParts[hasAgency ? 2 : 1] || normalized.month_year || normalized.month_year_override || '').trim();
+        if(monthYear && !monthYear.endsWith(' م')) monthYear += ' م';
+        const rawIssue = String(footerParts[hasAgency ? 3 : 2] || normalized.issue_label || '').trim();
+        const issueLabel = rawIssue.replace(/^الإصـ*دار\s*/, '').trim();
+        normalized.footer_text = [
+          currentPrefix,
+          agency,
+          monthYear,
+          issueLabel ? `الإصدار ${issueLabel}` : ''
+        ].filter(Boolean).join('\t\t|\t\t');
+      }
+      return normalized;
     }
     function updateNewsletterFooter(){
       const footer = document.querySelector('.page-footer');
@@ -1895,6 +1956,24 @@
     }
 
     function escapeHtml(v=''){return String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+    function bidiTitleHtml(v=''){
+      const value = String(v || '');
+      const latinParentheses = /\([^()\r\n]*[A-Za-z0-9][^()\r\n]*\)/g;
+      let html = '';
+      let cursor = 0;
+      for(const match of value.matchAll(latinParentheses)){
+        html += escapeHtml(value.slice(cursor, match.index));
+        // Unicode LTR isolate/PDI keeps mixed Arabic/Latin parentheses ordered
+        // without adding inline elements that can confuse Chrome line-clamp.
+        html += `&#x2066;${escapeHtml(match[0])}&#x2069;`;
+        cursor = match.index + match[0].length;
+      }
+      return html + escapeHtml(value.slice(cursor));
+    }
+    function mixedBidiTitleClass(v=''){
+      const groups = String(v || '').match(/\([^()\r\n]*[A-Za-z0-9][^()\r\n]*\)/g) || [];
+      return groups.length > 1 && String(v || '').length > 40 ? ' mixed-bidi-title' : '';
+    }
     function viewerCanRequest(url, options={}){
       if(state.isAdmin) return true;
       const method = String(options.method || 'GET').toUpperCase();
@@ -1937,7 +2016,7 @@
       if(versionsButton && !state.isAdmin){
         const label = versionsButton.querySelector('span');
         if(label) label.textContent = 'النسخ السابقة';
-        versionsButton.title = 'النسخ السابقة';
+        versionsButton.removeAttribute('title');
         versionsButton.setAttribute('aria-label', 'النسخ السابقة');
       }
     }
@@ -1985,6 +2064,17 @@
     }
     async function saveVersion() {
       try {
+        // Commit only the currently selected Mode + Level/general view. Other
+        // contexts stay untouched and retain their own last saved ordering.
+        markCurrentViewAsDefault();
+        commitCurrentViewToSavedViews();
+        const persisted = await request(`${API_BASE}/state`, {
+          method:'PUT',
+          body:JSON.stringify(snapshotPayload())
+        });
+        applyState(persisted);
+        restoreSavedViewForContext();
+        render();
         const editingId = currentEditingVersionId();
         const res = await fetch(editingId ? `/api/versions/${editingId}` : '/api/versions', {
           method: editingId ? 'PUT' : 'POST',
@@ -1992,6 +2082,8 @@
           body: editingId ? JSON.stringify({ save_current: true }) : undefined
         });
         if (res.ok) {
+          const savedRecord = await res.json().catch(()=>({}));
+          if(savedRecord?.title) state.versionTitle = String(savedRecord.title).trim();
           if (editingId) {
             showPlainToast('تم تحديث النسخة');
             return;
@@ -2652,8 +2744,16 @@
       if(normalized.includes('متقدم')||normalized.includes('advanced')){active=3;label=t('advanced');}
       return {label,dots:`<span class="level-dots">${[1,2,3].map(i=>`<span class="${i<=active?'active':''}"></span>`).join('')}</span>`};
     }
-    function cardNavKey(section, index){ return `${section}:${index}`; }
-    function cardRefillHistoryKey(section, index){ return `${section}:${index}`; }
+    function activeLevelContext(data=state){
+      const selected = (data.selectedLevels || ['all']).map(normalizeLevelName).filter(Boolean);
+      const levels = selected.filter(level=>level !== 'all').sort();
+      return selected.includes('all') || !levels.length || levels.length >= 3 ? 'all' : levels.join('+');
+    }
+    function replacementContextKey(section, index, data=state){
+      return `mode-${newsViewCount(data)}:${data.feature_mode || 'course'}:level-${activeLevelContext(data)}:${section}:${index}`;
+    }
+    function cardNavKey(section, index){ return replacementContextKey(section, index); }
+    function cardRefillHistoryKey(section, index){ return replacementContextKey(section, index); }
     function compactHistoryItem(item={}){
       return {
         id: item.id || '',
@@ -2699,7 +2799,18 @@
       // list the user is looking at.
       return displayItemsForRender(state).news || state.items || [];
     }
-    function getSectionList(section){ return section === 'items' ? visibleNewsList() : section === 'courses' ? state.courses : state.movies; }
+    function getSectionList(section){
+      if(section === 'items') return visibleNewsList();
+      if(section === 'courses') return displayItemsForRender(state).courses || state.courses || [];
+      if(section === 'movies'){
+        const featureMovie = state.feature_mode === 'movie' && state.feature_item?.type === 'movie'
+          ? state.feature_item
+          : null;
+        const current = state.movieViewOverride || featureMovie || (state.movies || [])[0];
+        return current ? [current] : [];
+      }
+      return [];
+    }
     function cardNavState(section, index){
       const key = cardNavKey(section, index);
       if(!state.cardNav[key]) state.cardNav[key] = {prev:[], next:[], rejected:[]};
@@ -2707,12 +2818,14 @@
     }
     function cardNavButtons(section, id, index){
       const nav = cardNavState(section, index);
+      const pending = Boolean(state.cardNavPending?.[cardNavKey(section, index)]);
       const safeSection = escapeHtml(section);
       const safeId = escapeHtml(id || '');
-      const disabledBack = '';
+      const disabledBack = (!nav.prev.length || pending) ? ' disabled' : '';
+      const disabledForward = pending ? ' disabled' : '';
       return `<div class="card-nav">
         <button class="card-nav-btn" type="button" data-card-action="nav-back" data-target-section="${safeSection}" data-target-id="${safeId}" data-target-index="${index}" aria-label="${escapeHtml(t('cardBack'))}" title="${escapeHtml(t('cardBack'))}"${disabledBack}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 18l6-6-6-6"/></svg></button>
-        <button class="card-nav-btn" type="button" data-card-action="nav-forward" data-target-section="${safeSection}" data-target-id="${safeId}" data-target-index="${index}" aria-label="${escapeHtml(t('cardForward'))}" title="${escapeHtml(t('cardForward'))}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button class="card-nav-btn" type="button" data-card-action="nav-forward" data-target-section="${safeSection}" data-target-id="${safeId}" data-target-index="${index}" aria-label="${escapeHtml(t('cardForward'))}" title="${escapeHtml(t('cardForward'))}"${disabledForward}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 18l-6-6 6-6"/></svg></button>
       </div>`;
     }
     function hasPreviousCard(section, index=0){
@@ -2727,7 +2840,7 @@
     function newsCardMarkup(item, index=0){
       return `<article class="news-card ${state.selected?.id===item.id && state.selected?.section==='items'?'selected':''}" data-id="${escapeHtml(item.id)}" data-section="items" data-url="${escapeHtml(item.url||'#')}" draggable="true">
         ${logoMarkup(item, 'items', item.id)}
-        <div class="card-head"><h3 class="card-title">${escapeHtml(item.title)}</h3><div class="card-title-line"></div></div>
+        <div class="card-head"><h3 class="card-title${mixedBidiTitleClass(item.title)}" dir="rtl">${bidiTitleHtml(item.title)}</h3><div class="card-title-line"></div></div>
         <p class="card-text">${escapeHtml(item.text)}</p>
         <a class="card-source" href="${escapeHtml(item.url||'#')}" target="_blank" rel="noopener noreferrer"><span>${t('source')}</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg></a>
         <div class="card-popover">
@@ -2738,9 +2851,9 @@
     }
     function featureCardMarkup(item, section, index=0){
       const level = levelMarkup(item.level);
-      return `<article class="feature-card ${state.selected?.id===item.id && state.selected?.section===section?'selected':''}" data-id="${escapeHtml(item.id)}" data-section="${section}" data-url="${escapeHtml(item.url||'#')}">
+      return `<article class="feature-card ${section==='courses'?'draggable-course ':''}${state.selected?.id===item.id && state.selected?.section===section?'selected':''}" data-id="${escapeHtml(item.id)}" data-section="${section}" data-url="${escapeHtml(item.url||'#')}"${section==='courses'?' draggable="true"':''}>
         ${logoMarkup(item, section, item.id)}
-        <div class="feature-header"><h3 class="card-title">${escapeHtml(item.title)}</h3><div class="card-title-line"></div><p class="card-text">${escapeHtml(item.text)}</p></div>
+        <div class="feature-header"><h3 class="card-title" dir="rtl">${bidiTitleHtml(item.title)}</h3><div class="card-title-line"></div><p class="card-text">${escapeHtml(item.text)}</p></div>
         <div class="feature-meta">
           <a class="feature-link" href="${escapeHtml(item.url||'#')}" target="_blank" rel="noopener noreferrer">${t('courseOpen')} <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg></a>
           <span>${t('level')}: ${level.label || t('beginner')}</span>${level.dots}
@@ -2754,7 +2867,7 @@
     function movieCardMarkup(item, index=0){
       const title = escapeHtml(item.title || 'Ex Machina');
       const text = escapeHtml(item.text || 'A film about artificial intelligence and its relationship with people.');
-      const posterSrc = item.poster || item.image || '';
+      const posterSrc = item.logo_override_url || item.manual_logo_url || item.poster || item.image || '';
       const poster = posterSrc ? `<img src="${escapeHtml(posterSrc)}" alt="">` : '<div style="width:100%;height:100%;background:linear-gradient(135deg,#6c4a37,#161616);"></div>';
       const sprockets = Array.from({length:5}).map(()=>'<span></span>').join('');
       return `<article class="feature-card movie-card ${state.selected?.id===(item.id||'feature-movie') && state.selected?.section==='movies'?'selected':''}" data-id="${escapeHtml(item.id||'feature-movie')}" data-section="movies" data-url="${escapeHtml(item.url||'#')}">
@@ -2919,13 +3032,104 @@
     function normalizeLevelName(level){
       const text = String(level || '').toLowerCase().trim();
       if(['beginner','intermediate','advanced','all'].includes(text)) return text;
+      if(text.includes('مبتدئ')) return 'beginner';
+      if(text.includes('متوسط')) return 'intermediate';
+      if(text.includes('متقدم')) return 'advanced';
+      if(text.includes('عام') || text.includes('الكل')) return 'all';
       return '';
+    }
+    function replacementLevels(data=state){
+      const context = activeLevelContext(data);
+      return context === 'all' ? null : new Set(context.split('+').filter(Boolean));
+    }
+    function itemMatchesReplacementLevel(item={}, data=state){
+      const allowed = replacementLevels(data);
+      if(!allowed) return true;
+      const level = normalizeLevelName(item.level || item.course_level || item.difficulty || '');
+      return Boolean(level && allowed.has(level));
+    }
+    function requestedReplacementLevel(data=state){
+      const allowed = replacementLevels(data);
+      return allowed && allowed.size === 1 ? [...allowed][0] : '';
     }
     function bankList(bank, level){
       return Array.isArray(bank?.[level]) ? bank[level] : [];
     }
     function newsViewCount(data=state){
       return Number(data.newsDisplayCount) === 6 ? 6 : 4;
+    }
+    function cloneViewData(value){
+      try{return JSON.parse(JSON.stringify(value));}catch{return value;}
+    }
+    function savedViewModeKey(data=state){
+      return `mode-${newsViewCount(data)}-${data.feature_mode || 'course'}`;
+    }
+    function savedViewLevelKey(data=state){ return activeLevelContext(data); }
+    function savedViewForContext(data=state){
+      return data.saved_views?.[savedViewModeKey(data)]?.[savedViewLevelKey(data)] || null;
+    }
+    function captureCurrentSavedView(){
+      const view = displayItemsForRender(state);
+      const featureItem = state.feature_mode === 'movie'
+        ? (state.movieViewOverride || (state.movies || [])[0] || null)
+        : ((view.courses || [])[0] || null);
+      return cloneViewData({
+        items:(view.news || []).slice(0, newsViewCount(state)),
+        courses:(view.courses || []).slice(0,2),
+        movies:state.feature_mode === 'movie' && featureItem ? [featureItem] : [],
+        feature_item:featureItem,
+        feature_mode:state.feature_mode || 'course',
+        saved_at:new Date().toISOString()
+      });
+    }
+    function commitCurrentViewToSavedViews(){
+      const modeKey = savedViewModeKey(state);
+      const levelKey = savedViewLevelKey(state);
+      const saved = cloneViewData(state.saved_views || {});
+      if(!saved[modeKey] || typeof saved[modeKey] !== 'object') saved[modeKey] = {};
+      saved[modeKey][levelKey] = captureCurrentSavedView();
+      state.saved_views = saved;
+      return saved[modeKey][levelKey];
+    }
+    function markCurrentViewAsDefault(){
+      state.defaultView = {
+        news_display_count:newsViewCount(state),
+        selected_levels:[...(state.selectedLevels || ['all'])],
+        feature_mode:state.feature_mode || 'course',
+        mode_key:savedViewModeKey(state),
+        level_key:savedViewLevelKey(state),
+        saved_at:new Date().toISOString()
+      };
+      return state.defaultView;
+    }
+    function clearContextViewOverrides(){
+      state.newsViewOverride = null;
+      state.coursesViewOverride = null;
+      state.movieViewOverride = null;
+    }
+    function restoreSavedViewForContext(){
+      clearContextViewOverrides();
+      const saved = savedViewForContext(state);
+      if(!saved) return false;
+      if(Array.isArray(saved.items) && saved.items.length){
+        state.newsViewOverride = cloneViewData(saved.items);
+      }
+      if(Array.isArray(saved.courses) && saved.courses.length){
+        state.coursesViewOverride = cloneViewData(saved.courses);
+      }
+      // Films are global across levels. Level changes may restore news/course
+      // layouts, but they must not replace the currently selected film.
+      if(state.feature_mode === 'movie'){
+        const movie = (state.movies || [])[0] || null;
+        if(movie){
+          state.movieViewOverride = cloneViewData(movie);
+          state.feature_item = cloneViewData(movie);
+        }
+      }else{
+        const course = (saved.courses || [])[0] || saved.feature_item || null;
+        if(course) state.feature_item = cloneViewData(course);
+      }
+      return true;
     }
     function uniqueById(items=[]){
       const seen = new Set();
@@ -3007,9 +3211,10 @@
       // Manual reorder fix: when the user drags cards, keep rendering that
       // reordered visible view instead of letting news_bank rebuild the old order.
       const manualNews = data === state && Array.isArray(state.newsViewOverride) ? state.newsViewOverride : null;
+      const manualCourses = data === state && Array.isArray(state.coursesViewOverride) ? state.coursesViewOverride : null;
       return {
         news: manualNews && manualNews.length ? manualNews.slice(0,count) : (view.news && view.news.length ? view.news.slice(0,count) : fallbackNews.slice(0,count)),
-        courses: view.courses && view.courses.length ? view.courses : (data.courses || []).slice(0,2)
+        courses: manualCourses && manualCourses.length ? manualCourses.slice(0,2) : (view.courses && view.courses.length ? view.courses : (data.courses || []).slice(0,2))
       };
     }
     function applySelectedLevelView(){
@@ -3051,7 +3256,8 @@
       if(featureTitle) featureTitle.textContent = featureMode === 'movie' ? t('filmSection') : t('courseSection');
       featureSwitches.forEach(btn=>btn.classList.toggle('active', btn.dataset.featureMode === featureMode));
       if(featureMode === 'movie'){
-        const movie = data.feature_item || (data.movies || [])[0] || {};
+        const featureMovie = data.feature_item?.type === 'movie' ? data.feature_item : null;
+        const movie = (data === state ? state.movieViewOverride : null) || featureMovie || (data.movies || [])[0] || {};
         if(featureList) featureList.innerHTML = movieCardMarkup(movie, 0);
         featureList?.classList.add('movie-mode');
         featureList?.classList.remove('course-mode');
@@ -3110,8 +3316,7 @@
             state.selectedLevels = values.length ? values : ['all'];
             if(state.selectedLevels.length >= 3) state.selectedLevels = ['all'];
           }
-          state.newsViewOverride = null;
-          applySelectedLevelView();
+          if(!restoreSavedViewForContext()) applySelectedLevelView();
           state.levelFilterOpen = false;
           render();
         };
@@ -3144,8 +3349,7 @@
           // News count only changes the visible card count and page height.
           // It does not generate, fetch, or edit the saved content bank.
           state.newsDisplayCount = count;
-          state.newsViewOverride = null;
-          applySelectedLevelView();
+          if(!restoreSavedViewForContext()) applySelectedLevelView();
           state.newsCountFilterOpen = false;
           render();
         };
@@ -3211,7 +3415,7 @@
       document.addEventListener('click', handleOutsideCardClick);
     }
     function findVisibleIndex(section, id){
-      const list = section === 'items' ? state.items : section === 'courses' ? state.courses : state.movies;
+      const list = getSectionList(section);
       return list.findIndex(item => item.id === id);
     }
     function showCardProgress(section, index, titleKey='progressReplacing'){
@@ -3306,6 +3510,9 @@
         // replacement may target cards that came from all_items/news_bank.
         const visible = [...visibleNewsList()];
         const previous = visible[index];
+        if(state.selected?.section === section && state.selected?.id === previous?.id){
+          state.selected = {section, id:newItem.id};
+        }
         if(index < visible.length) visible[index] = newItem;
         else visible.splice(index, 0, newItem);
         state.newsViewOverride = visible;
@@ -3314,26 +3521,89 @@
           if(!Array.isArray(pool)) return pool;
           const previousId = previous?.id;
           const previousUrl = String(previous?.url || '').trim();
-          let replaced = false;
-          const nextPool = pool.map(item=>{
-            const sameId = previousId && item?.id === previousId;
-            const sameUrl = previousUrl && String(item?.url || '').trim() === previousUrl;
-            if(sameId || sameUrl){
-              replaced = true;
-              return newItem;
-            }
-            return item;
-          });
-          if(!replaced) nextPool.splice(index, 0, newItem);
+          const newId = newItem?.id;
+          const newUrl = String(newItem?.url || '').trim();
+          const nextPool = [...pool];
+          const previousPoolIndex = nextPool.findIndex(item =>
+            (previousId && item?.id === previousId)
+            || (previousUrl && String(item?.url || '').trim() === previousUrl)
+          );
+          const existingNewIndex = nextPool.findIndex((item, poolIndex) =>
+            poolIndex !== previousPoolIndex && (
+              (newId && item?.id === newId)
+              || (newUrl && String(item?.url || '').trim() === newUrl)
+            )
+          );
+          if(previousPoolIndex >= 0){
+            // A prepared alternative already belongs to the full pool. Swap it
+            // with the visible card instead of deduping it away, so card 7+
+            // remains available after success, failure, undo, and further edits.
+            nextPool[previousPoolIndex] = newItem;
+            if(existingNewIndex >= 0 && previous) nextPool[existingNewIndex] = previous;
+          }else if(existingNewIndex < 0){
+            nextPool.splice(Math.min(index, nextPool.length), 0, newItem);
+          }
           return dedupeClientItems(nextPool);
         };
         state.all_items = replaceInPool(state.all_items || []);
         return;
       }
-      const list = section === 'courses' ? state.courses : state.movies;
-      if(index < list.length) list[index] = newItem;
-      else list.splice(index, 0, newItem);
-      if(section === 'movies') state.feature_item = state.movies[0] || newItem;
+      if(section === 'courses'){
+        const visible = [...getSectionList('courses')];
+        const previous = visible[index];
+        if(state.selected?.section === section && state.selected?.id === previous?.id){
+          state.selected = {section, id:newItem.id};
+        }
+        if(index < visible.length) visible[index] = newItem;
+        else visible.splice(index, 0, newItem);
+        state.coursesViewOverride = dedupeClientItems(visible).slice(0,2);
+        state.courses = dedupeClientItems([...visible, ...(state.courses || []), previous]);
+        return;
+      }
+      if(section === 'movies'){
+        const previous = getSectionList('movies')[0];
+        if(state.selected?.section === section && state.selected?.id === previous?.id){
+          state.selected = {section, id:newItem.id};
+        }
+        state.movieViewOverride = newItem;
+        state.feature_item = newItem;
+        state.movies = dedupeClientItems([newItem, ...(state.movies || []).filter(item=>item?.id !== newItem?.id)]);
+        if(previous && previous.id !== newItem.id && !state.movies.some(item=>item.id === previous.id)) state.movies.push(previous);
+      }
+    }
+    function restoreVisibleSectionAfterReload(section, visibleItems, index, persistedItem){
+      const intended = (Array.isArray(visibleItems) ? visibleItems : []).filter(Boolean).slice();
+      if(persistedItem){
+        if(index < intended.length) intended[index] = persistedItem;
+        else intended.splice(index, 0, persistedItem);
+      }
+      if(section === 'movies'){
+        if(intended[0]) updateCardAtIndex(section, 0, intended[0]);
+        return;
+      }
+      intended.forEach((entry, visibleIndex)=>updateCardAtIndex(section, visibleIndex, entry));
+    }
+    function captureVisibleEditorView(){
+      return {
+        items:[...getSectionList('items')],
+        courses:[...getSectionList('courses')],
+        movies:state.feature_mode === 'movie' ? [...getSectionList('movies')] : []
+      };
+    }
+    function updateCapturedEditorItem(snapshot, section, itemId, updatedItem){
+      if(!snapshot || !updatedItem) return;
+      const list = Array.isArray(snapshot[section]) ? snapshot[section] : [];
+      const index = list.findIndex(entry=>entry?.id === itemId || entry?.id === updatedItem?.id);
+      if(index >= 0) list[index] = updatedItem;
+    }
+    function restoreCapturedEditorView(snapshot){
+      if(!snapshot) return;
+      restoreVisibleSectionAfterReload('items', snapshot.items || [], -1, null);
+      restoreVisibleSectionAfterReload('courses', snapshot.courses || [], -1, null);
+      if(state.feature_mode === 'movie' && snapshot.movies?.length){
+        restoreVisibleSectionAfterReload('movies', snapshot.movies, -1, null);
+      }
+      render();
     }
     function isVisibleDuplicate(section, index, item){
       const url = String(item?.url || '').trim().toLowerCase();
@@ -3397,30 +3667,70 @@
     }
     function replacementSeenTokens(section, index){
       const tokens = new Set();
+      // Only cards currently visible in another slot are globally blocked.
+      // A story/course previously visited in a different card remains valid;
+      // each card owns its own navigation and refill history.
       getSectionList(section).forEach((item, itemIndex)=>{
         if(itemIndex !== index) addReplacementTokens(tokens, item);
       });
-      Object.values(state.card_refill_history || {}).forEach(history=>{
+      const history = state.card_refill_history?.[cardRefillHistoryKey(section, index)];
+      if(history){
         (history?.tried_items || []).forEach(item=>addReplacementTokens(tokens, item));
         (history?.tried_urls || []).forEach(url=>url && tokens.add(`url:${replacementToken(url)}`));
         (history?.tried_titles || []).forEach(title=>title && tokens.add(`title:${replacementToken(title)}`));
         (history?.tried_source_ids || []).forEach(sourceId=>sourceId && tokens.add(`source_id:${replacementToken(sourceId)}`));
-      });
+      }
       const currentKey = cardNavKey(section, index);
-      Object.entries(state.cardNav || {}).forEach(([key, nav])=>{
-        ['prev','rejected'].forEach(name => (nav?.[name] || []).forEach(item=>addReplacementTokens(tokens, item)));
-        if(key !== currentKey){
-          (nav?.next || []).forEach(item=>addReplacementTokens(tokens, item));
-        }
-      });
+      const currentNav = state.cardNav?.[currentKey];
+      ['prev','rejected'].forEach(name =>
+        (currentNav?.[name] || []).forEach(item=>addReplacementTokens(tokens, item))
+      );
       return tokens;
+    }
+    function levelBankItems(bank={}){
+      return dedupeClientItems([
+        ...bankList(bank, 'beginner'),
+        ...bankList(bank, 'intermediate'),
+        ...bankList(bank, 'advanced')
+      ]);
     }
     function storedSectionPool(section){
       if(section === 'items'){
         const allItems = Array.isArray(state.all_items) && state.all_items.length ? state.all_items : [];
-        return allItems.length ? allItems : state.items;
+        return dedupeClientItems([
+          ...levelBankItems(state.news_bank),
+          ...allItems,
+          ...(Array.isArray(state.items) ? state.items : [])
+        ]);
       }
-      return getSectionList(section);
+      if(section === 'courses'){
+        return dedupeClientItems([
+          ...levelBankItems(state.courses_bank),
+          ...(Array.isArray(state.courses) ? state.courses : [])
+        ]);
+      }
+      if(section === 'movies'){
+        return dedupeClientItems(Array.isArray(state.movies) ? state.movies : []);
+      }
+      return [];
+    }
+    function visiblePageItems(){
+      const visible = [
+        ...visibleNewsList(),
+        ...(state.feature_mode === 'course' ? (displayItemsForRender(state).courses || []) : []),
+        ...(state.feature_mode === 'movie' ? getSectionList('movies') : [])
+      ];
+      return dedupeClientItems(visible);
+    }
+    function isVisibleAnywhere(item={}, section='', index=-1){
+      const target = getSectionList(section)[index];
+      const targetKey = clientItemIdentity(target);
+      const candidateKey = clientItemIdentity(item);
+      return visiblePageItems().some(entry => {
+        const entryKey = clientItemIdentity(entry);
+        if(targetKey && entryKey === targetKey) return false;
+        return Boolean(candidateKey && entryKey === candidateKey);
+      });
     }
     function findPreparedAlternative(section, index){
       const current = getSectionList(section)[index];
@@ -3430,16 +3740,24 @@
       for(const candidate of pool){
         if(!candidate || typeof candidate !== 'object') continue;
         if(!candidate.id && !candidate.title && !candidate.url) continue;
+        if(section !== 'movies' && !itemMatchesReplacementLevel(candidate)) continue;
         if(itemMatchesReplacementTokens(candidate, tokens)) continue;
-        if(isVisibleDuplicate(section, index, candidate)) continue;
+        if(isVisibleDuplicate(section, index, candidate) || isVisibleAnywhere(candidate, section, index)) continue;
         return candidate;
       }
       return null;
     }
-    async function persistCardAtIndex(section, index, item){
+    async function persistCardAtIndex(section, index, item, targetId='', visibleBefore=null){
       return request(`${API_BASE}/card/${section}/${index}`, {
         method:'POST',
-        body: JSON.stringify({item})
+        body: JSON.stringify({
+          item,
+          target_id:targetId,
+          // Optimistic rendering has already put `item` in the target slot.
+          // Send the view captured before that change; otherwise the server
+          // sees the candidate itself and rejects every flip as a duplicate.
+          visible_items:(Array.isArray(visibleBefore) ? visibleBefore : getSectionList(section)).map(compactHistoryItem)
+        })
       });
     }
     async function applyNavigationItem(section, index, item, options={}){
@@ -3448,17 +3766,21 @@
         return false;
       }
       const previous = getSectionList(section)[index];
+      const visibleBefore = [...getSectionList(section)];
+      const completeViewBeforeNavigation = captureVisibleEditorView();
+      updateCapturedEditorItem(completeViewBeforeNavigation, section, previous?.id || item?.id, item);
       if(options.optimistic){
         updateCardAtIndex(section, index, item);
         render();
       }
       try{
-        const data = await persistCardAtIndex(section, index, item);
+        const data = await persistCardAtIndex(section, index, item, previous?.id || '', visibleBefore);
         if(data.item) updateCardAtIndex(section, data.index ?? index, data.item);
+        updateCapturedEditorItem(completeViewBeforeNavigation, section, item?.id || previous?.id, data.item || item);
         applyState(data);
-        // Server state may rebuild from the saved bank; re-apply the visible
-        // replacement so cards 5/6 stay replaced in the current 6-news view.
-        if(section === 'items') updateCardAtIndex(section, data.index ?? index, data.item || item);
+        // Restore news and supporting cards together. A course replacement
+        // must not reset earlier news choices, and vice versa.
+        restoreCapturedEditorView(completeViewBeforeNavigation);
         return true;
       }catch(error){
         if(options.optimistic && previous){
@@ -3555,8 +3877,14 @@
         .filter(item => item && typeof item === 'object')
         .map(compactHistoryItem);
     }
+    function visibleReplacementItems(section){
+      return visiblePageItems()
+        .filter(item => item && typeof item === 'object')
+        .map(compactHistoryItem);
+    }
     async function fetchMoreAlternative(section, id, index, action='replace'){
       action = 'replace';
+      const completeViewBeforeFetch = captureVisibleEditorView();
       showCardProgress(section, index, 'progressReplacing');
       const key = progressKey(section, index);
       const controller = new AbortController();
@@ -3566,7 +3894,22 @@
         const data = await request(`${API_BASE}/refill`, {
           method:'POST',
           signal: controller.signal,
-        body: JSON.stringify({section, force:true, pool_only:true, allow_fetch:true, live_fetch:true, item_id:id, index, action:'replace', exclude_items: replacementExcludeItems(section, index), card_refill_history: refillHistoryState(section, index)})
+        body: JSON.stringify({
+          section,
+          force:true,
+          pool_only:true,
+          allow_fetch:true,
+          live_fetch:true,
+          item_id:id,
+          index,
+          action:'replace',
+          level:section === 'movies' ? '' : requestedReplacementLevel(),
+          levels:section === 'movies' ? [] : (replacementLevels() ? [...replacementLevels()] : []),
+          replacement_context:replacementContextKey(section, index),
+          visible_items:visibleReplacementItems(section),
+          exclude_items:replacementExcludeItems(section, index),
+          card_refill_history:refillHistoryState(section, index)
+        })
         });
         applyRefillProgress(section, data.index ?? index, data, 'progressReplacing');
         if(data?.success && data?.item){
@@ -3576,10 +3919,9 @@
           rememberTriedReplacement(section, data.index ?? index, data.item);
           if(action !== 'delete' && current) nav.prev.push(current);
           updateCardAtIndex(section, data.index ?? index, data.item);
+          updateCapturedEditorItem(completeViewBeforeFetch, section, current?.id || id, data.item);
           applyState(data);
-          // Keep the freshly fetched replacement visible in 6-news mode after
-          // backend reload rebuilds the bank.
-          if(section === 'items') updateCardAtIndex(section, data.index ?? index, data.item);
+          restoreCapturedEditorView(completeViewBeforeFetch);
           await wait(450);
           delete state.cardProgressAbort[key];
           hideCardProgress(section, data.index ?? index);
@@ -3601,9 +3943,14 @@
       }
     }
     async function navigateCard(section, id, index, direction){
-      const nav = cardNavState(section, index);
-      const current = getSectionList(section)[index];
-      if(!current) return;
+      const pendingKey = cardNavKey(section, index);
+      if(state.cardNavPending[pendingKey]) return;
+      state.cardNavPending[pendingKey] = true;
+      render();
+      try{
+        const nav = cardNavState(section, index);
+        const current = getSectionList(section)[index];
+        if(!current) return;
       if(direction < 0){
         const previous = nav.prev.pop();
         if(!previous){
@@ -3666,10 +4013,18 @@
         }
         return;
       }
+      // No prepared alternative remains for this card. Ask before any network
+      // fetch in both the general view and a specific Level. If confirmed,
+      // fetchMoreAlternative still sends the selected Level to the backend;
+      // cancelling leaves the current card unchanged.
       const confirmed = await openAlternativeConfirm(section, current.id || id, index, 'replace');
       if(confirmed){
         saveSnapshot();
         await fetchMoreAlternative(section, current.id || id, index, 'replace');
+      }
+      }finally{
+        delete state.cardNavPending[pendingKey];
+        render();
       }
     }
     async function retryReplacementAfterFastFetch(section, id, index, action='replace'){
@@ -3713,6 +4068,36 @@
           render();
           try { await request(`${API_BASE}/reorder/items`, {method:'PUT', body: JSON.stringify({ids: state.items.map(item=>item.id)})}); showToast('reorderSaved'); }
           catch{ showToast('reorderLocal'); }
+        });
+      });
+      let courseDragId = null;
+      document.querySelectorAll('.feature-card.draggable-course').forEach(card=>{
+        card.addEventListener('dragstart', ()=>{courseDragId=card.dataset.id; card.classList.add('dragging'); showTip('reorder');});
+        card.addEventListener('dragend', ()=>{card.classList.remove('dragging'); document.querySelectorAll('.feature-card.draggable-course').forEach(c=>c.classList.remove('drag-over'));});
+        card.addEventListener('dragover', e=>{e.preventDefault(); card.classList.add('drag-over');});
+        card.addEventListener('dragleave', ()=>card.classList.remove('drag-over'));
+        card.addEventListener('drop', async e=>{
+          e.preventDefault();
+          card.classList.remove('drag-over');
+          const targetId = card.dataset.id;
+          if(!courseDragId || courseDragId===targetId) return;
+          const currentView = [...(displayItemsForRender(state).courses || [])];
+          const from = currentView.findIndex(item=>item.id===courseDragId);
+          const to = currentView.findIndex(item=>item.id===targetId);
+          if(from<0 || to<0) return;
+          saveSnapshot();
+          const [moved] = currentView.splice(from,1);
+          currentView.splice(to,0,moved);
+          const visibleIds = new Set(currentView.map(item=>item.id));
+          state.coursesViewOverride = currentView;
+          state.courses = [...currentView, ...(state.courses || []).filter(item=>!visibleIds.has(item.id))];
+          render();
+          try{
+            await request(`${API_BASE}/reorder/courses`, {method:'PUT', body:JSON.stringify({ids:state.courses.map(item=>item.id)})});
+            showToast('reorderSaved');
+          }catch{
+            showToast('reorderLocal');
+          }
         });
       });
     }
@@ -3952,10 +4337,10 @@
     }
     function openEdit(section,id){
       // Load the current card values, including the active source/logo override fields.
-      const pool = section==='items' ? state.items : section==='courses' ? state.courses : state.movies;
+      const pool = getSectionList(section);
       const item = pool.find(entry=>entry.id===id);
       if(!item) return;
-      state.editTarget={section,id};
+      state.editTarget={section,id,original:JSON.parse(JSON.stringify(item))};
       els.editModalTitle.textContent = section==='items' ? t('editNews') : t('editSuggested');
       els.editTitle.value=item.title||'';
       els.editText.value=item.text||'';
@@ -3971,32 +4356,37 @@
       updateLogoSizeValue(item.logo_size || item.logoSize || 30);
       els.editOverlay.classList.add('show');
     }
-    function openAi(section,id){ const pool = section==='items' ? state.items : section==='courses' ? state.courses : state.movies; const item = pool.find(entry=>entry.id===id); if(!item) return; state.aiTarget={section,id}; els.aiModalTitle.textContent = section==='items' ? t('aiNews') : t('aiContent'); els.aiInstruction.value=t('aiDefaultInstruction'); els.aiOverlay.classList.add('show'); }
+    function openAi(section,id){ const pool = getSectionList(section); const item = pool.find(entry=>entry.id===id); if(!item) return; state.aiTarget={section,id}; els.aiModalTitle.textContent = section==='items' ? t('aiNews') : t('aiContent'); els.aiInstruction.value=t('aiDefaultInstruction'); els.aiOverlay.classList.add('show'); }
     async function saveAi(event){
       event.preventDefault();
       if(!state.aiTarget) return;
       const instruction=(els.aiInstruction.value||'').trim();
       const {section,id}=state.aiTarget;
+      const visibleViewBeforeAi = captureVisibleEditorView();
       try{
         saveSnapshot();
         showToast('aiRunning');
         if(section==='items'){
           const data = await request(`${API_BASE}/rewrite/${id}`,{method:'POST', body: JSON.stringify({instruction})});
+          updateCapturedEditorItem(visibleViewBeforeAi, section, id, data?.item);
           closeOverlay('ai');
           await loadState(false);
+          restoreCapturedEditorView(visibleViewBeforeAi);
           showToast(data.rewrite_mode==='ai' ? 'aiNewsDone' : 'aiLocalDone');
           state.onboarding='edit';
           showTip('edit');
           return;
         }
-        const pool = section==='courses' ? state.courses : state.movies;
+        const pool = getSectionList(section);
         const item = pool.find(entry=>entry.id===id);
         if(!item) return;
         const data = await request(`${API_BASE}/ai-edit`,{method:'POST', body: JSON.stringify({title:item.title,text:item.text,instruction})});
         const route = `${API_BASE}/content/${section}/${id}`;
-        await request(route,{method:'PUT', body: JSON.stringify({title:data.title||item.title,text:data.text||item.text})});
+        const savedEdit = await request(route,{method:'PUT', body: JSON.stringify({title:data.title||item.title,text:data.text||item.text})});
+        updateCapturedEditorItem(visibleViewBeforeAi, section, id, savedEdit?.item || {...item,title:data.title||item.title,text:data.text||item.text});
         closeOverlay('ai');
         await loadState(false);
+        restoreCapturedEditorView(visibleViewBeforeAi);
         showToast('aiContentDone');
         state.onboarding='edit';
         showTip('edit');
@@ -4010,37 +4400,51 @@
       // Save a manual override through the API without changing the card schema.
       event.preventDefault();
       if(!state.editTarget) return;
-      const {section,id}=state.editTarget;
+      const {section,id,original={}}=state.editTarget;
       const logoValue = (els.editLogo?.value || '').trim();
       const logoSize = clampLogoSize(els.editLogoSize?.value || 30);
       const sourceValue = (els.editSource?.value || '').trim();
-      const payload={title: els.editTitle.value.trim(), text: els.editText.value.trim(), url: els.editUrl.value.trim(), source: sourceValue, logo_size: logoSize};
-      if(logoValue && section === 'movies'){
-        payload.poster = logoValue;
-        payload.image = logoValue;
-        payload.logo = logoValue;
-        payload.logo_override_url = logoValue;
-        payload.logo_manual_override = !!logoValue;
-      }else if(section !== 'movies'){
+      const payload={};
+      const nextTitle = els.editTitle.value.trim();
+      const nextText = els.editText.value.trim();
+      const nextUrl = els.editUrl.value.trim();
+      if(nextTitle !== String(original.title || '').trim()) payload.title = nextTitle;
+      if(nextText !== String(original.text || '').trim()) payload.text = nextText;
+      if(nextUrl !== String(original.url || '').trim()) payload.url = nextUrl;
+      const originalSource = String(original.source || original.original_source || original.provider || original.platform || original.company || '').trim();
+      if(sourceValue !== originalSource){
+        payload.source = sourceValue;
         if(section === 'items') payload.original_source = sourceValue;
-        if(logoValue){
-          payload.logo = logoValue;
-          payload.provider_logo = logoValue;
-          payload.source_logo = logoValue;
-          payload.logo_override_url = logoValue;
-          payload.manual_logo_url = logoValue;
-          payload.logo_manual_override = true;
-          payload.logo_candidates = [logoValue];
-          payload.logo_unresolved = false;
-        }
+      }
+      if(logoSize !== clampLogoSize(original.logo_size || original.logoSize || 30)) payload.logo_size = logoSize;
+      const originalLogo = section === 'movies'
+        ? String(original.logo_override_url || original.manual_logo_url || original.poster || original.image || original.logo || '').trim()
+        : String(original.logo_override_url || original.manual_logo_url || original.logo || original.provider_logo || original.source_logo || '').trim();
+      if(logoValue !== originalLogo && section === 'movies'){
+        payload.logo_override_url = logoValue;
+        payload.manual_logo_url = logoValue;
+        payload.logo_manual_override = Boolean(logoValue);
+      }else if(logoValue !== originalLogo && section !== 'movies'){
+        payload.logo_override_url = logoValue;
+        payload.manual_logo_url = logoValue;
+        payload.logo_manual_override = Boolean(logoValue);
+        payload.logo_unresolved = !logoValue;
       }
       const route=section==='items' ? `${API_BASE}/news/${id}` : `${API_BASE}/content/${section}/${id}`;
+      const visibleViewBeforeEdit = captureVisibleEditorView();
       try{
         saveSnapshot();
         showToast('saveEditRunning');
-        await request(route,{method:'PUT', body: JSON.stringify(payload)});
+        const editResult = await request(route,{method:'PUT', body: JSON.stringify(payload)});
+        updateCapturedEditorItem(
+          visibleViewBeforeEdit,
+          section,
+          id,
+          editResult?.item || {...original, ...payload}
+        );
         closeOverlay('edit');
         await loadState(false);
+        restoreCapturedEditorView(visibleViewBeforeEdit);
         showToast('saveEditDone');
         state.onboarding='edit';
         setTimeout(()=>showTip('edit'),250);
@@ -4056,42 +4460,9 @@
       }
     }
     async function replaceItem(id,section='items'){
-      if(section === 'items'){
-        const index = findVisibleIndex(section, id);
-        if(index < 0) return;
-        await navigateCard(section, id, index, 1);
-        return;
-      }
-      const confirmed = await openDeleteConfirm('replace');
-      if(!confirmed) return;
       const index = findVisibleIndex(section, id);
-      const current = getSectionList(section)[index];
-      saveSnapshot();
-      showCardProgress(section, index, 'progressReplacing');
-      try{
-        const data = await request(`${API_BASE}/refill`, {
-          method:'POST',
-          body: JSON.stringify({section, force:true, pool_only:true, allow_fetch:false, live_fetch:false, item_id:id, index, action:'replace', exclude_items: replacementExcludeItems(section, index), card_refill_history: refillHistoryState(section, index)})
-        });
-        applyRefillProgress(section, data.index ?? index, data, 'progressReplacing');
-        hideCardProgress(section, data.index ?? index);
-        rememberTriedReplacement(section, data.index ?? index, current);
-        rememberTriedReplacement(section, data.index ?? index, data.item);
-        if(data.item) updateCardAtIndex(section, data.index ?? index, data.item);
-        applyState(data);
-        if(data.success) showToast('itemReplaced');
-      }catch(error){
-        if(error.data?.needs_fetch){
-          applyRefillProgress(section, error.data.index ?? index, error.data, 'progressReplacing');
-          hideCardProgress(section, error.data.index ?? index);
-          await confirmAndFetchReplacement(section, id, error.data.index ?? index, 'replace');
-          return;
-        }
-        console.error(error);
-        applyRefillProgress(section, error.data?.index ?? index, error.data, 'progressReplacing');
-        showReplacementFailedState(section, error.data?.index ?? index);
-        showToast(error.data?.message || error.data?.error || error.message || t('noSuitableReplacement'));
-      }
+      if(index < 0) return;
+      await navigateCard(section, id, index, 1);
     }
     async function refillNews(){
       const progressTargets = [['items', Math.min(state.items.length, 9)]];
@@ -4117,7 +4488,7 @@
       // backend. This prevents the button from feeling broken while loadState()
       // refreshes the newsletter JSON.
       state.feature_mode = mode;
-      if(mode === 'movie') state.feature_item = (state.movies || [])[0] || state.feature_item || null;
+      if(!restoreSavedViewForContext() && mode === 'movie') state.feature_item = (state.movies || [])[0] || state.feature_item || null;
       render();
       if(!state.isAdmin){
         closeOverlay('contentType');
@@ -4131,7 +4502,17 @@
       hideTip('choose');
       closeOverlay('contentType');
       await loadState(false);
+      restoreSavedViewForContext();
+      render();
       showToast(mode==='movie' ? 'switchMovieDone' : 'switchCourseDone');
+      const hasMovie = mode !== 'movie' || Boolean(
+        (state.movies || []).some(item => item && (item.id || item.title)) ||
+        (state.feature_item && (state.feature_item.id || state.feature_item.title))
+      );
+      if(mode === 'movie' && !hasMovie){
+        const confirmed = await openAlternativeConfirm('movies', '', 0, 'replace');
+        if(confirmed) await fetchMoreAlternative('movies', '', 0, 'replace');
+      }
       setTimeout(()=>showTips(['edit','reorder']),250);
     }
     const exportCleanSelectors = [
@@ -4275,29 +4656,6 @@
       await new Promise(resolve => setTimeout(resolve, 250));
     }
 
-    async function getPreviewPageForExport(){
-      /*
-        هنا التصدير يعتمد على المعاينة، وليس العكس.
-        إذا المعاينة غير مفتوحة، نفتحها أولًا حتى تتكوّن نفس النسخة المرئية.
-      */
-      if(!els.previewOverlay.classList.contains('show')){
-        openPreview();
-      }
-
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      await new Promise(resolve => requestAnimationFrame(resolve));
-
-      const previewPage = els.previewMount.querySelector('.page');
-
-      if(!previewPage){
-        throw new Error('Preview page not found');
-      }
-
-      await waitForAssets(previewPage);
-
-      return previewPage;
-    }
-
     function blobToDataUrl(blob){
       return new Promise((resolve, reject)=>{
         const reader = new FileReader();
@@ -4432,20 +4790,32 @@
 
     // PDF export uses the rendered preview DOM as the source of truth.
     async function getActualPreviewPageForExport(){
-      openPreview();
+      const visiblePreview = els.previewMount?.querySelector('.page');
+      if(visiblePreview && els.previewOverlay?.classList.contains('show')) return visiblePreview;
+      // Build the same preview off-screen. Download must never open or flash
+      // the visible preview window.
+      const sourceHost = document.createElement('div');
+      sourceHost.className = 'pdf-export-host pdf-source-host';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-window';
+      const page = buildPreviewPage();
+      wrapper.appendChild(page);
+      sourceHost.appendChild(wrapper);
+      document.body.appendChild(sourceHost);
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => setTimeout(resolve, 150));
-      const previewPage = document.querySelector('.preview-window .page') || els.previewMount?.querySelector('.page');
-      if(!previewPage){
+      if(!page){
+        sourceHost.remove();
         throw new Error('Preview page was not found. PDF export must use the preview DOM.');
       }
-      return previewPage;
+      return page;
     }
 
     async function cloneCurrentPreviewForPdf(){
       const source = await getActualPreviewPageForExport();
       await waitForAssets(source);
+      const temporarySourceHost = source.closest('.pdf-source-host');
       const rect = source.getBoundingClientRect();
       const width = Math.round(rect.width);
       const height = measuredExportHeight(source);
@@ -4458,6 +4828,7 @@
       clone.querySelectorAll('.floating-progress-host, button').forEach(el => el.remove());
       clone.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
       copyComputedCssVariables(source, clone);
+      temporarySourceHost?.remove();
       Object.assign(clone.style, {
         width: `${width}px`,
         maxWidth: `${width}px`,
@@ -4863,13 +5234,16 @@
         news_bank: state.news_bank || {},
         courses_bank: state.courses_bank || {},
         recommended_view: state.recommended_view || {},
-        metadata: state.metadata || {},
+        saved_views: state.saved_views || {},
+        default_view: state.defaultView || {},
+        selected_levels: state.selectedLevels || ['all'],
+        news_display_count: newsViewCount(state),
         template: state.template || {},
         feature_mode: state.feature_mode || 'course',
         // Persist the selected display count so exported/saved newsletter JSON
         // knows whether the user was viewing 4 compact news cards or 6 cards.
-        news_display_count: newsViewCount(state),
         metadata: {
+          ...(state.metadata || {}),
           source: 'ui_pdf_export',
           embedded_in_pdf: true,
           exported_at: new Date().toISOString(),
@@ -4917,13 +5291,17 @@
       }
     }
 
+    function safeDownloadStem(value='newsletter'){
+      return String(value || 'newsletter').replace(/[\\/:*?"<>|\r\n]+/g, '_').replace(/^\.+|\.+$/g, '').trim() || 'newsletter';
+    }
+
     async function downloadPreviewPdf(){
       const pdfBlob = await createPreviewPdfBlob();
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      link.download = `AINewsletter_v02_${stamp}.pdf`;
+      link.download = `${safeDownloadStem(state.versionTitle || `AINewsletter_v02_${stamp}`)}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -4951,7 +5329,7 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           pdf_base64,
-          filename: `newsletter_version_${versionId}.pdf`
+          filename: `${safeDownloadStem(state.versionTitle || `newsletter_version_${versionId}`)}.pdf`
         })
       });
       const data = await response.json().catch(()=>({}));
@@ -4964,29 +5342,21 @@
       return true;
     }
 
+    function setDownloadLoading(active){
+      document.body.classList.toggle('download-in-progress', Boolean(active));
+      els.downloadLoadingOverlay?.classList.toggle('show', Boolean(active));
+      els.downloadLoadingOverlay?.setAttribute('aria-busy', active ? 'true' : 'false');
+    }
+
     async function exportCleanPdf(){
-      const wasPreviewOpen = els.previewOverlay.classList.contains('show');
-
       try{
-        showToast('pdfOpening');
+        setDownloadLoading(true);
         await downloadPreviewPdf();
-        showToast('pdfChoose');
-
-        /*
-          إذا فتحنا المعاينة فقط لغرض التصدير من زر التنزيل،
-          نغلقها بعد الحفظ. إذا كانت مفتوحة أصلًا، نخليها مفتوحة.
-        */
-        if(!wasPreviewOpen){
-          closeOverlay('preview');
-        }
-
       }catch(error){
         console.error(error);
         showToast('pdfError');
-
-        if(!wasPreviewOpen){
-          closeOverlay('preview');
-        }
+      }finally{
+        setDownloadLoading(false);
       }
     }
 
@@ -5017,6 +5387,9 @@
         news_bank: state.news_bank || {},
         courses_bank: state.courses_bank || {},
         recommended_view: state.recommended_view || {},
+        saved_views: state.saved_views || {},
+        default_view: state.defaultView || {},
+        selected_levels: state.selectedLevels || ['all'],
         metadata: state.metadata || {},
         template: state.template || {},
         feature_mode: state.feature_mode,
@@ -5047,7 +5420,7 @@
       const label = pinned ? 'إلغاء التثبيت' : 'تثبيت مؤقت';
       button.classList.toggle('active', pinned);
       button.setAttribute('aria-label', label);
-      button.setAttribute('title', label);
+      button.removeAttribute('title');
       const text = button.querySelector('span');
       if(text) text.textContent = label;
     }
@@ -5105,7 +5478,7 @@
           if(state.redoStack.length>12) state.redoStack.shift();
           persistRedoStack();
         }
-        applyState(data);
+        applyState(data, {restoreView:true});
         showToast(isRedo ? 'redoSaved' : 'undoSaved');
         const missing = fetchMissingSections(data);
         if(missing.length){
@@ -5131,7 +5504,7 @@
     }
     function openSettings(){
       if(els.settingsNewsletterTitle) els.settingsNewsletterTitle.value = state.template?.newsletter_title || '';
-      if(els.settingsFooterPrefix) els.settingsFooterPrefix.value = state.template?.footer_prefix || 'المرصد الثقافي';
+      if(els.settingsFooterPrefix) els.settingsFooterPrefix.value = state.template?.footer_prefix || 'تطوير : إدارة المرصد الثقافي';
       if(els.settingsMonthYear) els.settingsMonthYear.value = state.template?.month_year_override || '';
       if(els.settingsIssueNumber) els.settingsIssueNumber.value = state.template?.issue_number || '';
       els.recipientEmail.value = state.template?.recipient_email || '';
@@ -5147,11 +5520,11 @@
         recipient_email: (els.recipientEmail.value || '').trim()
       };
       const data = await request(`${API_BASE}/settings`, {method:'POST', body: JSON.stringify(payload)});
-      state.template = data.template || {
+      state.template = normalizeFooterTemplate(data.template || {
         ...(state.template || {}),
         ...payload,
         recipient_email: data.recipient_email || payload.recipient_email
-      };
+      });
       updateNewsletterTitle();
       render();
       if(hasPinnedState()) savePinnedState();
@@ -5450,7 +5823,9 @@
       }
     }
     async function loadRestoredVersionForView(){
-      const versionId = restoredVersionIdFromUrl();
+      // Keep the restored version across a browser refresh after its query
+      // parameter has been removed from the address bar.
+      const versionId = currentEditingVersionId();
       if(!versionId) return false;
       const record = await request(`${API_BASE}/versions/${versionId}`);
       const payload = record?.content;
@@ -5459,6 +5834,7 @@
         return false;
       }
       try{ sessionStorage.setItem(EDITING_VERSION_KEY, versionId); }catch(_){}
+      state.versionTitle = String(record?.title || '').trim();
       applyState(payload);
       return true;
     }
@@ -5477,6 +5853,7 @@
     }
     function clearEditingVersion(){
       try{ sessionStorage.removeItem(EDITING_VERSION_KEY); }catch(_){}
+      state.versionTitle = '';
     }
     function isNewGenerationPage(){
       try{
@@ -5558,7 +5935,7 @@
         if(els.splashError) els.splashError.textContent = t('splashErrorDetailed');
       }
     }
-    function applyState(data){
+    function applyState(data, options={}){
       const incomingItems = dedupeClientItems(data.items || []);
       const allNewsSources = [];
       allNewsSources.push(...incomingItems);
@@ -5586,25 +5963,45 @@
       state.news_bank = data.news_bank || {};
       state.courses_bank = data.courses_bank || {};
       state.recommended_view = data.recommended_view || {};
+      state.saved_views = data.saved_views || {};
+      state.defaultView = data.default_view || {};
       state.metadata = data.metadata || {};
+      const shouldApplyIncomingView = Boolean(options.restoreView || !state.viewInitialized);
       // A fresh backend state should use the saved bank/order, not a temporary
       // drag-sort override from the previous render.
-      state.newsViewOverride = null;
+      clearContextViewOverrides();
       // Preserve the user's 4/6 toolbar choice across backend refreshes. Most
       // API responses do not include news_display_count, so resetting to 4 here
       // made the page jump back to four cards after the user selected six.
-      const incomingNewsDisplayCount = Number(data.news_display_count ?? data.newsDisplayCount);
-      state.newsDisplayCount = incomingNewsDisplayCount === 6 ? 6 : incomingNewsDisplayCount === 4 ? 4 : newsViewCount(state);
-      state.selectedLevels = ['all'];
-      state.feature_mode = data.feature_mode || 'course';
+      if(shouldApplyIncomingView){
+        const defaultNewsDisplayCount = isFullReload ? state.defaultView?.news_display_count : null;
+        const incomingNewsDisplayCount = Number(defaultNewsDisplayCount ?? data.news_display_count ?? data.newsDisplayCount);
+        state.newsDisplayCount = incomingNewsDisplayCount === 6 ? 6 : incomingNewsDisplayCount === 4 ? 4 : newsViewCount(state);
+        const incomingSelectedLevels = (isFullReload ? state.defaultView?.selected_levels : null) ?? data.selected_levels ?? data.selectedLevels;
+        if(Array.isArray(incomingSelectedLevels) && incomingSelectedLevels.length){
+          state.selectedLevels = incomingSelectedLevels.map(normalizeLevelName).filter(Boolean);
+          if(!state.selectedLevels.length) state.selectedLevels = ['all'];
+        }
+      }
+      if(!Array.isArray(state.selectedLevels) || !state.selectedLevels.length){
+        state.selectedLevels = ['all'];
+      }
+      // The API value is the current user choice (for example, immediately
+      // after switching to movies). It must win over the last saved default;
+      // otherwise loadState() visibly switches to movie and then jumps back
+      // to courses as soon as the GET /news response is applied.
+      state.feature_mode = data.feature_mode || (isFullReload ? state.defaultView?.feature_mode : null) || state.feature_mode || 'course';
       state.feature_item = data.feature_item || null;
-      state.template = data.template || {};
+      // Migrate the legacy footer in restored, pinned, and previously saved
+      // newsletter payloads without changing their month or issue number.
+      state.template = normalizeFooterTemplate(data.template || {});
       state.previous_counts = data.previous_counts || state.previous_counts || {};
-      applySelectedLevelView();
+      if(!(isFullReload && restoreSavedViewForContext())) applySelectedLevelView();
       renderBackendTimeline(data.generator);
       updateNewsletterTitle();
       render();
       applyRolePermissions();
+      state.viewInitialized = true;
       if(hasPinnedState()) savePinnedState();
     }
     function missingClientSections(data){
@@ -5751,7 +6148,6 @@
       document.addEventListener('wheel', handleLogoWheel, {passive:false});
       els.settingsForm?.addEventListener('submit', saveSettings);
       els.sendForm?.addEventListener('submit', sendNewsletter);
-      document.getElementById('printPreviewBtn')?.addEventListener('click', exportCleanPdf);
       els.previewOverlay?.addEventListener('click', e=>{ if(e.target===els.previewOverlay) closeOverlay('preview');});
       els.contentTypeOverlay?.addEventListener('click', e=>{ if(e.target===els.contentTypeOverlay) closeOverlay('contentType');});
       els.editOverlay?.addEventListener('click', e=>{ if(e.target===els.editOverlay) closeOverlay('edit');});
@@ -5772,7 +6168,12 @@
       window.addEventListener('beforeunload', ()=>{
         if(hasPinnedState()) savePinnedState();
       });
-      if(isPageRefresh() && !restoredVersionIdFromUrl()){
+      if(isPageRefresh()){
+        const restored = shouldRevealRestoredVersion()
+          ? await loadRestoredVersionForView()
+          : false;
+        if(!restored) await loadState(false);
+        revealNewsletterImmediately();
         window.history.replaceState({}, document.title, 'News.html');
         return;
       }

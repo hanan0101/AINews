@@ -83,8 +83,8 @@ The default `admin` / `admin123` Keycloak admin login is meant for local develop
 
 A few files quietly accumulate state between runs. Clearing any of them is safe — the pipeline just regenerates them on the next run — but do it on purpose, since you're throwing away learned history, not fixing a bug:
 
-- `backend/news_fetch_state.json` — resets query rotation, so the next run re-scans everything from a clean slate
-- `backend/sector_terms_history.json` — resets the sector terms the pipeline has learned to weight
+- `backend/pipeline/fetching/news_fetch_state.json` — resets query rotation, so the next run re-scans everything from a clean slate
+- `backend/sector_terms_history.json` — clears the historical sector-term trace; current query generation does not consume it
 - the Qdrant collection (`AI_UPDATES_QDRANT_COLLECTION`, default `content_memory`) — clears semantic duplicate memory, so previously-used stories may resurface
 
 ## Running Tests
@@ -130,4 +130,4 @@ docker compose up --build
 Outside Docker: `python -m playwright install chromium`, then restart the server. Inside Docker this is already installed in the base image.
 
 **Gemini calls stop working mid-day**
-Gemini free-tier quota is project-level, not key-level — check `GEMINI_DAILY_REQUEST_BUDGET` and `GEMINI_FULL_RUN_REQUEST_BUDGET` in [ENVIRONMENT_GUIDE.md](../backend/config/ENVIRONMENT_GUIDE.md). `backend/.gemini_rate_limit` tracks local usage against the daily budget.
+Gemini free-tier quota is project-level, not key-level — check `GEMINI_DAILY_REQUEST_BUDGET` and `GEMINI_FULL_RUN_REQUEST_BUDGET` in [ENVIRONMENT_GUIDE.md](../backend/config/ENVIRONMENT_GUIDE.md). `backend/pipeline/modeling/.gemini_rate_limit` stores only the last local request timestamp so concurrent callers respect the minimum delay; daily usage is stored in `data/news/runtime/model_usage_summary.json`.

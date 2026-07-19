@@ -235,6 +235,7 @@ REJECT if ANY of the following are true:
 - The story is mainly about Facebook, Android, Google Play, or generic mobile app notices.
 - The story only says a model is listed on a catalog, model hub, benchmark page, or provider listing.
 - The story is mainly consumer hardware or devices.
+- The story is about video games, game development, a game engine, or a gaming platform (e.g. Roblox, Unity, Unreal Engine) - even if the underlying feature is AI-powered. This newsletter does not cover gaming.
 - The product is unknown, regional-only, a one-client pilot, or demo-only enterprise tooling.
 - The content is funding, stock, legal, research-only, SDK/API-only, infrastructure, GPU, event-only, or non-AI technical news.
 - The source is a documentation index, changelog landing page, help article, or broad roundup without one clear update.

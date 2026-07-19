@@ -32,7 +32,7 @@ def generator_completed_steps_from_log(log_text, running, last_result, stages):
         (1, ("parallel fetch collected", "source fetch complete", "fetch sources complete", "memory filter kept")),
         (2, ("memory filter kept", "quality filters complete", "pre_gpt_candidate_prep", "semantic_vector_filter")),
         (3, ("live results to gpt", "gpt selected", "gpt failed", "news selected")),
-        (4, ("saving frontend/news.json", "json saved", "saved frontend/news.json")),
+        (4, ("saving runtime/news.json", "json saved", "saved runtime/news.json")),
         (5, ("supporting content complete", "courses and movies complete", "supporting courses", "supporting movies")),
     ]
     for step_count, markers in stage_markers:
@@ -79,7 +79,7 @@ def timeline_stage_key(line):
         or "supporting movies" in text
     ):
         return "supporting"
-    if "saving frontend/news.json" in text or "json saved" in text or "saved frontend/news.json" in text:
+    if "saving runtime/news.json" in text or "json saved" in text or "saved runtime/news.json" in text:
         return "save"
     if "ready for review" in text or "fetch finished successfully" in text or "newsletter ready" in text:
         return "ready"
@@ -111,7 +111,7 @@ def is_timeline_worthy_line(line):
         "model",
         "stage timing",
         "supporting content",
-        "saving frontend/news.json",
+        "saving runtime/news.json",
         "json saved",
         "final output count",
         "skipping",

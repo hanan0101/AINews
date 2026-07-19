@@ -7,22 +7,28 @@ import hashlib
 import random
 import re
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from urllib.parse import urlparse, urlunparse
 
 from backend.config.settings import (
-    AI_UPDATES_RUN_REPORT_FILE,
+    CANDIDATE_AUDIT_FILE,
+    DATA_NEWS_DIR,
     clean_text,
-    load_json,
     normalized_text,
-    safe_write_json,
     source_domain,
+    update_json_file,
     utc_now,
 )
+from backend.storage.course_repository import (
+    ensure_course_storage,
+    load_courses,
+    record_selection,
+    selection_context,
+    upsert_courses,
+)
 
-COURSE_BANK_FILE = AI_UPDATES_RUN_REPORT_FILE.with_name("course_bank.json")
-COURSE_SELECTION_HISTORY_FILE = AI_UPDATES_RUN_REPORT_FILE.with_name("course_selection_history.json")
-COURSE_WEEKLY_SELECTION_REPORT_FILE = AI_UPDATES_RUN_REPORT_FILE.with_name("course_weekly_selection_report.json")
+LEGACY_COURSE_BANK_FILE = DATA_NEWS_DIR / "course_bank.json"
+LEGACY_COURSE_SELECTION_HISTORY_FILE = DATA_NEWS_DIR / "course_selection_history.json"
 
 COURSE_LEVELS = ("beginner", "intermediate", "advanced")
 COURSE_WEEKLY_TARGET_PER_LEVEL = 2
@@ -137,24 +143,8 @@ def course_key(url: str = "", title: str = "") -> str:
     return hashlib.sha1(value.encode("utf-8")).hexdigest()[:16] if value else ""
 
 
-def load_course_bank() -> dict:
-    return load_json(COURSE_BANK_FILE, {"courses": {}, "updated_at": "", "schema": "course_bank_v1"})
-
-
-def save_course_bank(bank: dict) -> None:
-    bank["updated_at"] = utc_now().isoformat()
-    bank["schema"] = "course_bank_v1"
-    safe_write_json(COURSE_BANK_FILE, bank)
-
-
-def load_course_history() -> dict:
-    return load_json(COURSE_SELECTION_HISTORY_FILE, {"selections": [], "updated_at": "", "schema": "course_selection_history_v1"})
-
-
-def save_course_history(history: dict) -> None:
-    history["updated_at"] = utc_now().isoformat()
-    history["schema"] = "course_selection_history_v1"
-    safe_write_json(COURSE_SELECTION_HISTORY_FILE, history)
+def ensure_course_repository() -> None:
+    ensure_course_storage(LEGACY_COURSE_BANK_FILE, LEGACY_COURSE_SELECTION_HISTORY_FILE)
 
 
 def parse_dt(value: str = "") -> datetime | None:
@@ -327,32 +317,18 @@ def normalize_bank_course(item: dict) -> dict | None:
 
 
 def upsert_course_bank(courses: list[dict]) -> dict:
-    bank = load_course_bank()
-    existing = bank.setdefault("courses", {})
-    added = 0
-    updated = 0
+    ensure_course_repository()
+    normalized_courses = []
     for item in courses or []:
         normalized = normalize_bank_course(item)
-        if not normalized:
-            continue
-        key = normalized["course_key"]
-        current = existing.get(key) if isinstance(existing.get(key), dict) else {}
-        selected_count = int(current.get("selected_count") or normalized.get("selected_count") or 0)
-        first_seen_at = current.get("first_seen_at") or normalized.get("first_seen_at")
-        merged = {**current, **normalized}
-        merged["selected_count"] = selected_count
-        merged["first_seen_at"] = first_seen_at
-        existing[key] = merged
-        if current:
-            updated += 1
-        else:
-            added += 1
-    save_course_bank(bank)
-    return {"added": added, "updated": updated, "total": len(existing)}
+        if normalized:
+            normalized_courses.append(normalized)
+    return upsert_courses(normalized_courses)
 
 
 def active_bank_courses() -> list[dict]:
-    courses = list((load_course_bank().get("courses") or {}).values())
+    ensure_course_repository()
+    courses = load_courses()
     output = []
     for item in courses:
         normalized = normalize_bank_course(item)
@@ -388,26 +364,9 @@ def issue_identity(issue_date: datetime | None = None, issue_id: str = "") -> tu
     return issue_id or f"{date.year}-W{date.isocalendar().week:02d}", date
 
 
-def recent_history(history: dict, issue_id: str, issue_date: datetime) -> tuple[set[str], set[str]]:
-    cutoff = issue_date - timedelta(days=COURSE_REPEAT_BLOCK_DAYS)
-    repeated_urls = set()
-    previous_platforms = set()
-    previous_issue_date = None
-    for row in history.get("selections") or []:
-        if row.get("issue_id") == issue_id:
-            continue
-        row_date = parse_dt(row.get("issue_date") or "")
-        if row_date and row_date >= cutoff:
-            repeated_urls.add(canonical_course_url(row.get("course_url") or ""))
-        if row_date and row_date < issue_date and (previous_issue_date is None or row_date > previous_issue_date):
-            previous_issue_date = row_date
-            previous_platforms = {normalized_text(item.get("platform") or "") for item in history.get("selections") or [] if item.get("issue_date") == row.get("issue_date")}
-    return repeated_urls, previous_platforms
-
-
-def next_platform_rotation(history: dict, platforms: list[str], issue_date: datetime, count: int) -> dict:
+def next_platform_rotation(rotation: dict, platforms: list[str], issue_date: datetime, count: int) -> dict:
     active = sorted({normalized_text(platform) for platform in platforms if normalized_text(platform)})
-    rotation = history.get("platform_rotation") if isinstance(history.get("platform_rotation"), dict) else {}
+    rotation = rotation if isinstance(rotation, dict) else {}
     remaining = [platform for platform in rotation.get("remaining_platforms") or [] if platform in active]
     cycle = int(rotation.get("cycle") or 0)
     if len(remaining) < min(count, len(active)):
@@ -464,12 +423,17 @@ def selection_report(courses: list[dict], selected: list[dict], diagnostics: dic
 def select_weekly_courses(target_count: int = COURSE_WEEKLY_TARGET_COUNT, issue_id: str = "", issue_date: datetime | None = None) -> tuple[list[dict], dict]:
     issue_id, date = issue_identity(issue_date, issue_id)
     courses = active_bank_courses()
-    history = load_course_history()
-    repeated_urls, previous_platforms = recent_history(history, issue_id, date)
+    repeated_urls, previous_platforms, rotation_state = selection_context(
+        issue_id,
+        date,
+        COURSE_REPEAT_BLOCK_DAYS,
+    )
+    repeated_urls = {canonical_course_url(url) for url in repeated_urls if url}
+    previous_platforms = {normalized_text(platform) for platform in previous_platforms if platform}
     buckets = month_buckets([normalized_text(item.get("platform") or "") for item in courses], date)
     bucket_name = week_bucket_name(date)
     platform_rotation = next_platform_rotation(
-        history,
+        rotation_state,
         [item.get("platform") or "" for item in courses],
         date,
         target_count,
@@ -532,32 +496,13 @@ def select_weekly_courses(target_count: int = COURSE_WEEKLY_TARGET_COUNT, issue_
                 break
 
     selected = selected[:target_count]
-    bank = load_course_bank()
-    bank_courses = bank.setdefault("courses", {})
-    for item in selected:
-        key = item.get("course_key") or course_key(item.get("url") or "", item.get("title") or "")
-        if key in bank_courses:
-            bank_courses[key]["selected_count"] = int(bank_courses[key].get("selected_count") or 0) + 1
-            bank_courses[key]["last_selected_at"] = date.isoformat()
-    save_course_bank(bank)
-
-    history_rows = [row for row in history.get("selections") or [] if row.get("issue_id") != issue_id]
-    for item in selected:
-        history_rows.append({
-            "issue_id": issue_id,
-            "issue_date": date.isoformat(),
-            "course_url": canonical_course_url(item.get("url") or ""),
-            "platform": item.get("platform") or "",
-            "level": item.get("level") or "",
-        })
-    history["selections"] = history_rows[-1000:]
-    history["platform_rotation"] = {
+    persisted_rotation = {
         **platform_rotation,
         "updated_at": utc_now().isoformat(),
         "last_issue_id": issue_id,
         "last_issue_date": date.isoformat(),
     }
-    save_course_history(history)
+    record_selection(issue_id, date, selected, persisted_rotation)
 
     for item in selected:
         item["level"] = item.get("level", "").title()
@@ -566,7 +511,10 @@ def select_weekly_courses(target_count: int = COURSE_WEEKLY_TARGET_COUNT, issue_
         item["issue_id"] = issue_id
 
     report = selection_report(courses, selected, diagnostics)
-    safe_write_json(COURSE_WEEKLY_SELECTION_REPORT_FILE, report)
+    update_json_file(
+        CANDIDATE_AUDIT_FILE,
+        lambda current: current.update({"course_selection_report": report}),
+    )
     print(
         "[AI Updates] weekly course selection "
         f"bank_levels={report['bank_counts_by_level']} active_platforms={report['active_platform_count']} "

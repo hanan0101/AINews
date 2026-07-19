@@ -116,10 +116,10 @@ That's it — this whole section only needs to be done once per environment, not
 
 A successful run updates a few files, if you ever need to check what actually happened:
 
-- `frontend/news.json` — the newsletter itself (unless `NEWS_JSON_PATH` points somewhere else)
+- `data/news/runtime/news.json` — the editable newsletter workspace (unless `NEWS_JSON_PATH` points somewhere else)
 - `frontend/ai_updates_run_report.json` — a report of what the AI model selected and why
-- `backend/news_fetch_state.json` — so the next run doesn't repeat the same searches
-- `backend/sector_terms_history.json` — terms the app has learned are relevant over time
+- `backend/pipeline/fetching/news_fetch_state.json` — so the next run doesn't repeat the same searches
+- `backend/sector_terms_history.json` — historical terms recorded from selected stories; currently diagnostic only
 - the `qdrant` volume — remembers what's already been published, to avoid duplicates
 
 ## Running without Docker (only if you need to)

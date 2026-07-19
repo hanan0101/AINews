@@ -13,7 +13,7 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
 | Service | Role | Required for |
 | --- | --- | --- |
 | `ainewsletter` (this app) | HTTP server, pipeline orchestration, UI serving | Everything |
-| PostgreSQL | Stores newsletter versions and scheduled SQL backups | Version history, export tracking |
+| PostgreSQL | Stores newsletter versions, the durable course catalog/selection history, and scheduled SQL backups | Version history, export tracking, long-term course rotation |
 | Keycloak | Authentication provider (roles: `admin`, `user`) | Login, admin-gated actions like Generate |
 | SearXNG | Self-hosted metasearch used by discovery | News/course source fetching |
 | Qdrant | Vector database | Semantic duplicate detection across runs |
@@ -36,7 +36,7 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
 3. **Filtering** normalizes candidates, deduplicates them (including semantic dedup via Qdrant), removes weak candidates, and checks memory of previously-used items.
 4. **Modeling** sends compact candidate summaries to the configured model (OpenAI or Gemini) for selection and rewriting.
 5. **Enrichment** converts selected updates into frontend-ready cards: identity, logos, sector tags, and supporting course/film content.
-6. The server persists edits, versions (PostgreSQL), and exports (PDF).
+6. The server persists edits, versions and course selection history (PostgreSQL), and exports (PDF). Published manual cards are also indexed in Qdrant.
 
 ## Folder-to-Stage Map
 
@@ -71,12 +71,17 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
 
 | Output | Path (default) |
 | --- | --- |
-| Final frontend newsletter JSON | `NEWS_JSON_PATH` (default `frontend/news.json`) |
-| Latest model/run report | `AI_UPDATES_RUN_REPORT_PATH` |
+| Editable newsletter JSON | `NEWS_JSON_PATH` (default `data/news/runtime/news.json`) |
+| Published newsletter JSON | `data/news/runtime/news_published.json` |
+| Model usage and quota state | `data/news/runtime/model_usage_summary.json` |
+| Newsletter display settings | `data/news/runtime/newsletter_settings.json` |
+| Latest model/run report | `AI_UPDATES_RUN_REPORT_PATH` (default `data/news/diagnostics/ai_updates_run_report.json`) |
+| Candidate + course-selection audit | `data/news/diagnostics/ai_updates_candidate_audit.json` |
 | Structured pipeline events | `backend/logs/ai_updates_run.jsonl` |
-| Query rotation / fetch memory | `backend/news_fetch_state.json` |
-| Sector term learning state | `backend/sector_terms_history.json` |
-| Saved versions and export metadata | PostgreSQL |
+| Query rotation / fetch memory | `backend/pipeline/fetching/news_fetch_state.json` |
+| Sector term historical trace (not currently consumed by queries) | `backend/sector_terms_history.json` |
+| Tool discovery registry | `backend/pipeline/tool_discovery/monthly_tools-site.json` |
+| Saved versions, export metadata, course catalog and course selection events | PostgreSQL |
 | Semantic duplicate memory | Qdrant volume/directory |
 
 More detail: [backend/storage/README.md](../backend/storage/README.md) (storage ownership) and [backend/logging/README.md](../backend/logging/README.md) (what gets logged).

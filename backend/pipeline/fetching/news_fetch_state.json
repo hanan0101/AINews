@@ -1,0 +1,356 @@
+{
+  "course_query_rotation": {
+    "updated_at": "2026-07-19T05:47:35.861973+00:00",
+    "total_queries": 36,
+    "query_limit": 6,
+    "start_index": 12,
+    "next_index": 12,
+    "selected_queries": [
+      "site:academy.make.com (\"AI\" OR \"AI Agents\" OR \"automation\")",
+      "site:semrush.com/academy (\"AI\" OR \"AI Search\") (\"marketing\" OR \"content\")",
+      "site:academy.synthesia.io (\"AI video\" OR \"video creation\" OR \"training videos\")",
+      "site:academy.openai.com (\"AI\" OR \"ChatGPT\" OR \"agents\") (\"work\" OR \"productivity\" OR \"workflow\" OR \"courses\")",
+      "site:anthropic.com/learn (\"Claude\" OR \"AI\") (\"work\" OR \"professional\" OR \"productivity\")",
+      "site:skills.google (\"AI Essentials\" OR \"generative AI\") (\"productivity\" OR \"work\" OR \"business\")",
+      "site:learn.microsoft.com/en-us/ai (\"business\" OR \"productivity\" OR \"Copilot\" OR \"AI\")",
+      "site:skillsbuild.org/adult-learners (\"artificial intelligence\" OR \"generative AI\")",
+      "site:academy.hubspot.com/courses (\"AI\" OR \"artificial intelligence\") (\"marketing\" OR \"sales\" OR \"business\")",
+      "site:academy.asana.com (\"AI for work\" OR \"AI Studio\" OR \"productivity\")",
+      "site:academy.notion.com (\"Notion AI\" OR \"AI\") (\"docs\" OR \"projects\" OR \"work\")",
+      "site:university.atlassian.com (\"Rovo\" OR \"Atlassian Intelligence\" OR \"AI\")",
+      "site:academy.airtable.com (\"AI\" OR \"agentic\" OR \"automation\")",
+      "site:academy.miro.com (\"AI\" OR \"Miro AI\")",
+      "site:learn.zapier.com (\"AI\" OR \"automation\" OR \"workflow\")",
+      "site:academy.make.com (\"AI\" OR \"AI Agents\" OR \"automation\")",
+      "site:semrush.com/academy (\"AI\" OR \"AI Search\") (\"marketing\" OR \"content\")",
+      "site:academy.synthesia.io (\"AI video\" OR \"video creation\" OR \"training videos\")",
+      "site:satr.tuwaiq.edu.sa (\"AI\" OR \"الذكاء الاصطناعي\") (\"موظفين\" OR \"مهنيين\" OR \"تطوير المهارات\" OR \"سوق العمل\" OR \"training\")",
+      "site:futureskills.mcit.gov.sa (\"AI\" OR \"الذكاء الاصطناعي\") (\"مهارات\" OR \"سوق العمل\" OR \"موظفين\" OR \"professional\")",
+      "site:linkedin.com/learning (\"AI\" OR \"generative AI\" OR \"prompt engineering\") (\"employee\" OR \"professional\" OR \"workplace\" OR \"productivity\" OR \"business\")",
+      "site:coursera.org/learn (\"AI\" OR \"generative AI\") (\"employee\" OR \"professional\" OR \"business\" OR \"workplace\" OR \"productivity\")",
+      "site:deeplearning.ai/courses (\"AI\" OR \"generative AI\" OR \"prompt engineering\") (\"business\" OR \"professional\" OR \"work\" OR \"productivity\")",
+      "site:learn.microsoft.com/en-us/training (\"AI\" OR \"Copilot\" OR \"generative AI\") (\"training\" OR \"professional\" OR \"workplace\" OR \"productivity\")",
+      "site:academy.openai.com (\"AI\" OR \"ChatGPT\" OR \"agents\") (\"work\" OR \"productivity\" OR \"workflow\" OR \"courses\")",
+      "site:anthropic.com/learn (\"Claude\" OR \"AI\") (\"work\" OR \"professional\" OR \"productivity\")",
+      "site:skills.google (\"AI Essentials\" OR \"generative AI\") (\"productivity\" OR \"work\" OR \"business\")",
+      "site:learn.microsoft.com/en-us/ai (\"business\" OR \"productivity\" OR \"Copilot\" OR \"AI\")",
+      "site:skillsbuild.org/adult-learners (\"artificial intelligence\" OR \"generative AI\")",
+      "site:academy.hubspot.com/courses (\"AI\" OR \"artificial intelligence\") (\"marketing\" OR \"sales\" OR \"business\")",
+      "site:academy.asana.com (\"AI for work\" OR \"AI Studio\" OR \"productivity\")",
+      "site:academy.notion.com (\"Notion AI\" OR \"AI\") (\"docs\" OR \"projects\" OR \"work\")",
+      "site:university.atlassian.com (\"Rovo\" OR \"Atlassian Intelligence\" OR \"AI\")",
+      "site:academy.airtable.com (\"AI\" OR \"agentic\" OR \"automation\")",
+      "site:academy.miro.com (\"AI\" OR \"Miro AI\")",
+      "site:learn.zapier.com (\"AI\" OR \"automation\" OR \"workflow\")"
+    ],
+    "attempted_batches": 6,
+    "fallback_used": true,
+    "found_count": 14
+  },
+  "movie_page_rotation": {
+    "updated_at": "2026-07-18T10:22:52.631654+00:00",
+    "max_page": 6,
+    "page_count": 3,
+    "start_page": 4,
+    "next_page": 1,
+    "selected_pages": [
+      4,
+      5,
+      6
+    ]
+  },
+  "last_run_performance": {
+    "generated_at": "2026-07-12T01:42:26.034294+00:00",
+    "source": "ai_update_pipeline",
+    "performance": {
+      "total_seconds": 682.54,
+      "fetch_seconds": 171.91,
+      "source_fetch_seconds": 163.76,
+      "filter_seconds": 8.15,
+      "gpt_seconds": 349.3,
+      "save_seconds": 2.02,
+      "raw_candidates": 1323,
+      "valid_candidates": 45,
+      "selected_count": 18,
+      "saved_count": 18,
+      "queries": 137,
+      "exa_queries": 38,
+      "searxng_queries": 12,
+      "exa_raw": 445,
+      "searxng_raw": 120,
+      "exa_seconds": 30.66,
+      "searxng_seconds": 80.15,
+      "parallel_fetch_seconds": 163.69,
+      "source_failures": {},
+      "source_candidate_counts": {
+        "exa": 141,
+        "searxng": 1
+      },
+      "source_quality_mode": "best_pool",
+      "cutoff_date": "2026-07-05",
+      "lookback_days": 7,
+      "memory_enabled": true,
+      "semantic_memory_enabled": true,
+      "memory_status": "exact_loaded",
+      "memory_filter_status": "semantic_checked",
+      "memory_exact_available": true,
+      "memory_exact_entries": 225,
+      "memory_exact_skipped": 31,
+      "semantic_memory_available": true,
+      "semantic_memory_requested": 32,
+      "semantic_memory_checked": 32,
+      "semantic_memory_skipped": 0,
+      "memory_save_status": "saved",
+      "memory_save_count": 18,
+      "memory_save_error": null,
+      "large_scan": {
+        "enabled": true,
+        "filtered_candidates": 45,
+        "scan_pool_limit": 90,
+        "scan_pool_count": 45,
+        "scan_pool_score_max": 60,
+        "scan_pool_score_min": 0,
+        "scan_pool_product_priority_max": 65,
+        "scan_pool_product_priority_min": -14,
+        "scan_pool_source_lane_counts": {
+          "official_exa": 16,
+          "tool_searxng": 2,
+          "trusted_media_exa": 5,
+          "tracker": 8,
+          "fallback_broad": 14
+        },
+        "gpt_shortlist_limit": 72,
+        "gpt_shortlist_count": 45,
+        "gpt_shortlist_inferred_sector_counts": {
+          "الأدب": 3,
+          "الأفلام": 7,
+          "الفنون البصرية": 9,
+          "الذكاء الاصطناعي والتعليم": 8,
+          "إنتاجية العمل": 4,
+          "المكتبات": 9,
+          "الموسيقى": 3,
+          "الأزياء": 2
+        },
+        "gpt_shortlist_query_mix_counts": {
+          "verified_exa_recent_tool_update": 16,
+          "tool_name_update": 2,
+          "trusted_media_tool_update": 5,
+          "general_layer": 8,
+          "exa_product_update_broad": 14
+        },
+        "gpt_shortlist_source_lane_counts": {
+          "official_exa": 16,
+          "tool_searxng": 2,
+          "trusted_media_exa": 5,
+          "tracker": 8,
+          "fallback_broad": 14
+        },
+        "gpt_shortlist_source_type_counts": {
+          "exa_recent_tool_updates_style": 16,
+          "searxng_url_discovery": 2,
+          "exa_trusted_media_tool_update": 5,
+          "general_news_layer": 6,
+          "aggregator": 2,
+          "exa_product_update_broad": 14
+        },
+        "official_first_enabled": true,
+        "official_first_primary_candidates": 23,
+        "official_first_fallback_cap": 21,
+        "official_first_fallback_cap_enforced": true,
+        "tool_driven_seeded_tools": 16,
+        "tool_driven_seed_limit": 51,
+        "sector_hints_used_for_shortlist": false
+      },
+      "scan_pool_count": 45,
+      "gpt_shortlist_count": 45,
+      "stage_durations": [
+        {
+          "key": "source_fetch",
+          "label": "Source fetch",
+          "seconds": 163.76
+        },
+        {
+          "key": "quality_filter",
+          "label": "Quality filters and memory",
+          "seconds": 8.15
+        },
+        {
+          "key": "ai_model",
+          "label": "AI model selection",
+          "seconds": 349.3
+        },
+        {
+          "key": "save",
+          "label": "Save output",
+          "seconds": 2.02
+        },
+        {
+          "key": "supporting",
+          "label": "Courses and movies",
+          "seconds": 159.08
+        }
+      ],
+      "news_saved_count": 18,
+      "memory_save_requested": 18,
+      "memory_save_content_type": "news",
+      "memory_save_enabled": true,
+      "memory_save_embedding_count": 18,
+      "semantic_memory_saved": 18,
+      "news_json_save_seconds": 1.93,
+      "news_json_saved": true,
+      "supporting_content_seconds": 159.08,
+      "supporting_content_blocking_seconds": 159.08,
+      "supporting_content_prefetched": false,
+      "courses_fetch_seconds": 75.56,
+      "courses_filter_seconds": 2.9,
+      "courses_gpt_seconds": 73.6,
+      "courses_total_seconds": 152.1,
+      "movies_fetch_seconds": 0.92,
+      "movies_filter_seconds": 5.15,
+      "movies_gpt_seconds": 19.22,
+      "movies_total_seconds": 25.32,
+      "courses_seconds": 152.1,
+      "movies_seconds": 25.32
+    },
+    "diversity": {
+      "domain_counts": {
+        "work_life": 4
+      },
+      "sector_counts": {
+        "الفنون البصرية": 2,
+        "المكتبات": 1,
+        "إنتاجية العمل": 1
+      },
+      "highlight": {},
+      "target_counts": {
+        "visible": 4,
+        "backup": 14,
+        "total": 18
+      }
+    }
+  },
+  "news_query_rotation": {
+    "exa": {
+      "updated_at": "2026-07-04T15:33:02.647189+00:00",
+      "source": "exa",
+      "angle": "official_tool_updates",
+      "angle_index": 0,
+      "next_angle_index": 1,
+      "tool_offset": 21,
+      "specialized_offset": 12,
+      "broad_offset": 34,
+      "next_tool_offset": 4,
+      "next_specialized_offset": 22,
+      "next_broad_offset": 37,
+      "totals": {
+        "tool_driven": 41,
+        "specialized": 28,
+        "broad": 53
+      },
+      "budgets": {
+        "tool_driven": 24,
+        "specialized": 10,
+        "broad": 3
+      }
+    },
+    "searxng": {
+      "updated_at": "2026-07-04T15:33:02.715650+00:00",
+      "source": "searxng",
+      "angle": "broad_market_scan",
+      "angle_index": 3,
+      "next_angle_index": 0,
+      "tool_offset": 27,
+      "specialized_offset": 4,
+      "broad_offset": 0,
+      "next_tool_offset": 0,
+      "next_specialized_offset": 12,
+      "next_broad_offset": 3,
+      "totals": {
+        "tool_driven": 41,
+        "specialized": 28,
+        "broad": 6
+      },
+      "budgets": {
+        "tool_driven": 14,
+        "specialized": 8,
+        "broad": 15
+      }
+    }
+  },
+  "last_course_platforms": [
+    "OpenAI Academy",
+    "Anthropic Learn"
+  ],
+  "last_course_platforms_updated_at": "2026-07-18T12:37:26.698924+00:00",
+  "course_platform_fetch_rotation": {
+    "updated_at": "2026-07-19T05:46:36.649923+00:00",
+    "cycle": 12,
+    "target": 6,
+    "selected_domains": [
+      "edraak.org",
+      "semrush.com",
+      "skillsbuild.org",
+      "deeplearning.ai",
+      "skills.google",
+      "academy.hubspot.com"
+    ],
+    "selected_platforms": [
+      "Edraak",
+      "Semrush Academy",
+      "IBM SkillsBuild",
+      "DeepLearning.AI",
+      "Google Skills",
+      "HubSpot Academy"
+    ],
+    "selected_arabic_domain": "edraak.org",
+    "selected_arabic_platform": "Edraak",
+    "remaining_domains": [
+      "university.atlassian.com",
+      "academy.notion.com",
+      "linkedin.com",
+      "academy.synthesia.io",
+      "cloudskillsboost.google",
+      "academy.miro.com",
+      "datacamp.com",
+      "academy.airtable.com",
+      "trailhead.salesforce.com",
+      "learn.microsoft.com",
+      "academy.openai.com",
+      "academy.make.com",
+      "microsoft.com",
+      "academy.asana.com",
+      "learn.zapier.com",
+      "coursera.org",
+      "anthropic.com"
+    ],
+    "active_domain_count": 25,
+    "reshuffled": true
+  },
+  "course_arabic_source_rotation": {
+    "updated_at": "2026-07-19T05:46:36.647987+00:00",
+    "total_sources": 3,
+    "start_index": 2,
+    "next_index": 0,
+    "selected_domain": "edraak.org",
+    "selected_platform": "Edraak",
+    "source_pool": [
+      "satr.tuwaiq.edu.sa",
+      "futureskills.mcit.gov.sa",
+      "edraak.org"
+    ]
+  },
+  "exa_tool_driven_rotation": {
+    "updated_at": "2026-07-19T03:20:51.811810+00:00",
+    "offset": 34,
+    "pool_size": 52,
+    "batch_size": 26,
+    "next_offset": 8
+  },
+  "searxng_tool_driven_rotation": {
+    "updated_at": "2026-07-19T03:51:25.088114+00:00",
+    "offset": 39,
+    "pool_size": 52,
+    "batch_size": 12,
+    "next_offset": 51
+  }
+}

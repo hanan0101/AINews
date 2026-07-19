@@ -54,6 +54,7 @@ from backend.storage.newsletter_store import (
     missing_sections,
     newsletter_template_from_settings,
     previous_generation_counts,
+    reorder_positions,
     restore_previous_card_at_index,
     safe_int,
     save_newsletter_settings,
@@ -91,6 +92,7 @@ from backend.auth.authentication import (
     user_from_headers_with_refresh,
 )
 from backend.auth.keycloak_bootstrap import bootstrap_keycloak_if_missing
+from backend.config.settings import AI_UPDATES_RUN_REPORT_FILE
 
 # Runtime paths used by the static UI server and local Python launcher.
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -208,16 +210,6 @@ def repair_mojibake_text(value):
     return fixed
 
 
-# Performs the env path helper step.
-def env_path(name: str, default: Path) -> Path:
-    value = os.getenv(name, "").strip()
-    return Path(value) if value else default
-
-
-AI_UPDATES_RUN_REPORT_FILE = env_path(
-    "AI_UPDATES_RUN_REPORT_PATH",
-    FRONTEND_DIR / "ai_updates_run_report.json",
-)
 GENERATOR_TIMEOUT = int(os.getenv("GENERATOR_TIMEOUT", "600"))
 AUTO_FETCH_COOLDOWN = int(os.getenv("AUTO_FETCH_COOLDOWN", "300") or "300")
 USE_AI_UPDATES_PIPELINE_FOR_GENERATE = os.getenv("USE_AI_UPDATES_PIPELINE_FOR_GENERATE", "1").strip().lower() in {"1", "true", "yes", "on"}
@@ -362,6 +354,84 @@ def sync_item_in_saved_views(store, section, updated_item):
         if isinstance(movie, dict) and str(movie.get("id") or "").strip() == item_id:
             store["recommended_view"]["movie"] = {**movie, **updated_item}
 
+    # Saved Mode/Level layouts keep their order, but manual content/logo edits
+    # must update the matching card copy inside every saved context.
+    saved_views = store.get("saved_views") or {}
+    if isinstance(saved_views, dict):
+        list_key = {"items": "items", "courses": "courses", "movies": "movies"}.get(section)
+        for mode_views in saved_views.values():
+            if not isinstance(mode_views, dict):
+                continue
+            for saved_view in mode_views.values():
+                if not isinstance(saved_view, dict):
+                    continue
+                if list_key:
+                    saved_view[list_key] = replace_in_list(saved_view.get(list_key))
+                feature = saved_view.get("feature_item")
+                if section == "movies" and isinstance(feature, dict) and str(feature.get("id") or "").strip() == item_id:
+                    saved_view["feature_item"] = {**feature, **updated_item}
+
+
+# Server role: Resolve cards rendered from a Mode/Level bank into the editable
+# primary list. Older/manual versions can contain a card in news_bank or a
+# saved view without also carrying it in items/backup_news. The UI can display
+# that card in Mode 6, but legacy edit routes used to return 404 because they
+# searched only the primary list.
+def find_editable_store_item(store, section, item_id):
+    primary = store.get(section)
+    if not isinstance(primary, list):
+        primary = []
+        store[section] = primary
+    item = find_item(primary, item_id)
+    if item:
+        return item
+
+    bank_key = {"items": "news_bank", "courses": "courses_bank"}.get(section)
+    candidate = None
+    bank = store.get(bank_key) if bank_key else None
+    if isinstance(bank, dict):
+        for values in bank.values():
+            if isinstance(values, list):
+                candidate = find_item(values, item_id)
+                if candidate:
+                    break
+
+    recommended = store.get("recommended_view")
+    recommended_key = {"items": "news", "courses": "courses"}.get(section)
+    if not candidate and isinstance(recommended, dict):
+        if recommended_key:
+            candidate = find_item(recommended.get(recommended_key) or [], item_id)
+        elif section == "movies":
+            movie = recommended.get("movie")
+            if isinstance(movie, dict) and str(movie.get("id") or "").strip() == str(item_id or "").strip():
+                candidate = movie
+
+    if not candidate:
+        saved_views = store.get("saved_views")
+        list_key = {"items": "items", "courses": "courses", "movies": "movies"}.get(section)
+        if isinstance(saved_views, dict):
+            for mode_views in saved_views.values():
+                if not isinstance(mode_views, dict):
+                    continue
+                for saved_view in mode_views.values():
+                    if not isinstance(saved_view, dict):
+                        continue
+                    candidate = find_item(saved_view.get(list_key) or [], item_id) if list_key else None
+                    if not candidate and section == "movies":
+                        feature = saved_view.get("feature_item")
+                        if isinstance(feature, dict) and str(feature.get("id") or "").strip() == str(item_id or "").strip():
+                            candidate = feature
+                    if candidate:
+                        break
+                if candidate:
+                    break
+
+    if not candidate:
+        return None
+    promoted = dict(candidate)
+    primary.append(promoted)
+    return promoted
+
 
 # Server role: Build the standard replacement API response payload.
 def replacement_response(store, section, index, result):
@@ -378,6 +448,10 @@ def replacement_response(store, section, index, result):
         "news_bank": store.get("news_bank", {}),
         "courses_bank": store.get("courses_bank", {}),
         "recommended_view": store.get("recommended_view", {}),
+        "saved_views": store.get("saved_views", {}),
+        "default_view": store.get("default_view", {}),
+        "selected_levels": store.get("selected_levels", ["all"]),
+        "news_display_count": store.get("news_display_count", 4),
         "metadata": store.get("metadata", {}),
         "feature_mode": store["feature_mode"],
         "feature_item": get_feature_item(store),
@@ -386,6 +460,22 @@ def replacement_response(store, section, index, result):
         "previous_counts": previous_generation_counts(),
         "generator": generator_public_state(),
     }
+
+
+def client_state_news_items(data, fallback_items):
+    """Return the full news pool from an undo/redo client snapshot.
+
+    Snapshots expose visible cards as ``items`` and extra cards as
+    ``all_items``. Using only ``items`` silently deleted card 7+ after undo,
+    which then left nothing for the per-card replacement controls to show.
+    """
+    if isinstance(data.get("all_items"), list) and data.get("all_items"):
+        return data.get("all_items")
+    visible = data.get("items") if isinstance(data.get("items"), list) else []
+    backup = data.get("backup_news") if isinstance(data.get("backup_news"), list) else []
+    if visible or backup:
+        return [*visible, *backup]
+    return fallback_items
 
 
 # Server role: Replace a visible card by fetching one fresh pipeline item.
@@ -679,7 +769,7 @@ def run_ai_updates_generator(section=None, force_refresh=False, preserve_visible
                 save_store(reconciled_store, rebalance_news=True)
                 reconciled_store = load_store()
                 trace(
-                    "SearXNG pipeline reconciled frontend/news.json: "
+                    "SearXNG pipeline reconciled runtime/news.json: "
                     f"items={len(reconciled_store.get('items', []))} "
                     f"visible_items={len(visible_items(reconciled_store, 'items'))}"
                 )
@@ -687,7 +777,7 @@ def run_ai_updates_generator(section=None, force_refresh=False, preserve_visible
                 trace(f"SearXNG pipeline reconcile failed: {reconcile_exc}")
             if section is None and complete_success:
                 increment_newsletter_issue()
-            append_generator_timeline("Saved frontend/news.json")
+            append_generator_timeline("Saved runtime/news.json")
             append_generator_timeline(
                 "Newsletter ready for review" if complete_success else "Partial newsletter ready for review"
             )
@@ -1568,6 +1658,10 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                 "news_bank": store.get("news_bank", {}),
                 "courses_bank": store.get("courses_bank", {}),
                 "recommended_view": store.get("recommended_view", {}),
+                "saved_views": store.get("saved_views", {}),
+                "default_view": store.get("default_view", {}),
+                "selected_levels": store.get("selected_levels", ["all"]),
+                "news_display_count": store.get("news_display_count", 4),
                 "metadata": store.get("metadata", {}),
                 "template": store["template"],
                 "feature_mode": store["feature_mode"],
@@ -1662,12 +1756,13 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
 
         if path.startswith(f"{API_BASE}/rewrite/"):
             item_id = path.split("/")[-1]
-            item = find_item(store["items"], item_id)
+            item = find_editable_store_item(store, "items", item_id)
             if not item:
                 return self.send_json({"error": "News item not found"}, 404)
             rewritten = rewrite_text(item["title"], item["text"], data.get("instruction", ""))
             item["title"] = rewritten["title"]
             item["text"] = rewritten["text"]
+            sync_item_in_saved_views(store, "items", item)
             save_store(store)
             return self.send_json({"success": True, "item": item, "rewrite_mode": rewritten["mode"], "rewrite_error": rewritten.get("error", "")})
 
@@ -1780,8 +1875,10 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                     index=index,
                     action="replace",
                     extra_exclude=extra_exclude,
+                    visible_exclude=data.get("visible_items"),
                     allow_fetch=True,
                     live_fetch=True,
+                    requested_level=str(data.get("level") or "").strip(),
                 )
                 return self.send_json(
                     replacement_response(store, section, result.get("index", index or -1), result),
@@ -1837,7 +1934,14 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                 index = int(parts[3])
             except Exception:
                 return self.send_json({"error": "Invalid card index"}, 400)
-            store, result = update_card_from_client(store, section, index, data.get("item") or data)
+            store, result = update_card_from_client(
+                store,
+                section,
+                index,
+                data.get("item") or data,
+                target_id=data.get("target_id"),
+                visible_items=data.get("visible_items"),
+            )
             if result.get("error"):
                 return self.send_json(result, 409)
             return self.send_json(replacement_response(store, section, index, result))
@@ -1873,7 +1977,7 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
 
         if path.startswith(f"{API_BASE}/news/"):
             item_id = path.split("/")[-1]
-            item = find_item(store["items"], item_id)
+            item = find_editable_store_item(store, "items", item_id)
             if not item:
                 return self.send_json({"error": "News item not found"}, 404)
             editable_news_fields = (
@@ -1923,7 +2027,7 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
             section, item_id = parts[2], parts[3]
             if section not in SECTION_KEYS:
                 return self.send_json({"error": "Invalid section"}, 400)
-            item = find_item(store[section], item_id)
+            item = find_editable_store_item(store, section, item_id)
             if not item:
                 return self.send_json({"error": "Content item not found"}, 404)
             for field in ("title", "text", "url", "source", "logo", "provider_logo", "source_logo", "logo_override_url", "manual_logo_url", "image", "poster", "rating", "duration", "level"):
@@ -1958,26 +2062,36 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
 
         if path == f"{API_BASE}/state":
             restored = {
-                "items": data.get("items") if isinstance(data.get("items"), list) else store.get("items", []),
+                "items": client_state_news_items(data, store.get("items", [])),
                 "movies": data.get("movies") if isinstance(data.get("movies"), list) else store.get("movies", []),
                 "courses": data.get("courses") if isinstance(data.get("courses"), list) else store.get("courses", []),
                 "news_bank": data.get("news_bank") if isinstance(data.get("news_bank"), dict) else store.get("news_bank", {}),
                 "courses_bank": data.get("courses_bank") if isinstance(data.get("courses_bank"), dict) else store.get("courses_bank", {}),
                 "recommended_view": data.get("recommended_view") if isinstance(data.get("recommended_view"), dict) else store.get("recommended_view", {}),
+                "saved_views": data.get("saved_views") if isinstance(data.get("saved_views"), dict) else store.get("saved_views", {}),
+                "default_view": data.get("default_view") if isinstance(data.get("default_view"), dict) else store.get("default_view", {}),
+                "selected_levels": data.get("selected_levels") if isinstance(data.get("selected_levels"), list) else store.get("selected_levels", ["all"]),
+                "news_display_count": 6 if int(data.get("newsDisplayCount") or data.get("news_display_count") or store.get("news_display_count") or 4) == 6 else 4,
                 "metadata": data.get("metadata") if isinstance(data.get("metadata"), dict) else store.get("metadata", {}),
                 "template": {**store.get("template", {}), **(data.get("template") if isinstance(data.get("template"), dict) else {})},
                 "feature_mode": data.get("feature_mode") if data.get("feature_mode") in FEATURE_MODES else store.get("feature_mode", "course"),
             }
             save_store(restored)
             restored = load_store()
+            hidden_news = restored.get("items", [])[DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"]):]
             return self.send_json({
                 "success": True,
                 "items": visible_items(restored, "items"),
+                "backup_news": hidden_news,
                 "movies": restored.get("movies", []),
                 "courses": restored.get("courses", []),
                 "news_bank": restored.get("news_bank", {}),
                 "courses_bank": restored.get("courses_bank", {}),
                 "recommended_view": restored.get("recommended_view", {}),
+                "saved_views": restored.get("saved_views", {}),
+                "default_view": restored.get("default_view", {}),
+                "selected_levels": restored.get("selected_levels", ["all"]),
+                "news_display_count": restored.get("news_display_count", 4),
                 "metadata": restored.get("metadata", {}),
                 "template": restored["template"],
                 "feature_mode": restored["feature_mode"],
@@ -1987,18 +2101,19 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                 "previous_counts": previous_generation_counts(),
             })
 
-        if path == f"{API_BASE}/reorder/items":
+        if path in {f"{API_BASE}/reorder/items", f"{API_BASE}/reorder/courses"}:
+            section = path.rsplit("/", 1)[-1]
             ids = data.get("ids") or []
             if not isinstance(ids, list):
                 return self.send_json({"error": "ids must be a list"}, 400)
-            by_id = {i["id"]: i for i in store["items"]}
+            by_id = {i["id"]: i for i in store[section]}
             reordered = [by_id[i] for i in ids if i in by_id]
-            for item in store["items"]:
+            for item in store[section]:
                 if item["id"] not in ids:
                     reordered.append(item)
-            store["items"] = reorder_positions(reordered)
+            store[section] = reorder_positions(reordered)
             save_store(store)
-            return self.send_json({"success": True, "items": visible_items(store, "items")})
+            return self.send_json({"success": True, section: visible_items(store, section)})
 
         return self.send_json({"error": "Route not found"}, 404)
 

@@ -95,11 +95,13 @@ def append_single_refill_stage(stages, section, index, started_at, stage, succes
 
 
 # Reads current exclusion items from the current store or request context.
-def current_exclusion_items(store, section, target_id=None, extra_exclude=None):
+def current_exclusion_items(store, section, target_id=None, extra_exclude=None, visible_exclude=None):
     # News replacement can start from card 5/6 in the toolbar view, so compare
     # against the same client-visible pool instead of only the default 4 cards.
+    source_items = visible_exclude if isinstance(visible_exclude, list) else client_visible_items(store, section)
     current = [
-        item for item in client_visible_items(store, section)
+        item for item in source_items
+        if isinstance(item, dict)
         if not target_id or item.get("id") != target_id
     ]
     current.extend(item for item in (extra_exclude or []) if isinstance(item, dict))
@@ -137,7 +139,7 @@ def apply_single_refill(store, section, index, item, target_id=None):
 
 
 # Performs the try ai updates single refill helper step.
-def try_ai_updates_single_refill(store, section, index, action, item_id, target_item, current_items, stages, started):
+def try_ai_updates_single_refill(store, section, index, action, item_id, target_item, current_items, stages, started, requested_level=""):
     if not (
         section == "items"
         and USE_AI_UPDATES_PIPELINE_FOR_SINGLE_REFILL
@@ -215,10 +217,12 @@ def try_ai_updates_single_refill(store, section, index, action, item_id, target_
 
 
 # Performs the try ai updates supporting single refill helper step.
-def try_ai_updates_supporting_single_refill(store, section, index, action, item_id, current_items, stages, started):
+def try_ai_updates_supporting_single_refill(store, section, index, action, item_id, current_items, stages, started, requested_level=""):
     if section not in {"courses", "movies"}:
         return None
     content_type = SECTION_TO_CONTENT_TYPE.get(section)
+    if section == "movies":
+        requested_level = ""
     if run_ai_updates_single_supporting_pipeline is None:
         return store, {
             "success": False,
@@ -236,6 +240,7 @@ def try_ai_updates_supporting_single_refill(store, section, index, action, item_
             content_type,
             exclude_items=current_items or [],
             target_count=SINGLE_REFILL_SUPPORTING_TARGET,
+            requested_level=requested_level,
         )
     except Exception as exc:
         trace(f"single refill modular supporting pipeline failed: {exc}")
@@ -295,7 +300,7 @@ def try_ai_updates_supporting_single_refill(store, section, index, action, item_
 
 
 # Performs the single item refill helper step.
-def single_item_refill(store, section, item_id=None, index=None, action="replace", extra_exclude=None, allow_fetch=False, live_fetch=False):
+def single_item_refill(store, section, item_id=None, index=None, action="replace", extra_exclude=None, visible_exclude=None, allow_fetch=False, live_fetch=False, requested_level=""):
     started = time.time()
     if not SINGLE_REFILL_LOCK.acquire(blocking=False):
         safe_index = index if isinstance(index, int) else -1
@@ -308,13 +313,13 @@ def single_item_refill(store, section, item_id=None, index=None, action="replace
             "refill_stages": [refill_response_state("searching", started_at=started, reason="single_refill_busy")],
         }
     try:
-        return _single_item_refill_impl(store, section, item_id=item_id, index=index, action=action, extra_exclude=extra_exclude, allow_fetch=allow_fetch, live_fetch=live_fetch)
+        return _single_item_refill_impl(store, section, item_id=item_id, index=index, action=action, extra_exclude=extra_exclude, visible_exclude=visible_exclude, allow_fetch=allow_fetch, live_fetch=live_fetch, requested_level=requested_level)
     finally:
         SINGLE_REFILL_LOCK.release()
 
 
 # Performs the single item refill impl helper step.
-def _single_item_refill_impl(store, section, item_id=None, index=None, action="replace", extra_exclude=None, allow_fetch=False, live_fetch=False):
+def _single_item_refill_impl(store, section, item_id=None, index=None, action="replace", extra_exclude=None, visible_exclude=None, allow_fetch=False, live_fetch=False, requested_level=""):
     started = time.time()
     stages = [refill_response_state("searching", started_at=started, reason="single_pipeline_fetch_one")]
     if section not in SECTION_KEYS:
@@ -338,7 +343,13 @@ def _single_item_refill_impl(store, section, item_id=None, index=None, action="r
         target_item = visible[index]
     if target_item:
         item_id = target_item.get("id") or item_id
-    current_items = current_exclusion_items(store, section, target_id=item_id, extra_exclude=extra_exclude)
+    current_items = current_exclusion_items(
+        store,
+        section,
+        target_id=item_id,
+        extra_exclude=extra_exclude,
+        visible_exclude=visible_exclude,
+    )
 
     if section == "items" and USE_AI_UPDATES_PIPELINE_FOR_SINGLE_REFILL:
         fast_result = try_ai_updates_single_refill(
@@ -351,6 +362,7 @@ def _single_item_refill_impl(store, section, item_id=None, index=None, action="r
             current_items,
             stages,
             started,
+            requested_level=requested_level,
         )
         if fast_result is not None:
             return fast_result

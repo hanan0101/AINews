@@ -122,6 +122,9 @@ def merge_supporting_cards(
             merged["reason"] = clean_text(article.get("reason") or source_item.get("reason") or "")
             merged["newsletter_angle"] = clean_text(article.get("newsletter_angle") or source_item.get("newsletter_angle") or "")
         if content_type == "movie":
+            # Film selection is independent from the news/course level filter.
+            for field in ("level", "course_level", "difficulty", "level_source"):
+                merged.pop(field, None)
             poster = article.get("poster") or source_item.get("poster") or source_item.get("image") or ""
             if not poster:
                 continue

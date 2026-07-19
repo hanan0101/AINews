@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from backend.pipeline.fetching.news_discovery import *  # Generic low-level fetch/text helpers (not news logic).
+from backend.config.settings import BACKEND_DIR
 
 COURSE_BAD_URL_TERMS = (
     "/blog/", "/blogs/", "/news/", "/article/", "/articles/", "/review/", "/reviews/",
@@ -68,7 +69,7 @@ COURSE_DIVERSITY_TARGET_DOMAINS = (
     "saudidigitalacademy.sa",
 )
 
-DISCOVERED_PLATFORMS_FILE = NEWS_FETCH_STATE_FILE.parent / "storage" / "discovered_platforms.json"
+DISCOVERED_PLATFORMS_FILE = BACKEND_DIR / "storage" / "discovered_platforms.json"
 
 COURSE_DIRECT_PATHS = {
     "coursera.org": ("/learn/", "/specializations/", "/professional-certificates/", "/projects/"),
@@ -1420,7 +1421,7 @@ def fetch_course_platform_page_text(url: str, timeout: int | None = None) -> tup
         response = requests.get(
             url,
             timeout=timeout or AI_UPDATES_EXA_TIMEOUT,
-            headers={"User-Agent": "AI-Newsletter-CoursePlatformDiscovery/1.0"},
+            headers={"User-Agent": PAGE_FETCH_USER_AGENT},
             allow_redirects=True,
         )
         if response.status_code >= 400:

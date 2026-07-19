@@ -1,55 +1,117 @@
 # AI Newsletter System
 
-An editorial workflow that discovers recent AI product updates, filters out duplicates and weak sources, uses an AI model to select and rewrite cards, enriches them with logos and metadata, and serves the result through a review UI for Arabic editorial output.
+An editorial platform for producing Arabic AI newsletters. It discovers recent
+AI updates, filters weak or duplicate results, uses an AI model for selection
+and rewriting, enriches cards with supporting content, and provides a browser
+interface for review, publishing, versioning, and PDF export.
 
-## What It Does
+## Features
 
-- Finds AI updates from tool registries, official sites, Exa, and SearXNG.
-- Fetches supporting courses and AI-themed films.
-- Filters stale, duplicate, low-quality, or off-topic candidates (including semantic dedup via Qdrant).
-- Uses OpenAI- or Gemini-compatible model calls for editorial selection and rewriting.
-- Saves the newsletter JSON consumed by the frontend.
-- Stores versions and PDF exports through the backend server.
+- News discovery through official sources, tool registries, Exa, and SearXNG.
+- Course and AI-film recommendations.
+- Exact and semantic duplicate detection with Qdrant.
+- Editorial selection and rewriting with Gemini or OpenAI-compatible models.
+- Editable newsletter layouts with independent mode and level views.
+- Published-version separation from the administrator's working draft.
+- Version history, PDF import/export, authentication, and role-based access.
 
-## Where to go next
+## Services
 
-Pick whichever matches what you're trying to do right now:
-
-- **Never run this before, want it working on your machine?** Start at [docs/SETUP.md](docs/SETUP.md). It walks through every step in order — cloning, API keys, Docker, and the one-time login setup — with the exact command for each one.
-- **Trying to understand how the code fits together?** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) covers the folder layout, what happens when you click Generate, and where to start reading.
-- **Already running it and need to operate it day to day?** [docs/MAINTENANCE.md](docs/MAINTENANCE.md) has restarts, logs, backups, key rotation, and the common things that go wrong.
-- **Putting this on a server?** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) covers what's different from a local run — securing Keycloak, persisting data, and confirming a deployment actually works.
-- **Need one specific environment variable?** The full list is in [backend/config/ENVIRONMENT_GUIDE.md](backend/config/ENVIRONMENT_GUIDE.md).
-- **Curious what changed recently, or what a run costs?** [CHANGELOG.md](CHANGELOG.md) and [docs/COST_ESTIMATE.md](docs/COST_ESTIMATE.md).
+| Service | Purpose |
+| --- | --- |
+| Application | HTTP API, editorial UI, generation pipeline, and PDF handling |
+| PostgreSQL | Newsletter versions, course catalog, and persistent application data |
+| Keycloak | Authentication and administrator roles |
+| SearXNG | Web search and candidate discovery |
+| Qdrant | Semantic duplicate memory |
+| MinIO | Object storage used by the deployment stack |
 
 ## Quick Start
 
-If you just want to see it running and will read [docs/SETUP.md](docs/SETUP.md) for anything that doesn't work:
+Requirements:
+
+- Docker Desktop
+- API keys configured in `backend/.env`
+
+Create the environment file:
 
 ```powershell
-copy backend\config\.env.example backend\.env
+Copy-Item backend\config\.env.example backend\.env
 notepad backend\.env
-docker compose up --build
 ```
 
-Then open `http://127.0.0.1:8000/News.html`. Note that Generate won't work yet at this point — that needs the one-time Keycloak login setup, which is Step 4 in [docs/SETUP.md](docs/SETUP.md).
+Start the stack:
 
-## Project Structure
+```powershell
+docker compose up --build -d
+docker compose logs -f ainewsletter
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000/News.html
+```
+
+The first administrator account requires one-time Keycloak configuration. See
+[Setup](docs/SETUP.md) for the complete procedure.
+
+## Repository Structure
 
 ```text
 backend/
-  pipeline/        # discovery -> fetching -> filtering -> modeling -> enrichment
-  server/          # HTTP API, auth, versioning, PDF export
-  auth/            # Keycloak + local-viewer login
-  config/          # environment defaults and shared settings
-  logging/         # pipeline run logging
-  interfaces/      # external model (OpenAI/Gemini) interfaces
-frontend/          # review UI (News.html) and static assets
-prompts/           # isolated model prompts for news, courses, films
-docker/
-  compose/        # one file per service (app, postgres, keycloak, searxng, qdrant), assembled by docker-compose.yml
-  postgres/       # PostgreSQL image + backup/entrypoint scripts
-docs/              # setup, architecture, deployment, maintenance guides
+  auth/                         Keycloak and local authentication
+  config/                       Environment and pipeline settings
+  logging/                      Structured pipeline logging
+  pipeline/
+    fetching/                   News, course, and film discovery
+    filtering/                  Quality and duplicate filters
+    modeling/                   Model clients, prompts, and selection
+    enrichment/                 Newsletter card enrichment
+    tool_discovery/             Tool registry and official-site discovery
+  server/                       HTTP routes and PDF services
+  services/                     Shared service integrations
+  storage/                      PostgreSQL repositories and version management
+  tests/                        Automated tests
+frontend/                       Editorial interface and static assets
+data/
+  news/runtime/                 Editable, published, and model-usage state
+  news/diagnostics/             Fetch, candidate, and run reports
+  backups/                      Local database and migration backups
+docker/                         Images, compose services, and database scripts
+docs/                           Setup, architecture, operations, and deployment
+scripts/                        Diagnostics and maintenance utilities
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how these pieces fit together at runtime.
+## Runtime Data
+
+| Path | Purpose |
+| --- | --- |
+| `data/news/runtime/news.json` | Current editable newsletter |
+| `data/news/runtime/news_published.json` | Last published newsletter shown to users |
+| `data/news/runtime/newsletter_settings.json` | Title, footer, issue, and date settings |
+| `data/news/runtime/model_usage_summary.json` | Model usage and Gemini quota state |
+| `data/news/diagnostics/` | Generated pipeline and selection diagnostics |
+| `backend/pipeline/fetching/news_fetch_state.json` | Query and source rotation state |
+| `backend/pipeline/tool_discovery/monthly_tools-site.json` | Tool and official-site registry |
+
+## Documentation
+
+| Guide | Use |
+| --- | --- |
+| [Setup](docs/SETUP.md) | First installation and local startup |
+| [Docker Setup](docs/DOCKER_SETUP.md) | Docker-specific setup and troubleshooting |
+| [Architecture](docs/ARCHITECTURE.md) | Components, data flow, and storage design |
+| [Maintenance](docs/MAINTENANCE.md) | Logs, backups, restarts, and operations |
+| [Deployment](docs/DEPLOYMENT.md) | Production deployment and security |
+| [Environment Guide](backend/config/ENVIRONMENT_GUIDE.md) | Environment variables and defaults |
+| [Cost Estimate](docs/COST_ESTIMATE.md) | Model usage and estimated operating cost |
+| [Changelog](CHANGELOG.md) | Release history |
+
+## Tests
+
+Run the standard-library test suite:
+
+```powershell
+python -m unittest discover backend/tests -v
+```

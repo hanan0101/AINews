@@ -379,6 +379,31 @@ GUIDE_OR_TUTORIAL_TERMS = (
     "review",
 )
 
+# User request 2026-07-18: stop selecting video-game/game-development stories
+# for the newsletter (e.g. Roblox's AI game-building tool) regardless of how
+# strong the underlying AI update otherwise looks. Multi-word phrases and
+# named platforms only, same as the other term lists here, so this doesn't
+# false-positive on unrelated idioms like "game-changing" or "game theory".
+GAME_DEVELOPMENT_TERMS = (
+    "video game",
+    "video games",
+    "game development",
+    "game developer",
+    "game engine",
+    "game design",
+    "game studio",
+    "gaming platform",
+    "build a game",
+    "building a game",
+    "create a game",
+    "creating a game",
+    "playable game",
+    "roblox",
+    "unity engine",
+    "unreal engine",
+    "esports",
+)
+
 LOW_VALUE_UI_CHANGE_TERMS = (
     "new cursor interface",
     "full-screen tabs",
@@ -617,6 +642,9 @@ def production_news_reject_reason(item: dict) -> str:
 
     if _has_any(text, SIDE_STORY_TERMS):
         return "side_story_not_product_update"
+
+    if _has_any(text, GAME_DEVELOPMENT_TERMS):
+        return "game_development_or_gaming_excluded"
 
     if _has_any(text, GUIDE_OR_TUTORIAL_TERMS):
         return "guide_or_tutorial_not_news"

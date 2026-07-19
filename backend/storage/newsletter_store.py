@@ -26,8 +26,9 @@ from backend.utils.text_normalization import cleanup_text_fields, repair_mojibak
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR.parent / "frontend"
-NEWSLETTER_SETTINGS_FILE = ROOT_DIR / "newsletter_settings.json"
-NEWS_FETCH_STATE_FILE = ROOT_DIR / "news_fetch_state.json"
+RUNTIME_DATA_DIR = ROOT_DIR.parent / "data" / "news" / "runtime"
+NEWSLETTER_SETTINGS_FILE = RUNTIME_DATA_DIR / "newsletter_settings.json"
+NEWS_FETCH_STATE_FILE = ROOT_DIR / "pipeline" / "fetching" / "news_fetch_state.json"
 NEWS_SELECTION_AUDIT_FILE = ROOT_DIR / "news_selection_audit.json"
 
 load_dotenv(ROOT_DIR / ".env", override=True)
@@ -39,7 +40,7 @@ def env_path(name: str, default: Path) -> Path:
     return Path(value) if value else default
 
 
-NEWS_JSON_FILE = env_path("NEWS_JSON_PATH", FRONTEND_DIR / "news.json")
+NEWS_JSON_FILE = env_path("NEWS_JSON_PATH", RUNTIME_DATA_DIR / "news.json")
 PUBLISHED_NEWS_JSON_FILE = env_path(
     "PUBLISHED_NEWS_JSON_PATH",
     NEWS_JSON_FILE.with_name("news_published.json"),
@@ -74,7 +75,7 @@ DEFAULT_TEMPLATE = {
 }
 DEFAULT_NEWSLETTER_SETTINGS = {
     "newsletter_title": "نشرة أخبار \nالذكاء الاصطناعي",
-    "footer_prefix": "المرصد الثقافي",
+    "footer_prefix": "تطوير : إدارة المرصد الثقافي",
     "issue_number": 7,
     "month_year_override": "",
 }
@@ -253,6 +254,8 @@ def normalize_newsletter_settings(settings):
         normalized.get("footer_prefix"),
         DEFAULT_NEWSLETTER_SETTINGS["footer_prefix"],
     )
+    if normalized["footer_prefix"] in {"المرصد الثقافي", "تطوير: إدارة المرصد الثقافي"}:
+        normalized["footer_prefix"] = "تطوير : إدارة المرصد الثقافي"
     normalized["month_year_override"] = clean_setting_text(normalized.get("month_year_override"), "")
     normalized["issue_number"] = max(1, safe_int(normalized.get("issue_number"), DEFAULT_NEWSLETTER_SETTINGS["issue_number"]))
     return normalized
@@ -269,9 +272,11 @@ def newsletter_template_from_settings(settings):
     settings = normalize_newsletter_settings(settings)
     stored_month_year = clean_setting_text(raw_settings.get("month_year"), "")
     month_year = settings["month_year_override"] or stored_month_year or current_arabic_month_year()
+    footer_month_year = month_year if month_year.rstrip().endswith(" م") else f"{month_year} م"
     footer_text = format_footer_text(
         settings["footer_prefix"],
-        month_year,
+        "وكالة الإستراتيجيات والسياسات الثقافية",
+        footer_month_year,
         f"الإصدار {issue_label(settings['issue_number'])}",
     )
     return {
@@ -368,15 +373,33 @@ def courses_items_from_payload(raw):
     return courses
 
 
-# Reads load store from the current store or request context.
-def load_store():
-    raw = {}
-    if NEWS_JSON_FILE.exists():
-        try:
-            with open(NEWS_JSON_FILE, "r", encoding="utf-8") as f:
-                raw = json.load(f)
-        except Exception:
-            raw = {}
+# Build the single editable store shape used by generated, imported, and
+# manually supplied newsletter JSON. Older manual versions may contain only
+# level banks; the helpers above flatten those banks into editable card lists.
+def store_from_payload(raw):
+    raw = raw if isinstance(raw, dict) else {}
+    manual_header = raw.get("newsletter") if isinstance(raw.get("newsletter"), dict) else {}
+    if manual_header:
+        raw = dict(raw)
+        template = dict(raw.get("template") or {}) if isinstance(raw.get("template"), dict) else {}
+        if manual_header.get("title"):
+            template.setdefault("newsletter_title", manual_header.get("title"))
+        if manual_header.get("issue_number") is not None:
+            template.setdefault("issue_number", manual_header.get("issue_number"))
+        if manual_header.get("date"):
+            template.setdefault("month_year", manual_header.get("date"))
+        raw["template"] = template
+        metadata = dict(raw.get("metadata") or {}) if isinstance(raw.get("metadata"), dict) else {}
+        metadata.setdefault("source", "manual_newsletter_json")
+        for source_key, target_key in (
+            ("publisher", "publisher"),
+            ("period", "period"),
+            ("source_pdf", "source_pdf"),
+            ("issue_label", "original_issue_label"),
+        ):
+            if manual_header.get(source_key) and not metadata.get(target_key):
+                metadata[target_key] = manual_header.get(source_key)
+        raw["metadata"] = metadata
     raw_news_items = news_items_from_payload(raw)
     raw_template = raw.get("template") if isinstance(raw.get("template"), dict) else None
     store = {
@@ -390,6 +413,10 @@ def load_store():
         "news_bank": raw.get("news_bank") if isinstance(raw.get("news_bank"), dict) else {},
         "courses_bank": raw.get("courses_bank") if isinstance(raw.get("courses_bank"), dict) else {},
         "recommended_view": raw.get("recommended_view") if isinstance(raw.get("recommended_view"), dict) else {},
+        "saved_views": raw.get("saved_views") if isinstance(raw.get("saved_views"), dict) else {},
+        "default_view": raw.get("default_view") if isinstance(raw.get("default_view"), dict) else {},
+        "selected_levels": raw.get("selected_levels") if isinstance(raw.get("selected_levels"), list) else ["all"],
+        "news_display_count": 6 if int(raw.get("news_display_count") or 4) == 6 else 4,
         "metadata": raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {},
     }
     if store["feature_mode"] not in FEATURE_MODES:
@@ -398,6 +425,67 @@ def load_store():
     store["movies"] = reorder_positions(dedupe_store_items(store["movies"]))
     store["courses"] = reorder_positions(dedupe_store_items(store["courses"]))
     return store
+
+
+# Reads load store from the current store or request context.
+def load_store():
+    raw = {}
+    if NEWS_JSON_FILE.exists():
+        try:
+            with open(NEWS_JSON_FILE, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except Exception:
+            raw = {}
+    return store_from_payload(raw)
+
+
+def save_published_store_memory(store: dict) -> dict:
+    """Index every visible published card, including manually entered content."""
+    counts = {"news": 0, "course": 0, "movie": 0}
+    try:
+        from backend.pipeline.filtering.memory import save_news_memory
+        from backend.pipeline.filtering.supporting import save_supporting_memory
+
+        def published_cards(section: str, limit: int) -> list[dict]:
+            candidates = list(store.get(section) or [])[:limit]
+            for mode_views in (store.get("saved_views") or {}).values():
+                if not isinstance(mode_views, dict):
+                    continue
+                for view in mode_views.values():
+                    if isinstance(view, dict):
+                        candidates.extend(view.get(section) or [])
+            output = []
+            seen = set()
+            expected_type = SECTION_TO_CONTENT_TYPE.get(section, "news")
+            for item in candidates:
+                if not isinstance(item, dict):
+                    continue
+                item_type = str(item.get("type") or expected_type).strip().lower()
+                if item_type != expected_type:
+                    continue
+                key = str(item.get("url") or "").strip().lower() or str(item.get("title") or "").strip().casefold()
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                output.append(item)
+            return output
+
+        news_count = 6 if int(store.get("news_display_count") or 4) == 6 else DISPLAY_COUNTS["items"]
+        news_items = published_cards("items", news_count)
+        course_items = published_cards("courses", DISPLAY_COUNTS["courses"])
+        movie_items = published_cards("movies", DISPLAY_COUNTS["movies"])
+        counts["news"] = save_news_memory(news_items, {})
+        counts["course"] = save_supporting_memory(course_items, "course") or 0
+        counts["movie"] = save_supporting_memory(movie_items, "movie") or 0
+        trace(
+            "Published semantic memory saved: "
+            f"news={counts['news']} courses={counts['course']} movies={counts['movie']}"
+        )
+    except Exception as exc:
+        # Publishing remains durable even if the optional semantic service is
+        # temporarily unavailable; the next publish retries the same stable IDs.
+        trace(f"Published semantic memory skipped: {exc}")
+    return counts
 
 
 def ensure_published_store():
@@ -409,6 +497,7 @@ def ensure_published_store():
         temp_file = PUBLISHED_NEWS_JSON_FILE.with_suffix(".json.tmp")
         temp_file.write_bytes(NEWS_JSON_FILE.read_bytes())
         safe_replace_json(temp_file, PUBLISHED_NEWS_JSON_FILE)
+        save_published_store_memory(load_store_from_file(PUBLISHED_NEWS_JSON_FILE))
         trace(f"Initialized published newsletter: {PUBLISHED_NEWS_JSON_FILE}")
         return True
     except Exception as exc:
@@ -429,6 +518,7 @@ def publish_current_store():
     temp_file = PUBLISHED_NEWS_JSON_FILE.with_suffix(".json.tmp")
     temp_file.write_bytes(NEWS_JSON_FILE.read_bytes())
     safe_replace_json(temp_file, PUBLISHED_NEWS_JSON_FILE)
+    save_published_store_memory(load_store_from_file(PUBLISHED_NEWS_JSON_FILE))
     trace(f"Published current newsletter: {PUBLISHED_NEWS_JSON_FILE}")
     return True
 
@@ -442,29 +532,7 @@ def load_store_from_file(path):
                 raw = json.load(f)
         except Exception:
             raw = {}
-    if not isinstance(raw, dict):
-        raw = {}
-    raw_news_items = news_items_from_payload(raw)
-    raw_template = raw.get("template") if isinstance(raw.get("template"), dict) else None
-    store = {
-        "items": [normalize_item(i, "news") for i in raw_news_items],
-        "movies": [normalize_item(i, "movie") for i in raw.get("movies", []) if is_current_schema_item(i, "movie")],
-        "courses": [normalize_item(i, "course") for i in courses_items_from_payload(raw)],
-        "template": newsletter_template_from_settings(raw_template or load_newsletter_settings()),
-        "feature_mode": raw.get("feature_mode", "course"),
-        # Level-balanced newsletter fields are preserved when loading versions
-        # or snapshots so the frontend filter has the same content bank.
-        "news_bank": raw.get("news_bank") if isinstance(raw.get("news_bank"), dict) else {},
-        "courses_bank": raw.get("courses_bank") if isinstance(raw.get("courses_bank"), dict) else {},
-        "recommended_view": raw.get("recommended_view") if isinstance(raw.get("recommended_view"), dict) else {},
-        "metadata": raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {},
-    }
-    if store["feature_mode"] not in FEATURE_MODES:
-        store["feature_mode"] = "course"
-    store["items"] = reorder_positions(dedupe_store_items(store["items"]))
-    store["movies"] = reorder_positions(dedupe_store_items(store["movies"]))
-    store["courses"] = reorder_positions(dedupe_store_items(store["courses"]))
-    return store
+    return store_from_payload(raw)
 
 
 # Performs the visible items helper step.
@@ -558,9 +626,9 @@ def restore_previous_card_at_index(store, section, index):
 
 
 # Saves save store to the configured output or state store.
-def save_store(store, *, rebalance_news=False):
-    existing = {}
-    if NEWS_JSON_FILE.exists():
+def save_store(store, *, rebalance_news=False, existing_payload=None):
+    existing = existing_payload if isinstance(existing_payload, dict) else {}
+    if existing_payload is None and NEWS_JSON_FILE.exists():
         try:
             with open(NEWS_JSON_FILE, "r", encoding="utf-8") as f:
                 existing = json.load(f)
@@ -581,12 +649,16 @@ def save_store(store, *, rebalance_news=False):
         "news_bank": store.get("news_bank") if isinstance(store.get("news_bank"), dict) else existing.get("news_bank", {}),
         "courses_bank": store.get("courses_bank") if isinstance(store.get("courses_bank"), dict) else existing.get("courses_bank", {}),
         "recommended_view": store.get("recommended_view") if isinstance(store.get("recommended_view"), dict) else existing.get("recommended_view", {}),
+        "saved_views": store.get("saved_views") if isinstance(store.get("saved_views"), dict) else existing.get("saved_views", {}),
+        "default_view": store.get("default_view") if isinstance(store.get("default_view"), dict) else existing.get("default_view", {}),
+        "selected_levels": store.get("selected_levels") if isinstance(store.get("selected_levels"), list) else existing.get("selected_levels", ["all"]),
+        "news_display_count": 6 if int(store.get("news_display_count") or existing.get("news_display_count") or 4) == 6 else 4,
     }
     for key, default_type in (("items", "news"), ("movies", "movie"), ("courses", "course")):
         if key in store:
             normalized_items = dedupe_store_items([normalize_item(i, default_type) for i in store.get(key, [])])
             if key == "items":
-                visible_count = DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"])
+                visible_count = 6 if payload.get("news_display_count") == 6 else DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"])
                 # Level-balanced newsletter change: when a generated news_bank
                 # exists, preserve its recommended first view instead of running
                 # the older visible-diversity reorder pass.
@@ -595,10 +667,13 @@ def save_store(store, *, rebalance_news=False):
                 visible_news = normalized_items[:visible_count]
                 hidden_news = [
                     item for item in normalized_items[visible_count:]
-                    if (
-                        is_gpt_accepted_news_item(item)
-                        and str(item.get("story_key") or "").strip()
-                        and not looks_duplicate(item, visible_news)
+                    if not looks_duplicate(item, visible_news)
+                    and (
+                        not rebalance_news
+                        or (
+                            is_gpt_accepted_news_item(item)
+                            and str(item.get("story_key") or "").strip()
+                        )
                     )
                 ]
                 for index, item in enumerate(visible_news, start=1):
@@ -607,7 +682,7 @@ def save_store(store, *, rebalance_news=False):
                 hidden_candidates = []
                 for hidden_item in dedupe_store_items(hidden_news):
                     hidden_candidates.append(hidden_item)
-                    if len(hidden_candidates) >= NEWS_BACKUP_COUNT:
+                    if rebalance_news and len(hidden_candidates) >= NEWS_BACKUP_COUNT:
                         break
                 for index, item in enumerate(hidden_candidates, start=1):
                     item["status"] = "backup"
@@ -649,6 +724,48 @@ def save_store(store, *, rebalance_news=False):
     with open(temp_file, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     safe_replace_json(temp_file, NEWS_JSON_FILE)
+
+
+def canonical_newsletter_payload(raw):
+    """Convert any supported manual/generated JSON into the news.json shape.
+
+    This is intentionally lossless for editable cards: all cards beyond the
+    selected 4/6 display count remain in ``backup_news`` instead of being
+    discarded merely because they came from a manual JSON file.
+    """
+    store = store_from_payload(raw)
+    display_count = 6 if store.get("news_display_count") == 6 else 4
+    all_news = [dict(item) for item in store.get("items", [])]
+    visible_news = all_news[:display_count]
+    backup_news = all_news[display_count:]
+    for index, item in enumerate(visible_news, start=1):
+        item["status"] = "display"
+        item["position"] = index
+    for index, item in enumerate(backup_news, start=display_count + 1):
+        item["status"] = "backup"
+        item["position"] = index
+    metadata = dict(store.get("metadata") or {})
+    metadata.update({
+        "display_count": len(visible_news),
+        "backup_count": len(backup_news),
+        "news_total_count": len(all_news),
+    })
+    return cleanup_text_fields({
+        "items": visible_news,
+        "backup_news": backup_news,
+        "movies": store.get("movies", []),
+        "courses": store.get("courses", []),
+        "template": store.get("template", {}),
+        "feature_mode": store.get("feature_mode", "course"),
+        "metadata": metadata,
+        "news_bank": store.get("news_bank", {}),
+        "courses_bank": store.get("courses_bank", {}),
+        "recommended_view": store.get("recommended_view", {}),
+        "saved_views": store.get("saved_views", {}),
+        "default_view": store.get("default_view", {}),
+        "selected_levels": store.get("selected_levels", ["all"]),
+        "news_display_count": display_count,
+    })
 
 
 # Reads load news fetch state server from the current store or request context.
@@ -749,7 +866,7 @@ def get_feature_item(store):
 
 
 # Performs the update card from client helper step.
-def update_card_from_client(store, section, index, item):
+def update_card_from_client(store, section, index, item, target_id=None, visible_items=None):
     if section not in SECTION_KEYS:
         return store, {"success": False, "error": "Invalid section"}
     # Accept news indexes from the active toolbar view, including backup cards
@@ -757,26 +874,97 @@ def update_card_from_client(store, section, index, item):
     # because it only knew about the legacy 4-card default view.
     client_pool = client_visible_items(store, section)
     client_count = len(client_pool) if section == "items" and client_pool else DISPLAY_COUNTS.get(section, REQUIRED_COUNTS[section])
-    if index < 0 or index >= client_count:
+    requested_index = index
+    if requested_index < 0 or requested_index >= client_count:
         return store, {"success": False, "error": "Invalid card index"}
-    current_items = [
-        entry for i, entry in enumerate(client_pool)
-        if i != index
-    ]
+
+    # A level-filtered UI index is not necessarily the same as the index in the
+    # full saved pool. Resolve the actual target by id when the client provides
+    # it, while retaining index-only compatibility for older clients.
+    target_index = requested_index
+    target_id = str(target_id or "").strip()
+    if target_id:
+        resolved_index = next(
+            (i for i, entry in enumerate(client_pool) if str(entry.get("id") or "") == target_id),
+            -1,
+        )
+        if resolved_index >= 0:
+            target_index = resolved_index
+
     normalized = normalize_item(item or {}, SECTION_TO_CONTENT_TYPE.get(section, "news"))
+    candidate_id = str(normalized.get("id") or "").strip()
+    candidate_url = str(normalized.get("url") or "").strip().lower().rstrip("/")
+    candidate_index = next(
+        (
+            i for i, entry in enumerate(client_pool)
+            if i != target_index and (
+                (candidate_id and str(entry.get("id") or "").strip() == candidate_id)
+                or (
+                    candidate_url
+                    and str(entry.get("url") or "").strip().lower().rstrip("/") == candidate_url
+                )
+            )
+        ),
+        -1,
+    )
+    if isinstance(visible_items, list):
+        current_items = []
+        for visible_index, entry in enumerate(visible_items):
+            if not isinstance(entry, dict):
+                continue
+            entry_id = str(entry.get("id") or "").strip()
+            entry_url = str(entry.get("url") or "").strip().lower().rstrip("/")
+            if target_id and entry_id == target_id:
+                continue
+            # Older/stale clients may send their optimistic target slot, where
+            # the candidate is already rendered. That occurrence is not a
+            # duplicate; the same candidate in any other slot still is.
+            if visible_index == requested_index and (
+                (candidate_id and entry_id == candidate_id)
+                or (candidate_url and entry_url == candidate_url)
+            ):
+                continue
+            current_items.append(entry)
+    else:
+        current_items = [
+            entry for i, entry in enumerate(client_pool)
+            if i not in {target_index, candidate_index}
+        ]
     valid, reason = validate_replacement_candidate(
         normalized,
         section,
         current_items,
-        allow_curated_json=(section == "items"),
+        # This endpoint receives a card the UI selected from the already saved
+        # JSON banks. Manual versions can contain legitimate course/movie URLs
+        # outside the live-fetch allowlist; rejecting those made card flipping
+        # fail only for archived newsletters. Duplicate and display-safety
+        # checks still run inside validate_replacement_candidate.
+        allow_curated_json=True,
     )
     if not valid:
         return store, {"success": False, "error": "Invalid card item", "reject_reason": reason}
-    target_item = client_pool[index] if index < len(client_pool) else None
-    saved_item = update_card_at_index(store, section, index, normalized)
+    target_item = client_pool[target_index] if target_index < len(client_pool) else None
+
+    # Prepared alternatives often already exist as extra cards in the full
+    # pool. Remove that old occurrence first, then move it into the filtered
+    # card's slot; otherwise deduplication keeps the old occurrence and makes
+    # the visible replacement appear to fail.
+    if candidate_index >= 0:
+        items = list(store.get(section, []))
+        items.pop(candidate_index)
+        if candidate_index < target_index:
+            target_index -= 1
+        store[section] = items
+
+    saved_item = update_card_at_index(store, section, target_index, normalized)
     if target_item and target_item.get("id") != saved_item.get("id"):
         archived_target = normalize_item(dict(target_item), SECTION_TO_CONTENT_TYPE.get(section, "news"))
         archived_target["status"] = "replaced_archive"
         store[section] = reorder_positions(dedupe_store_items(list(store.get(section, [])) + [archived_target]))
     save_store(store)
-    return load_store(), {"success": True, "index": index, "item": saved_item}
+    return load_store(), {
+        "success": True,
+        "index": requested_index,
+        "stored_index": target_index,
+        "item": saved_item,
+    }

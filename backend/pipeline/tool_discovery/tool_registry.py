@@ -1,7 +1,7 @@
 # This file is part of the AI newsletter system.
 """Single-file tool registry helpers.
 
-The active registry is backend/monthly_tools-site.json. It stores tool records,
+The active registry is backend/pipeline/tool_discovery/monthly_tools-site.json. It stores tool records,
 popularity, sector metadata, and official update/news sites in one place.
 """
 

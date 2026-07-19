@@ -26,11 +26,11 @@ from backend.pipeline.filtering.level_balancing import (
     course_platform_topic_diversity_key,
 )
 from backend.pipeline.modeling.courses import select_supporting_content_cards
-from backend.logging.pipeline_logging import log_event, set_run_context, summarize_items
+from backend.logging.pipeline_logging import get_mode, get_run_id, log_event, set_run_context, summarize_items
 
 def build_supporting_content(pre_run_payload: dict | None = None, run_id: str = "", mode: str = "") -> dict:
     """Fetch, filter, and rewrite course/movie cards without saving news.json."""
-    """Build course/movie cards without writing frontend/news.json.
+    """Build course/movie cards without writing runtime/news.json.
 
     This lets the main pipeline prepare supporting content in parallel with
     news fetching/GPT selection, then apply the cards only after the current
@@ -38,6 +38,13 @@ def build_supporting_content(pre_run_payload: dict | None = None, run_id: str = 
     """
     if run_id:
         set_run_context(run_id, mode or "supporting_content")
+    else:
+        # Caller (e.g. refresh_supporting_content) usually runs on the same
+        # thread run_pipeline already tagged via set_run_context - capture
+        # that here so it can be re-applied inside the worker threads below,
+        # since ThreadPoolExecutor workers don't inherit thread-local state.
+        run_id = get_run_id()
+        mode = mode or get_mode()
     started = time.time()
     result = {
         "enabled": True,
@@ -84,6 +91,12 @@ def build_supporting_content(pre_run_payload: dict | None = None, run_id: str = 
 
     # Builds build one for the next pipeline or API step.
     def build_one(section: str) -> dict:
+        # Runs on its own ThreadPoolExecutor worker thread, which does not
+        # inherit the caller's thread-local run context - without this,
+        # every Gemini call below logs run_id="manual" instead of the real
+        # pipeline run, and its token usage becomes unattributable per-run.
+        if run_id:
+            set_run_context(run_id, mode or "supporting_content")
         section_started = time.time()
         fetch_seconds = 0.0
         filter_seconds = 0.0
@@ -344,9 +357,7 @@ def apply_supporting_content(built: dict, pre_run_payload: dict | None = None) -
     result.pop("_cards", None)
     return result
 
-
 # Performs the refresh supporting content helper step.
-
 def refresh_supporting_content(pre_run_payload: dict | None = None) -> dict:
     """Refresh courses and movies through the modular AI update pipeline."""
     built = build_supporting_content(pre_run_payload)

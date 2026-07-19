@@ -17,14 +17,15 @@ from dotenv import load_dotenv
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 PROJECT_DIR = BACKEND_DIR.parent
 FRONTEND_DIR = PROJECT_DIR / "frontend"
+DATA_NEWS_DIR = PROJECT_DIR / "data" / "news"
 
 # Keep year-sensitive searches current automatically; no annual manual edit is needed.
 CURRENT_YEAR = datetime.now(timezone.utc).year
 CURRENT_YEAR_START = f"{CURRENT_YEAR}-01-01"
 
-NEWS_FETCH_STATE_FILE = BACKEND_DIR / "news_fetch_state.json"
+NEWS_FETCH_STATE_FILE = BACKEND_DIR / "pipeline" / "fetching" / "news_fetch_state.json"
 SECTOR_TERMS_HISTORY_FILE = BACKEND_DIR / "sector_terms_history.json"
-MONTHLY_TOOLS_FILE = BACKEND_DIR / "monthly_tools-site.json"
+MONTHLY_TOOLS_FILE = BACKEND_DIR / "pipeline" / "tool_discovery" / "monthly_tools-site.json"
 # Legacy names are kept only so older helper code can import safely. The active
 # registry is monthly_tools-site.json and contains tools + official sites.
 TOOL_OFFICIAL_SITES_FILE = MONTHLY_TOOLS_FILE
@@ -44,10 +45,24 @@ def env_path(name: str, default: Path) -> Path:
     return Path(value) if value else default
 
 
-NEWS_JSON_FILE = env_path("NEWS_JSON_PATH", FRONTEND_DIR / "news.json")
+RUNTIME_DATA_DIR = env_path("NEWS_RUNTIME_DIR", DATA_NEWS_DIR / "runtime")
+DIAGNOSTICS_DATA_DIR = env_path("NEWS_DIAGNOSTICS_DIR", DATA_NEWS_DIR / "diagnostics")
+NEWS_JSON_FILE = env_path("NEWS_JSON_PATH", RUNTIME_DATA_DIR / "news.json")
 AI_UPDATES_RUN_REPORT_FILE = env_path(
     "AI_UPDATES_RUN_REPORT_PATH",
-    FRONTEND_DIR / "ai_updates_run_report.json",
+    DIAGNOSTICS_DATA_DIR / "ai_updates_run_report.json",
+)
+MODEL_USAGE_SUMMARY_FILE = env_path(
+    "MODEL_USAGE_SUMMARY_PATH",
+    RUNTIME_DATA_DIR / "model_usage_summary.json",
+)
+CANDIDATE_AUDIT_FILE = env_path(
+    "AI_UPDATES_CANDIDATE_AUDIT_PATH",
+    DIAGNOSTICS_DATA_DIR / "ai_updates_candidate_audit.json",
+)
+QUERY_RESULTS_FILE = env_path(
+    "AI_UPDATES_QUERY_RESULTS_PATH",
+    DIAGNOSTICS_DATA_DIR / "ai_updates_query_results.json",
 )
 
 
@@ -71,6 +86,23 @@ def safe_write_json(path: Path, payload: dict) -> None:
     with open(temp_file, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
     os.replace(temp_file, path)
+
+
+_JSON_UPDATE_LOCK = threading.RLock()
+
+
+def update_json_file(path: Path, update) -> dict:
+    """Update one JSON document atomically while preserving unrelated sections."""
+    with _JSON_UPDATE_LOCK:
+        try:
+            current = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(current, dict):
+                current = {}
+        except Exception:
+            current = {}
+        update(current)
+        safe_write_json(path, current)
+        return current
 
 
 # Reads load json from the current store or request context.

@@ -223,8 +223,8 @@ def filter_supporting_candidates(
 
 # Saves save memory to the configured output or state store.
 
-def save_supporting_memory(items: list[dict], content_type: str) -> None:
-    save_memory(items or [], content_type, {})
+def save_supporting_memory(items: list[dict], content_type: str) -> int:
+    return save_memory(items or [], content_type, {})
 
 __all__ = [
     "filter_supporting_candidates",

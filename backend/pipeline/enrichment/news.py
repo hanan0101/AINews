@@ -215,7 +215,7 @@ def filter_rejection_news_items(items: list[dict]) -> tuple[list[dict], list[dic
 # Prepares dedupe news items so downstream stages receive consistent data.
 
 def dedupe_news_items(items: list[dict]) -> tuple[list[dict], int]:
-    """Remove literal duplicate cards before writing frontend/news.json."""
+    """Remove literal duplicate cards before writing runtime/news.json."""
     seen_urls = set()
     seen_titles = set()
     seen_stories = set()
@@ -277,7 +277,7 @@ def write_news_fetch_state(performance: dict, items: list[dict]) -> None:
 
 def save_news_report(report: dict, performance: dict) -> bool:
     """Save the run report that explains what happened during Generate."""
-    """Save selected news plus backups to frontend/news.json and Qdrant memory."""
+    """Save selected news plus backups to runtime/news.json and Qdrant memory."""
     backup_target = BACKUP_NEWS_COUNT if SAVE_NEWS_BACKUP_FROM_SELECTION else 0
     required_total = DISPLAY_COUNTS["items"] + backup_target
     # Flexible save gate: target the configured full bank, but allow a smaller
