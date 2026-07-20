@@ -84,15 +84,18 @@ def model_error_details(exc: Exception) -> dict[str, Any]:
 
 
 def gemini_client_error_details(exc: Exception) -> dict[str, Any]:
-    if hasattr(exc, "details") and isinstance(getattr(exc, "details"), dict):
-        details = dict(getattr(exc, "details"))
-        details["error"] = str(exc)
-        return details
     message = str(exc)
     lowered = message.lower()
     if "quota" in lowered or "status=429" in lowered or "rate-limit" in lowered:
         category = "quota_or_billing"
-    elif "api key not valid" in lowered or "api_key_invalid" in lowered or "permission" in lowered:
+    elif (
+        "api key not valid" in lowered
+        or "api_key_invalid" in lowered
+        or "permission" in lowered
+        or "access_token_type_unsupported" in lowered
+        or "unauthenticated" in lowered
+        or "invalid authentication credentials" in lowered
+    ):
         category = "invalid_or_unauthorized_key"
     elif "status=404" in lowered or "not found" in lowered:
         category = "model_not_found"

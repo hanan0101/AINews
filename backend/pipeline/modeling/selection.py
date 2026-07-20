@@ -649,7 +649,7 @@ def rewrite_selected_items(matched: list[dict], diagnostics: dict, stage: str) -
             provider=MODEL_PROVIDER,
             **{key: value for key, value in details.items() if key not in {"provider", "model"}},
         )
-        print(f"[AI Updates] {MODEL_PROVIDER} rewrite failed stage={stage} category={details['category']} error={details['error']}", flush=True)
+        print(f"[AI Updates] {MODEL_PROVIDER} rewrite failed stage={stage} category={details.get('category', 'unknown')} error={details.get('error', str(exc))}", flush=True)
         return []
     if not isinstance(parsed, dict):
         return []
@@ -861,7 +861,7 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
             )
             print(
                 f"[AI Updates] {MODEL_PROVIDER} failed stage={stage} "
-                f"category={details['category']} error={details['error']}",
+                f"category={details.get('category', 'unknown')} error={details.get('error', str(model_exc))}",
                 flush=True,
             )
             raise
@@ -1018,7 +1018,7 @@ def select_news_updates(candidates: list[dict], diagnostics: dict, *, single: bo
     except Exception as exc:
         details = model_failure_details(exc)
         record_model_failure("news_selection", MODEL_FLASH_MODEL, MODEL_PROVIDER, details)
-        print(f"[AI Updates] {MODEL_PROVIDER} failed: {details['category']} - {details['error']}", flush=True)
+        print(f"[AI Updates] {MODEL_PROVIDER} failed: {details.get('category', 'unknown')} - {details.get('error', str(exc))}", flush=True)
         return failure_report(f"{MODEL_PROVIDER}_failed", {**diagnostics, f"{MODEL_PROVIDER}_failure": details})
 
 

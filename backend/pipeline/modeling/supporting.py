@@ -627,7 +627,7 @@ def select_supporting_content_cards(
             )
             print(
                 f"[AI Updates] {MODEL_PROVIDER} supporting {content_type} failed "
-                f"category={details['category']} error={details['error']}",
+                f"category={details.get('category', 'unknown')} error={details.get('error', str(model_exc))}",
                 flush=True,
             )
             raise
@@ -664,7 +664,7 @@ def select_supporting_content_cards(
     except Exception as exc:
         details = model_failure_details(exc)
         record_model_failure(f"supporting_{content_type}", selected_model if "selected_model" in locals() else MODEL_FLASH_MODEL, selected_provider if "selected_provider" in locals() else MODEL_PROVIDER, details)
-        print(f"[AI Updates] {MODEL_PROVIDER} supporting {content_type} failed: {details['category']} - {details['error']}", flush=True)
+        print(f"[AI Updates] {MODEL_PROVIDER} supporting {content_type} failed: {details.get('category', 'unknown')} - {details.get('error', str(exc))}", flush=True)
         log_event(
             "prompt.supporting_selection.failed",
             content_type=content_type,

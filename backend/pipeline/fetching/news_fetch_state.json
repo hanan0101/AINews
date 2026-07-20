@@ -340,17 +340,17 @@
     ]
   },
   "exa_tool_driven_rotation": {
-    "updated_at": "2026-07-19T03:20:51.811810+00:00",
-    "offset": 34,
+    "updated_at": "2026-07-20T11:00:16.603150+00:00",
+    "offset": 8,
     "pool_size": 52,
     "batch_size": 26,
-    "next_offset": 8
+    "next_offset": 34
   },
   "searxng_tool_driven_rotation": {
-    "updated_at": "2026-07-19T03:51:25.088114+00:00",
-    "offset": 39,
+    "updated_at": "2026-07-20T11:00:16.670256+00:00",
+    "offset": 43,
     "pool_size": 52,
     "batch_size": 12,
-    "next_offset": 51
+    "next_offset": 3
   }
 }
