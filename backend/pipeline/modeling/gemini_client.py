@@ -346,9 +346,20 @@ def generate_json(system_prompt: str, user_payload: Any, *, model: str | None = 
             raise GeminiQuotaError("gemini_provider_quota_exhausted", details) from exc
         raise
     text = response.text or ""
-    parsed = _extract_json(text)
     usage_metadata = getattr(response, "usage_metadata", None)
     usage = usage_metadata.model_dump() if hasattr(usage_metadata, "model_dump") else dict(usage_metadata or {})
+    candidates = getattr(response, "candidates", None) or []
+    finish_reasons = [str(getattr(candidate, "finish_reason", "") or "") for candidate in candidates]
+    print(
+        f"[AI Updates] Gemini raw response before JSON parse "
+        f"model={selected_model} chars={len(text)} "
+        f"finish_reasons={finish_reasons} usage={usage}\n"
+        "----- GEMINI RAW RESPONSE BEGIN -----\n"
+        f"{text}\n"
+        "----- GEMINI RAW RESPONSE END -----",
+        flush=True,
+    )
+    parsed = _extract_json(text)
     if usage:
         _record_gemini_usage(quota, usage, selected_model)
     if isinstance(parsed, dict):
