@@ -54,6 +54,10 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
 GEMINI_SELECTION_MODEL = os.getenv("GEMINI_SELECTION_MODEL", "gemini-flash-lite-latest").strip() or "gemini-flash-lite-latest"
 GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_REWRITE_MAX_OUTPUT_TOKENS = max(
+    1024,
+    min(65536, int(os.getenv("GEMINI_REWRITE_MAX_OUTPUT_TOKENS", "32768") or "32768")),
+)
 GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001").strip() or "gemini-embedding-001"
 GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
 _GEMINI_RATE_LIMIT_LOCK = threading.RLock()
@@ -317,12 +321,24 @@ def _generate_content_with_retry(
 
 
 # Performs the generate json helper step.
-def generate_json(system_prompt: str, user_payload: Any, *, model: str | None = None) -> dict[str, Any]:
+def generate_json(
+    system_prompt: str,
+    user_payload: Any,
+    *,
+    model: str | None = None,
+    max_output_tokens: int | None = None,
+) -> dict[str, Any]:
     if not GEMINI_API_KEY:
         raise RuntimeError("missing_gemini_api_key")
     selected_model = (model or GEMINI_FLASH_MODEL or "gemini-2.5-flash").strip()
     user_text = user_payload if isinstance(user_payload, str) else json.dumps(user_payload, ensure_ascii=False, separators=(",", ":"))
     client = genai.Client(api_key=GEMINI_API_KEY)
+    config_kwargs: dict[str, Any] = {
+        "temperature": 0.3,
+        "response_mime_type": "application/json",
+    }
+    if max_output_tokens is not None:
+        config_kwargs["max_output_tokens"] = max_output_tokens
     with _GEMINI_RATE_LIMIT_LOCK:
         quota = _reserve_gemini_request(selected_model)
         _wait_for_gemini_test_rate_limit()
@@ -335,10 +351,7 @@ def generate_json(system_prompt: str, user_payload: Any, *, model: str | None = 
                 "Return valid JSON only. Do not wrap the JSON in markdown.\n\n"
                 f"INPUT:\n{user_text}"
             ),
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                response_mime_type="application/json",
-            ),
+            config=types.GenerateContentConfig(**config_kwargs),
         )
     except Exception as exc:
         details = _record_gemini_error(quota, exc, selected_model)

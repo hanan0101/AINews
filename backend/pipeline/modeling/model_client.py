@@ -51,7 +51,15 @@ def generate_json(system_prompt: str, user_payload: Any, *, model: str | None = 
 # model via model_for_role() instead of the caller having to know which env
 # var/constant backs each role.
 def generate_json_for_role(role: str, system_prompt: str, user_payload: Any) -> dict[str, Any]:
-    return generate_json(system_prompt, user_payload, model=model_for_role(role))
+    selected_model = model_for_role(role)
+    if MODEL_PROVIDER == "gemini" and role == "rewrite":
+        return gemini_client.generate_json(
+            system_prompt,
+            user_payload,
+            model=selected_model,
+            max_output_tokens=gemini_client.GEMINI_REWRITE_MAX_OUTPUT_TOKENS,
+        )
+    return generate_json(system_prompt, user_payload, model=selected_model)
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
