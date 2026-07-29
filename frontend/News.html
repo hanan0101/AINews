@@ -1202,6 +1202,14 @@
         <div class="field"><label for="editUrl">الرابط</label><input id="editUrl"></div>
         <!-- Active manual overrides: source text and company logo URL are saved back to news.json. -->
         <div class="field"><label for="editSource">المصدر</label><input id="editSource" placeholder="اسم المصدر أو الشركة"></div>
+        <div class="field" id="editLevelField" style="display:none">
+          <label for="editLevel">المستوى</label>
+          <select id="editLevel">
+            <option value="Beginner">مبتدئ</option>
+            <option value="Intermediate">متوسط</option>
+            <option value="Advanced">متقدم</option>
+          </select>
+        </div>
         <div class="field"><label for="editLogo">شعار الشركة</label><input id="editLogo" type="text" inputmode="url" placeholder="https://example.com/logo.png"></div>
         <div class="field">
           <label for="editLogoSize">حجم الشعار</label>
@@ -1720,6 +1728,8 @@
       editText: document.getElementById('editText'),
       editUrl: document.getElementById('editUrl'),
       editSource: document.getElementById('editSource'),
+      editLevelField: document.getElementById('editLevelField'),
+      editLevel: document.getElementById('editLevel'),
       editLogo: document.getElementById('editLogo'),
       editLogoSize: document.getElementById('editLogoSize'),
       editLogoSizeValue: document.getElementById('editLogoSizeValue'),
@@ -4353,6 +4363,14 @@
           ? (item.logo_override_url || item.manual_logo_url || item.poster || item.image || item.logo || '')
           : (item.logo_override_url || item.manual_logo_url || item.logo || item.provider_logo || item.source_logo || '');
       }
+      if(els.editLevelField){
+        const showLevel = section === 'courses';
+        els.editLevelField.style.display = showLevel ? '' : 'none';
+        if(showLevel && els.editLevel){
+          const key = normalizeLevelName(item.level || item.course_level || item.difficulty || '') || 'beginner';
+          els.editLevel.value = key.charAt(0).toUpperCase() + key.slice(1);
+        }
+      }
       updateLogoSizeValue(item.logo_size || item.logoSize || 30);
       els.editOverlay.classList.add('show');
     }
@@ -4417,6 +4435,12 @@
         if(section === 'items') payload.original_source = sourceValue;
       }
       if(logoSize !== clampLogoSize(original.logo_size || original.logoSize || 30)) payload.logo_size = logoSize;
+      if(section === 'courses' && els.editLevel){
+        const nextLevel = els.editLevel.value;
+        const originalLevelKey = normalizeLevelName(original.level || original.course_level || original.difficulty || '') || 'beginner';
+        const originalLevel = originalLevelKey.charAt(0).toUpperCase() + originalLevelKey.slice(1);
+        if(nextLevel !== originalLevel) payload.level = nextLevel;
+      }
       const originalLogo = section === 'movies'
         ? String(original.logo_override_url || original.manual_logo_url || original.poster || original.image || original.logo || '').trim()
         : String(original.logo_override_url || original.manual_logo_url || original.logo || original.provider_logo || original.source_logo || '').trim();

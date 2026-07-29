@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+import sys
 import threading
 import time
 from pathlib import Path
@@ -363,15 +364,31 @@ def generate_json(
     usage = usage_metadata.model_dump() if hasattr(usage_metadata, "model_dump") else dict(usage_metadata or {})
     candidates = getattr(response, "candidates", None) or []
     finish_reasons = [str(getattr(candidate, "finish_reason", "") or "") for candidate in candidates]
-    print(
-        f"[AI Updates] Gemini raw response before JSON parse "
-        f"model={selected_model} chars={len(text)} "
-        f"finish_reasons={finish_reasons} usage={usage}\n"
-        "----- GEMINI RAW RESPONSE BEGIN -----\n"
-        f"{text}\n"
-        "----- GEMINI RAW RESPONSE END -----",
-        flush=True,
-    )
+    # Debug logging must never be able to take down the actual model call.
+    # This response text is Arabic, so on a console/pipe whose stdout
+    # encoding isn't UTF-8 (e.g. the default Windows "charmap" codec), a
+    # plain print() raises UnicodeEncodeError here - and since that happened
+    # outside the try/except around _generate_content_with_retry above, it
+    # propagated up and silently failed the whole selection/rewrite call
+    # (surfaced upstream as a generic "gemini_request_failed").
+    try:
+        print(
+            f"[AI Updates] Gemini raw response before JSON parse "
+            f"model={selected_model} chars={len(text)} "
+            f"finish_reasons={finish_reasons} usage={usage}\n"
+            "----- GEMINI RAW RESPONSE BEGIN -----\n"
+            f"{text}\n"
+            "----- GEMINI RAW RESPONSE END -----",
+            flush=True,
+        )
+    except UnicodeEncodeError:
+        stdout_encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(
+            f"[AI Updates] Gemini raw response before JSON parse "
+            f"model={selected_model} chars={len(text)} finish_reasons={finish_reasons} usage={usage} "
+            f"(response text omitted: undisplayable on this console's {stdout_encoding} encoding)",
+            flush=True,
+        )
     parsed = _extract_json(text)
     if usage:
         _record_gemini_usage(quota, usage, selected_model)

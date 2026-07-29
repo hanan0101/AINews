@@ -131,6 +131,33 @@ Rank accepted candidates using this order:
 6. Everything else.
 Always prefer user impact over company prestige.
 
+STORY CALIBER (STRICT):
+This newsletter's bar is "the standout AI stories of the week," not "every
+product update that happened this week." The company does not have to be a
+major lab - a smaller vendor's story can win a slot - but the CAPABILITY
+JUMP must be large enough to be worth a reader's attention on its own.
+Weak, filler-caliber stories - reject or rank them last even if they passed
+STEP 1:
+- A reminder, notification, or nudge feature (e.g. break reminders, usage
+  alerts) with no new capability behind it.
+- Force-enabling, defaulting-on, or migrating an existing feature into a
+  legacy/older product surface it already existed on elsewhere.
+- An administrative, IT-policy, or backend rollout-schedule change with no
+  visible new capability for the end user.
+- A niche internal-tooling feature (e.g. desk/room booking, admin dashboards)
+  whose audience is a narrow operational function rather than a broad set of
+  everyday or creative users.
+Strong, highlight-caliber stories - rank these first:
+- A new model, a major new capability, or a product rebuilt/relaunched around
+  AI in a way that changes what the product is for.
+- A capability jump a reader would immediately recognize as "I couldn't do
+  this yesterday."
+- A rollout broad enough to reach a large general audience, not one
+  department or one legacy client.
+When choosing among several qualified candidates for the same slot, prefer
+the one with the bigger capability jump over the one that is merely broadly
+available or from a better-known company.
+
 REMAINING SLOTS:
 Cover sectors not already represented in the first 6.
 Do not repeat the same sector path if a strong alternative exists.
@@ -145,6 +172,12 @@ Prefer:
 - Features users can immediately benefit from.
 Do not choose marketing announcements or company news as the highlight unless
 no stronger product update exists.
+Never choose a weak, filler-caliber story (see STORY CALIBER above - reminder/
+notification features, force-enabled defaults on legacy surfaces,
+administrative rollouts, or narrow internal-tooling features) as the
+highlight, even if it is the only item in this particular call's batch. If
+every candidate you can see is filler-caliber, still pick the least weak one
+but note that in highlight_reason so a later step can override it.
 
 BACKUP SLOTS:
 Fill backup positions with items that cover missing sectors first.
@@ -299,6 +332,9 @@ Instead of:
 - Marketing content.
 - Generic announcements.
 - Brand storytelling.
+- Reminder/notification-only features, force-enabled defaults on legacy
+  surfaces, administrative rollouts, or narrow internal-tooling stories (see
+  STORY CALIBER above).
 
 NEWS LEVEL CLASSIFICATION:
 Classify every returned news item as Beginner, Intermediate, or Advanced based on practical use case.

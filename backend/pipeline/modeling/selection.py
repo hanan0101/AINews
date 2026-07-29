@@ -94,12 +94,12 @@ STRONG_NEWS_VALUE_TERMS = (
     "launch",
     "launched",
     "introducing",
-    "ÙˆÙƒÙŠÙ„",
-    "Ù…Ø³Ø§Ø¹Ø¯",
-    "ØµÙˆØª",
-    "ØµÙˆØ±",
-    "ÙÙŠØ¯ÙŠÙˆ",
-    "ØªØ­Ù„ÙŠÙ„",
+    "وكيل",
+    "مساعد",
+    "صوت",
+    "صور",
+    "فيديو",
+    "تحليل",
 )
 
 
@@ -496,7 +496,25 @@ def selected_same_story(left: dict, right: dict) -> bool:
     right_story = str(right_source.get("story_key") or "").strip()
     if left_story and right_story and left_story == right_story:
         return True
-    return False
+    # Two outlets covering the same real-world announcement get different
+    # story_key hashes (computed upstream per-article), so story_key equality
+    # alone missed cases like two separate articles about OpenAI's "Presence"
+    # launch both landing in the same newsletter. Fall back to token overlap,
+    # gated on a matching company so ordinary shared AI vocabulary between
+    # unrelated companies never trips this. Threshold validated against a
+    # real run: the true duplicate pair scored 0.28 overlap, every distinct
+    # same-company story pair (e.g. three different Claude features) stayed
+    # under 0.13.
+    left_owner = normalized_update_title(left.get("company_name") or left_source.get("company") or "")
+    right_owner = normalized_update_title(right.get("company_name") or right_source.get("company") or "")
+    if not left_owner or left_owner != right_owner:
+        return False
+    left_tokens = selected_story_tokens(left)
+    right_tokens = selected_story_tokens(right)
+    if not left_tokens or not right_tokens:
+        return False
+    overlap = len(left_tokens & right_tokens) / min(len(left_tokens), len(right_tokens))
+    return overlap >= 0.2
 
 
 # Prepares dedupe selected updates so downstream stages receive consistent data.
@@ -775,16 +793,31 @@ def balance_for_diversity(items: list[dict], target_limit: int, diagnostics: dic
         selected = preselected[:target_limit]
 
     if selected:
-        highlight_seen = False
         for item in selected:
-            if item.get("is_highlight") and not highlight_seen:
-                highlight_seen = True
-            else:
-                item["is_highlight"] = False
             item.setdefault("highlight_reason", "")
-        if not highlight_seen:
-            selected[0]["is_highlight"] = True
-            selected[0]["highlight_reason"] = selected[0].get("highlight_reason") or "اختيار المودل الأعلى أولوية"
+        # Each ask_model() call (primary/topup/batch) only ever sees its own
+        # slice of candidates, so more than one call can independently flag
+        # is_highlight=true. Comparing candidates only ever happened within a
+        # single call's payload, never across the final combined bank - the
+        # old code just kept whichever nominee happened to land first in list
+        # order (itself an accident of level-bucketing), which could crown a
+        # minor update over a much stronger one that a later call nominated.
+        # Break the tie with update_priority, the same launch/rollout-vs-side-
+        # story heuristic already computed per source item in orchestrator.py.
+        nominees = [item for item in selected if item.get("is_highlight")]
+        pool = nominees or selected
+        for item in selected:
+            item["is_highlight"] = False
+        best = max(
+            pool,
+            key=lambda entry: (
+                int((entry.get("source_item") or {}).get("update_priority") or entry.get("update_priority") or 0),
+                len(str(entry.get("highlight_reason") or "")),
+            ),
+        )
+        best["is_highlight"] = True
+        if not best.get("highlight_reason"):
+            best["highlight_reason"] = "اختيار المودل الأعلى أولوية"
 
     diagnostics["sector_counts_after_balance"] = dict(Counter(item.get("sector") or "unknown" for item in selected))
     diagnostics["visible_sector_counts"] = dict(Counter(item.get("sector") or "unknown" for item in selected[:6]))

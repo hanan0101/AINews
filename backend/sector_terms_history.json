@@ -1,6 +1,6 @@
 {
   "schema": "sector_terms_history_v1",
-  "updated": "2026-07-12T01:39:44.888355+00:00",
+  "updated": "2026-07-23T08:34:09.147982+00:00",
   "sectors": {
     "museums": {
       "base_terms": "museum gallery exhibition visitor guide curation collections",
@@ -156,33 +156,33 @@
     },
     "الأفلام": {
       "learned_terms": [
-        "أداة",
-        "ذكاء",
-        "اصطناعي",
-        "لترجمة",
-        "مقاطع",
+        "لتوليد",
         "الفيديو",
-        "بدقة",
-        "heygen",
-        "video",
-        "translate"
+        "lumalabs",
+        "news",
+        "إطلاق",
+        "نموذج",
+        "توليد",
+        "ray3",
+        "بتكلفة",
+        "site"
       ],
-      "last_updated": "2026-07-12"
+      "last_updated": "2026-07-23"
     },
     "إنتاجية العمل": {
       "learned_terms": [
-        "code",
-        "منصة",
-        "elevenagents",
-        "تتيح",
-        "حماية",
-        "المساعدين",
-        "الأذكياء",
-        "elevenlabs",
+        "platform",
+        "إطلاق",
+        "إضافة",
+        "manus",
+        "browser",
+        "operator",
+        "للمتصفحات",
+        "المحلية",
         "site",
-        "update"
+        "changelog"
       ],
-      "last_updated": "2026-07-12"
+      "last_updated": "2026-07-23"
     },
     "الصحة الجسدية": {
       "learned_terms": [
@@ -201,48 +201,48 @@
     },
     "المكتبات": {
       "learned_terms": [
-        "artificial",
-        "منصة",
-        "youtube",
-        "اختبار",
+        "إطلاق",
         "أداة",
-        "البحث",
-        "الذكي",
-        "site",
-        "theverge",
-        "flow"
+        "الأبحاث",
+        "gemini",
+        "notebook",
+        "ميزات",
+        "مدفوعة",
+        "google",
+        "search",
+        "assistant"
       ],
-      "last_updated": "2026-07-12"
+      "last_updated": "2026-07-20"
     },
     "الأزياء": {
       "learned_terms": [
-        "لتجربة",
-        "الأزياء",
-        "styling",
-        "rollout",
-        "vision",
-        "fashion",
-        "لصور",
-        "بالملابس",
-        "virtual",
-        "feature"
+        "تصميم",
+        "مرنة",
+        "تتكيف",
+        "تلقائيا",
+        "تغيير",
+        "العناصر",
+        "reve",
+        "creative",
+        "tool",
+        "product"
       ],
-      "last_updated": "2026-06-29"
+      "last_updated": "2026-07-23"
     },
     "الموسيقى": {
       "learned_terms": [
-        "tool",
-        "product",
-        "إطلاق",
-        "أداة",
-        "sunomv",
-        "لإنشاء",
-        "مقاطع",
-        "الفيديو",
-        "الموسيقية",
-        "suno"
+        "suno",
+        "ميزة",
+        "المحادثة",
+        "الصوتية",
+        "والنصية",
+        "داخل",
+        "تطبيق",
+        "spotify",
+        "update",
+        "launched"
       ],
-      "last_updated": "2026-07-11"
+      "last_updated": "2026-07-20"
     },
     "التراث": {
       "learned_terms": [
@@ -261,48 +261,48 @@
     },
     "الصحة النفسية": {
       "learned_terms": [
-        "assistant",
-        "ميزة",
-        "جديدة",
-        "للتأمل",
-        "claude",
-        "بواجهة",
-        "مخصصة",
-        "anthropic",
-        "site",
-        "update"
+        "reflection",
+        "إضافة",
+        "تنبيهات",
+        "الاستراحة",
+        "للمراهقين",
+        "منصة",
+        "chatgpt",
+        "openai",
+        "theverge",
+        "launches"
       ],
-      "last_updated": "2026-07-11"
+      "last_updated": "2026-07-20"
     },
     "الفنون البصرية": {
       "learned_terms": [
-        "الرسومات",
-        "بالذكاء",
-        "الاصطناعي",
-        "release",
-        "notes",
-        "منصة",
-        "figma",
-        "تطلق",
-        "أداة",
-        "site"
+        "إطلاق",
+        "نموذج",
+        "ray3",
+        "لتوليد",
+        "الفيديوهات",
+        "بسرعة",
+        "وتكلفة",
+        "luma",
+        "site",
+        "lumalabs"
       ],
-      "last_updated": "2026-07-12"
+      "last_updated": "2026-07-23"
     },
     "الأدب": {
       "learned_terms": [
-        "سدايا",
-        "تنال",
-        "جائزة",
-        "أممية",
-        "البيانات",
-        "national",
-        "data",
-        "bank",
-        "estishraf",
-        "sdaia"
+        "جديدة",
+        "لاستكشاف",
+        "بيانات",
+        "استخدام",
+        "الذكاء",
+        "الاصطناعي",
+        "اقتصاديا",
+        "claude",
+        "anthropic",
+        "site"
       ],
-      "last_updated": "2026-06-29"
+      "last_updated": "2026-07-23"
     },
     "الذكاء الاصطناعي والتعليم والتدريب والمهام اليومية": {
       "learned_terms": [
@@ -321,18 +321,18 @@
     },
     "العمارة": {
       "learned_terms": [
-        "siemens",
-        "design",
-        "planner",
-        "وكيل",
-        "تصميم",
-        "داخلي",
-        "agent",
-        "update",
-        "changelog",
-        "feature"
+        "أذكياء",
+        "مخصصين",
+        "لقطاع",
+        "البناء",
+        "procore",
+        "assistant",
+        "capability",
+        "available",
+        "إطلاق",
+        "teams"
       ],
-      "last_updated": "2026-06-29"
+      "last_updated": "2026-07-23"
     },
     "المسرح": {
       "learned_terms": [
@@ -530,33 +530,33 @@
     },
     "والتدريب والمهام اليومية": {
       "learned_terms": [
-        "ميزة",
+        "automation",
+        "إطلاق",
+        "نموذج",
+        "deepseek",
+        "لدمج",
+        "قدرات",
         "المحادثة",
-        "الصوتية",
-        "الكاملة",
-        "chatgpt",
-        "live",
-        "openai",
-        "product",
-        "update",
-        "launched"
+        "والبرمجة",
+        "site",
+        "news"
       ],
-      "last_updated": "2026-07-11"
+      "last_updated": "2026-07-23"
     },
     "الذكاء الاصطناعي والتعليم": {
       "learned_terms": [
-        "الذكاء",
-        "الاصطناعي",
-        "الجديد",
-        "للجمهور",
-        "openai",
-        "national",
-        "strategy",
-        "regulation",
-        "policy",
-        "announces"
+        "اصطناعي",
+        "خفيف",
+        "مخصص",
+        "لمهام",
+        "الأمن",
+        "السيبراني",
+        "gemini",
+        "flash",
+        "cyber",
+        "google"
       ],
-      "last_updated": "2026-07-11"
+      "last_updated": "2026-07-23"
     }
   }
 }
