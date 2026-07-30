@@ -19,18 +19,13 @@ import time
 from pathlib import Path
 
 
-def safe_print(message: str) -> None:
-    """Print safely on narrow Windows console encodings (mirrors news_discovery.safe_print)."""
-    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
-    print(str(message).encode(encoding, errors="backslashreplace").decode(encoding, errors="replace"), flush=True)
-
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 import requests  # noqa: E402
 
-from backend.pipeline.fetching.news_discovery import SEARXNG_RELIABLE_ENGINES  # noqa: E402
+from backend.pipeline.fetching.fetch_utils import SEARXNG_RELIABLE_ENGINES, safe_print  # noqa: E402
 from backend.pipeline.tool_discovery.queries import search_url  # noqa: E402
 
 DEFAULT_TEST_QUERIES = [

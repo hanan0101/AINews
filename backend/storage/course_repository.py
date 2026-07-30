@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 
-import psycopg2
 from psycopg2.extras import Json
+
+from backend.storage.postgres import postgres_connection
 
 
 _INIT_LOCK = threading.RLock()
@@ -18,14 +18,7 @@ _INITIALIZED = False
 
 
 def course_db():
-    return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost").strip() or "localhost",
-        port=int(os.getenv("POSTGRES_PORT", "5432") or "5432"),
-        dbname=os.getenv("POSTGRES_DB", "ainewsletter").strip() or "ainewsletter",
-        user=os.getenv("POSTGRES_USER", "ainewsletter").strip() or "ainewsletter",
-        password=os.getenv("POSTGRES_PASSWORD", "ainewsletter_local"),
-        connect_timeout=5,
-    )
+    return postgres_connection()
 
 
 def _json_file(path: Path) -> dict:
@@ -369,20 +362,5 @@ def record_selection(issue_id: str, issue_date: datetime, selected: list[dict], 
     except Exception:
         connection.rollback()
         raise
-    finally:
-        connection.close()
-
-
-def storage_counts() -> dict:
-    connection = course_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM course_catalog")
-            courses = int(cursor.fetchone()[0])
-            cursor.execute("SELECT COUNT(*) FROM course_selection_events")
-            selections = int(cursor.fetchone()[0])
-            cursor.execute("SELECT COUNT(*) FROM course_rotation_state")
-            rotations = int(cursor.fetchone()[0])
-        return {"courses": courses, "selections": selections, "rotations": rotations}
     finally:
         connection.close()

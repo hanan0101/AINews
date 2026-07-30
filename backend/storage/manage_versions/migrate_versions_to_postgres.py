@@ -8,8 +8,9 @@ import sqlite3
 from collections import Counter
 from pathlib import Path
 
-import psycopg2
 from dotenv import load_dotenv
+
+from backend.storage.postgres import postgres_connection
 
 
 # Migration step 1: load the same local environment file used by the backend,
@@ -24,18 +25,6 @@ load_dotenv(BACKEND_DIR / ".env", override=False)
 SQLITE_VERSIONS_PATH = Path(
     os.getenv("SQLITE_VERSIONS_PATH", str(PROJECT_DIR / "data" / "versions" / "versions.db"))
 )
-
-
-# Migration step 3: use the same PostgreSQL variables as server_versions.py and
-# docker-compose.yml so the script targets the application's active database.
-POSTGRES_CONFIG = {
-    "host": os.getenv("POSTGRES_HOST", "localhost").strip() or "localhost",
-    "port": int(os.getenv("POSTGRES_PORT", "5432") or "5432"),
-    "dbname": os.getenv("POSTGRES_DB", "ainewsletter").strip() or "ainewsletter",
-    "user": os.getenv("POSTGRES_USER", "ainewsletter").strip() or "ainewsletter",
-    "password": os.getenv("POSTGRES_PASSWORD", "ainewsletter_local"),
-    "connect_timeout": 5,
-}
 
 
 # Migration step 4: read every legacy row without modifying the SQLite backup.
@@ -122,7 +111,7 @@ def migrate_rows(con, rows: list[tuple]) -> Counter:
 def main() -> None:
     rows = read_legacy_versions()
     source = Counter((row[5] or "json").lower() for row in rows)
-    con = psycopg2.connect(**POSTGRES_CONFIG)
+    con = postgres_connection()
     try:
         ensure_postgres_schema(con)
         inserted = migrate_rows(con, rows)

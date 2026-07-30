@@ -29,11 +29,6 @@ _QDRANT_LOCK = threading.Lock()
 _QDRANT_LOCK_WARNING_SHOWN = False
 
 
-# Returns whether Qdrant Python classes are available in the current environment.
-def qdrant_available() -> bool:
-    return QdrantClient is not None
-
-
 # Creates the configured Qdrant collection if it does not exist.
 def ensure_qdrant_collection(qdrant) -> bool:
     if qdrant is None:

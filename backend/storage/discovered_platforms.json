@@ -47,5 +47,16 @@
     "times_selected": 3,
     "promoted": true,
     "promoted_at": "2026-07-11"
+  },
+  "esi.edu.sa": {
+    "domain": "esi.edu.sa",
+    "first_seen": "2026-07-29",
+    "url_path": "/courses/%d8%a7%d9%84%d8%b0%d9%83%d8%a7%d8%a1-%d8%a7%d9%84%d8%a7%d8%b5%d8%b7%d9%86%d8%a7%d8%b9%d9%8a-%d9%84%d8%a7%d8%ae%d8%aa%d8%b5%d8%a7%d8%b5%d9%8a%d9%8a-%d8%a7%d9%84%d9%85%d9%88%d8%a7%d8%b1%d8%af-%d8%a7",
+    "paths": {
+      "/courses/%d8%a7%d9%84%d8%b0%d9%83%d8%a7%d8%a1-%d8%a7%d9%84%d8%a7%d8%b5%d8%b7%d9%86%d8%a7%d8%b9%d9%8a-%d9%84%d8%a7%d8%ae%d8%aa%d8%b5%d8%a7%d8%b5%d9%8a%d9%8a-%d8%a7%d9%84%d9%85%d9%88%d8%a7%d8%b1%d8%af-%d8%a7": 3
+    },
+    "times_selected": 3,
+    "promoted": true,
+    "promoted_at": "2026-07-30"
   }
 }

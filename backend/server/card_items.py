@@ -9,27 +9,20 @@ import os
 import re
 from collections import Counter
 
-from backend.pipeline.enrichment.logos import enrich_card_visual_identity
-from backend.pipeline.filtering.courses import supporting_reject_reason
-from backend.pipeline.filtering.news import (
+from backend.pipeline.enrichment.shared.logos import enrich_card_visual_identity, enrich_cards_visual_identity_batch
+from backend.pipeline.filtering.content.courses.rules import supporting_reject_reason
+from backend.pipeline.filtering.content.news.rules import (
     item_story_key as backend_item_story_key,
     story_owner_key as backend_story_owner_key,
 )
-from backend.utils.text_normalization import cleanup_text_fields, MOJIBAKE_MARKERS_RE
+from backend.utils.text_normalization import cleanup_text_fields
+from backend.utils.value_parsing import safe_int as _safe_int
 
 SECTION_TO_CONTENT_TYPE = {
     "items": "news",
     "movies": "movie",
     "courses": "course",
 }
-
-
-# Performs the safe int helper step.
-def _safe_int(value, default=0):
-    try:
-        return int(value)
-    except Exception:
-        return default
 
 
 # Performs the trace helper step.
@@ -88,6 +81,23 @@ def ensure_visual_identity(item, default_type="news"):
     return item
 
 
+# Server role: Same result as calling ensure_visual_identity per item, but
+# verifies every item's logo candidates in one shared network batch instead
+# of one round trip per item in sequence (this is what keeps loading/saving
+# a full list of cards from taking N x ~2.5s).
+def ensure_visual_identity_batch(items, default_type="news"):
+    prepared = [dict(item or {}) for item in items]
+    pending = []
+    for item in prepared:
+        item_type = item.get("type", default_type)
+        if not apply_manual_logo_override(item):
+            pending.append((item, item_type))
+    if pending:
+        for (item, item_type), identity in zip(pending, enrich_cards_visual_identity_batch(pending)):
+            item.update(identity)
+    return prepared
+
+
 # Server role: Keep UI logo size edits within a safe visible range.
 def clamp_logo_size(value, default=30):
     try:
@@ -110,6 +120,21 @@ def clamp_logo_position(value, default=0):
 def normalize_item(item, default_type="news"):
     item = cleanup_text_fields(item)
     item = ensure_visual_identity(item, default_type)
+    return _finish_normalize_item(item, default_type)
+
+
+# Server role: Same result as [normalize_item(i, default_type) for i in items],
+# but batches network logo verification across every item in one shared pass
+# instead of paying the round trip once per item in sequence.
+def normalize_items_batch(items, default_type="news"):
+    cleaned = [cleanup_text_fields(item) for item in items]
+    identity_applied = ensure_visual_identity_batch(cleaned, default_type)
+    return [_finish_normalize_item(item, default_type) for item in identity_applied]
+
+
+# Server role: Finish shaping a card into the editable UI schema once its
+# visual identity (logo/company) has already been resolved.
+def _finish_normalize_item(item, default_type="news"):
     raw_id = item.get("id")
     if not raw_id:
         stable_seed = json.dumps(item, sort_keys=True, ensure_ascii=False, default=str)
@@ -456,28 +481,6 @@ def looks_duplicate(candidate, existing_items):
         if candidate_title and item_title and candidate_title == item_title and not (candidate_url and item_url):
             return True
 
-    return False
-
-
-# Server role: Reject unreadable text before showing a card in the UI.
-def has_broken_display_text(value):
-    text = str(value or "").strip()
-    if not text:
-        return True
-    if MOJIBAKE_MARKERS_RE.search(text):
-        return True
-    if text.count("?") >= 6:
-        return True
-    control_count = sum(1 for ch in text if ord(ch) < 32 and ch not in "\n\t")
-    if control_count:
-        return True
-    arabic = len(re.findall(r"[\u0600-\u06FF]", text))
-    cyrillic = len(re.findall(r"[\u0400-\u04FF]", text))
-    latin = len(re.findall(r"[A-Za-z]", text))
-    if cyrillic >= 6 and arabic == 0:
-        return True
-    if arabic >= 5 and latin >= 25 and not re.search(r"\([A-Za-z0-9 .+\-]{2,45}\)", text):
-        return True
     return False
 
 

@@ -11,7 +11,11 @@ This folder contains pipeline logging helpers.
 
 ## Where Logs Go
 
-The active JSONL event stream is written under `backend/logs/ai_updates_run.jsonl` unless environment settings change it.
+The active JSONL event stream is written under
+`backend/logs/ai_updates_run.jsonl` unless environment settings change it.
+Aggregated operational model/quota data is separate and defaults to
+`data/news/runtime/model_usage_summary.json`. The Excel workbook is a planning
+artifact and is not updated automatically from either file.
 
 ## Why This Exists
 

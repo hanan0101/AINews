@@ -117,6 +117,35 @@ def load_json(path: Path, default: dict | None = None) -> dict:
         return dict(default or {})
 
 
+def rotation_state(state_key: str) -> dict:
+    """Load the persisted rotation dict stored under `state_key` in NEWS_FETCH_STATE_FILE."""
+    state = load_json(NEWS_FETCH_STATE_FILE, {})
+    rotation = state.get(state_key)
+    return rotation if isinstance(rotation, dict) else {}
+
+
+def save_rotation_state(state_key: str, rotation: dict) -> dict:
+    """Persist `rotation` under `state_key` in NEWS_FETCH_STATE_FILE and return it."""
+    state = load_json(NEWS_FETCH_STATE_FILE, {})
+    state[state_key] = rotation
+    safe_write_json(NEWS_FETCH_STATE_FILE, state)
+    return rotation
+
+
+def rotation_window(cursor: int, modulus: int, count: int) -> tuple[list[int], int]:
+    """Return `count` indices mod `modulus`, starting at cursor (mod modulus), and the next cursor.
+
+    Callers are responsible for clamping `count` against `modulus` first if they need that
+    (some callers intentionally don't, matching pre-existing per-caller rotation behavior).
+    """
+    modulus = max(1, int(modulus or 0))
+    count = max(0, int(count or 0))
+    cursor = int(cursor or 0) % modulus
+    indices = [(cursor + offset) % modulus for offset in range(count)]
+    next_cursor = (cursor + count) % modulus
+    return indices, next_cursor
+
+
 # Level-balanced newsletter change: the visible recommended view now shows
 # 4 news cards while the saved bank still keeps 12 total news cards.
 DISPLAY_COUNTS = {
@@ -170,9 +199,9 @@ GEMINI_API_KEY = (
     or os.getenv("GOOGLE_API_KEY")
     or ""
 ).strip()
-GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
 EXA_API_KEY = os.getenv("EXA_API_KEY", "").strip()
 TMDB_API_KEY = os.getenv("TMDB_API_KEY", "").strip()
 
@@ -378,6 +407,7 @@ AI_UPDATES_EXA_RETRIES = env_int("AI_UPDATES_EXA_RETRIES", "2")
 AI_UPDATES_EXA_RETRY_BACKOFF_SECONDS = env_int("AI_UPDATES_EXA_RETRY_BACKOFF_SECONDS", "2")
 AI_UPDATES_COURSE_EXA_QUERY_LIMIT = env_int("AI_UPDATES_COURSE_EXA_QUERY_LIMIT", "6")
 AI_UPDATES_COURSE_EXA_RESULTS_PER_QUERY = env_int("AI_UPDATES_COURSE_EXA_RESULTS_PER_QUERY", "10")
+AI_UPDATES_COURSE_EXA_ALLOW_OUTSIDE_INCLUDE_DOMAINS = env_bool("AI_UPDATES_COURSE_EXA_ALLOW_OUTSIDE_INCLUDE_DOMAINS", "1")
 
 AI_UPDATES_SINGLE_SEARXNG_QUERY_LIMIT = env_int("AI_UPDATES_SINGLE_SEARXNG_QUERY_LIMIT", "10")
 AI_UPDATES_SINGLE_EXA_QUERY_LIMIT = env_int("AI_UPDATES_SINGLE_EXA_QUERY_LIMIT", "6")
@@ -466,6 +496,26 @@ def source_domain(url: str = "") -> str:
     except Exception:
         return ""
     return host[4:] if host.startswith("www.") else host
+
+
+def domain_matches(domain: str, allowed: tuple[str, ...] | list[str] | set[str]) -> bool:
+    """Return true when a domain is equal to or under one of the allowed domains."""
+    normalized_domain = str(domain or "").lower().removeprefix("www.")
+    for allowed_domain in allowed or ():
+        normalized_allowed = str(allowed_domain or "").lower().removeprefix("www.")
+        if normalized_domain == normalized_allowed or normalized_domain.endswith(f".{normalized_allowed}"):
+            return True
+    return False
+
+
+def official_site_domain(site: str = "") -> str:
+    """Return the bare host (no scheme, no www.) for a site string or URL."""
+    value = str(site or "").strip()
+    if not value:
+        return ""
+    if not re.match(r"^https?://", value, flags=re.IGNORECASE):
+        value = f"https://{value}"
+    return source_domain(value)
 
 
 # Performs the memory url key helper step.

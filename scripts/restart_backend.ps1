@@ -12,9 +12,7 @@ $ServerModule = "backend.server.http_server"
 
 function Stop-AiNewsPythonProcesses {
     $patterns = @(
-        "*backend.server.http_server*",
-        "*backend/Generator.py*",
-        "*backend\Generator.py*"
+        "*backend.server.http_server*"
     )
 
     $processes = Get-CimInstance Win32_Process -Filter "name = 'python.exe'" |

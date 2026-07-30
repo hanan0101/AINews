@@ -5,24 +5,25 @@ from __future__ import annotations
 
 import json
 import os
-import threading
-import time
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
 
+from backend.config.settings import env_path
 from backend.utils.debug_logging import trace
 from backend.server.card_items import (
     dedupe_store_items,
     is_current_schema_item,
     looks_duplicate,
     normalize_item,
+    normalize_items_batch,
     order_news_for_visible_diversity,
     safe_replace_json,
     validate_replacement_candidate,
 )
 from backend.utils.text_normalization import cleanup_text_fields, repair_mojibake_text
+from backend.utils.value_parsing import safe_int
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR.parent / "frontend"
@@ -33,11 +34,6 @@ NEWS_SELECTION_AUDIT_FILE = ROOT_DIR / "news_selection_audit.json"
 
 load_dotenv(ROOT_DIR / ".env", override=True)
 
-
-# Performs the env path helper step.
-def env_path(name: str, default: Path) -> Path:
-    value = os.getenv(name, "").strip()
-    return Path(value) if value else default
 
 
 NEWS_JSON_FILE = env_path("NEWS_JSON_PATH", RUNTIME_DATA_DIR / "news.json")
@@ -98,7 +94,6 @@ ARABIC_MONTHS = [
 # the recommended/default view displays only 4 cards.
 NEWS_BACKUP_COUNT = max(0, int(os.getenv("NEWS_BACKUP_COUNT", str(max(0, 12 - DISPLAY_COUNTS["items"]))) or "8"))
 NEWS_PREVIOUS_SNAPSHOT_ENABLED = os.getenv("NEWS_PREVIOUS_SNAPSHOT_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
-NEWS_FETCH_STATE_LOCK = threading.Lock()
 
 
 # Returns whether is gpt accepted news item is true for the current input.
@@ -113,14 +108,6 @@ def reorder_positions(items):
     for index, item in enumerate(items, start=1):
         item["position"] = index
     return items
-
-
-# Performs the safe int helper step.
-def safe_int(value, default=0):
-    try:
-        return int(value)
-    except Exception:
-        return default
 
 
 # Performs the arabic number to words helper step.
@@ -232,11 +219,16 @@ def clean_setting_text(value, default=""):
     return value.strip()
 
 
-# Reads current arabic month year from the current store or request context.
-def current_arabic_month_year():
-    now = datetime.now()
-    month = ARABIC_MONTHS[now.month - 1]
-    return f"{month} {now.year}"
+# Reads the Arabic month/year for the current newsletter date.
+def current_arabic_month_year(reference=None):
+    if isinstance(reference, datetime):
+        reference_date = reference.date()
+    elif isinstance(reference, date):
+        reference_date = reference
+    else:
+        reference_date = datetime.now().date()
+    month = ARABIC_MONTHS[reference_date.month - 1]
+    return f"{month} {reference_date.year}"
 
 
 # Prepares normalize newsletter settings so downstream stages receive consistent data.
@@ -403,9 +395,11 @@ def store_from_payload(raw):
     raw_news_items = news_items_from_payload(raw)
     raw_template = raw.get("template") if isinstance(raw.get("template"), dict) else None
     store = {
-        "items": [normalize_item(i, "news") for i in raw_news_items],
-        "movies": [normalize_item(i, "movie") for i in raw.get("movies", []) if is_current_schema_item(i, "movie")],
-        "courses": [normalize_item(i, "course") for i in courses_items_from_payload(raw)],
+        "items": normalize_items_batch(raw_news_items, "news"),
+        "movies": normalize_items_batch(
+            [i for i in raw.get("movies", []) if is_current_schema_item(i, "movie")], "movie"
+        ),
+        "courses": normalize_items_batch(courses_items_from_payload(raw), "course"),
         "template": newsletter_template_from_settings(raw_template or load_newsletter_settings()),
         "feature_mode": raw.get("feature_mode", "course"),
         # Level-balanced newsletter fields are preserved separately from the
@@ -443,8 +437,8 @@ def save_published_store_memory(store: dict) -> dict:
     """Index every visible published card, including manually entered content."""
     counts = {"news": 0, "course": 0, "movie": 0}
     try:
-        from backend.pipeline.filtering.memory import save_news_memory
-        from backend.pipeline.filtering.supporting import save_supporting_memory
+        from backend.pipeline.filtering.shared.memory import save_news_memory
+        from backend.pipeline.filtering.shared.supporting import save_supporting_memory
 
         def published_cards(section: str, limit: int) -> list[dict]:
             candidates = list(store.get(section) or [])[:limit]
@@ -616,8 +610,7 @@ def restore_previous_card_at_index(store, section, index):
             "message": "Previous card already exists in the visible newsletter.",
         }
     item = update_card_at_index(store, section, index, candidate)
-    save_store(store)
-    return load_store(), {
+    return save_store(store), {
         "success": True,
         "index": index,
         "item": item,
@@ -626,7 +619,7 @@ def restore_previous_card_at_index(store, section, index):
 
 
 # Saves save store to the configured output or state store.
-def save_store(store, *, rebalance_news=False, existing_payload=None):
+def save_store(store, *, rebalance_news=False, existing_payload=None, already_normalized=False):
     existing = existing_payload if isinstance(existing_payload, dict) else {}
     if existing_payload is None and NEWS_JSON_FILE.exists():
         try:
@@ -656,7 +649,10 @@ def save_store(store, *, rebalance_news=False, existing_payload=None):
     }
     for key, default_type in (("items", "news"), ("movies", "movie"), ("courses", "course")):
         if key in store:
-            normalized_items = dedupe_store_items([normalize_item(i, default_type) for i in store.get(key, [])])
+            source_items = store.get(key, [])
+            normalized_items = dedupe_store_items(
+                source_items if already_normalized else normalize_items_batch(source_items, default_type)
+            )
             if key == "items":
                 visible_count = 6 if payload.get("news_display_count") == 6 else DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"])
                 # Level-balanced newsletter change: when a generated news_bank
@@ -725,6 +721,27 @@ def save_store(store, *, rebalance_news=False, existing_payload=None):
         json.dump(payload, f, ensure_ascii=False, indent=2)
     safe_replace_json(temp_file, NEWS_JSON_FILE)
 
+    # Same shape load_store() would return by re-reading the file we just
+    # wrote, without paying for another full normalize_items_batch pass -
+    # every item here was already normalized above. Callers that used to do
+    # `save_store(store); return load_store()` can use this return value
+    # directly instead of re-verifying every logo a second time.
+    return {
+        "items": dedupe_store_items(list(payload.get("items", [])) + list(payload.get("backup_news", []))),
+        "movies": payload.get("movies", []),
+        "courses": payload.get("courses", []),
+        "template": payload.get("template", {}),
+        "feature_mode": payload.get("feature_mode", "course"),
+        "news_bank": payload.get("news_bank", {}),
+        "courses_bank": payload.get("courses_bank", {}),
+        "recommended_view": payload.get("recommended_view", {}),
+        "saved_views": payload.get("saved_views", {}),
+        "default_view": payload.get("default_view", {}),
+        "selected_levels": payload.get("selected_levels", ["all"]),
+        "news_display_count": payload.get("news_display_count", 4),
+        "metadata": payload.get("metadata", {}),
+    }
+
 
 def canonical_newsletter_payload(raw):
     """Convert any supported manual/generated JSON into the news.json shape.
@@ -778,24 +795,6 @@ def load_news_fetch_state_server():
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
-
-
-# Saves save news fetch state server to the configured output or state store.
-def save_news_fetch_state_server(state):
-    NEWS_FETCH_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temp_file = NEWS_FETCH_STATE_FILE.with_name(
-        f"{NEWS_FETCH_STATE_FILE.stem}.{os.getpid()}.{threading.get_ident()}.{int(time.time() * 1000)}.tmp"
-    )
-    with NEWS_FETCH_STATE_LOCK:
-        try:
-            with open(temp_file, "w", encoding="utf-8") as f:
-                json.dump(state or {}, f, ensure_ascii=False, indent=2)
-            safe_replace_json(temp_file, NEWS_FETCH_STATE_FILE)
-        finally:
-            try:
-                temp_file.unlink(missing_ok=True)
-            except Exception:
-                pass
 
 
 # Reads find item from the current store or request context.
@@ -961,8 +960,7 @@ def update_card_from_client(store, section, index, item, target_id=None, visible
         archived_target = normalize_item(dict(target_item), SECTION_TO_CONTENT_TYPE.get(section, "news"))
         archived_target["status"] = "replaced_archive"
         store[section] = reorder_positions(dedupe_store_items(list(store.get(section, [])) + [archived_target]))
-    save_store(store)
-    return load_store(), {
+    return save_store(store), {
         "success": True,
         "index": requested_index,
         "stored_index": target_index,

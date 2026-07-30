@@ -25,7 +25,7 @@ PDF_EXPORT_SCALE_OVERRIDE = os.getenv("PDF_EXPORT_SCALE", "").strip()
 
 # Performs the resolve frontend html file helper step.
 def resolve_frontend_html_file(source_file: str = "") -> Path:
-    """Return the frontend HTML file whose inline styles should shape export."""
+    """Return the frontend HTML file whose styles should shape export."""
     raw_name = Path(str(source_file or "")).name
     if raw_name.lower().endswith(".html"):
         candidate = FRONTEND_DIR / raw_name
@@ -37,14 +37,35 @@ def resolve_frontend_html_file(source_file: str = "") -> Path:
     return UI_HTML_FILE
 
 
-# Server role: Read inline UI CSS for PDF export.
+# Server role: Read inline and linked local UI CSS for PDF export.
 def extract_ui_styles(source_file: str = "") -> str:
     html_file = resolve_frontend_html_file(source_file)
     try:
         html = html_file.read_text(encoding="utf-8")
     except Exception:
         return ""
-    styles = re.findall(r"<style[^>]*>(.*?)</style>", html, flags=re.IGNORECASE | re.DOTALL)
+    styles = re.findall(
+        r"<style[^>]*>(.*?)</style>",
+        html,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    linked_styles = re.findall(
+        r"<link\b(?=[^>]*\brel=[\"'][^\"']*\bstylesheet\b[^\"']*[\"'])"
+        r"(?=[^>]*\bhref=[\"']([^\"']+)[\"'])[^>]*>",
+        html,
+        flags=re.IGNORECASE,
+    )
+    for href in linked_styles:
+        if re.match(r"^(?:[a-z]+:|//|/)", href, flags=re.IGNORECASE):
+            continue
+        candidate = html_file.parent / href.split("?", 1)[0].split("#", 1)[0]
+        try:
+            resolved = candidate.resolve()
+            if resolved.parent != FRONTEND_DIR.resolve() or resolved.suffix.lower() != ".css":
+                continue
+            styles.append(resolved.read_text(encoding="utf-8"))
+        except Exception as exc:
+            trace(f"PDF linked stylesheet skipped for {href}: {exc}")
     return "\n\n".join(strip_print_media_blocks(style) for style in styles)
 
 

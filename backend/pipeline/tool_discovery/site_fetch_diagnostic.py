@@ -25,6 +25,7 @@ from backend.config.settings import (
     clean_text,
     env_int,
     load_json,
+    official_site_domain,
     parse_result_datetime,
     safe_write_json,
     source_domain,
@@ -44,13 +45,6 @@ DEFAULT_SEARXNG_TIME_RANGE = os.getenv(
     AI_UPDATES_SEARXNG_TIME_RANGE,
 ).strip() or "week"
 
-
-# Performs the official site domain helper step.
-def official_site_domain(site: str = "") -> str:
-    clean = canonical_official_site(site)
-    if not clean:
-        return ""
-    return clean.split("/", 1)[0].lower()
 
 
 # Performs the official site matches result helper step.

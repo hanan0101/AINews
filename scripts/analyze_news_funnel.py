@@ -30,17 +30,13 @@ from pathlib import Path
 os.environ["AI_UPDATES_SEMANTIC_MEMORY_ENABLED"] = "0"
 
 
-def safe_print(message: str) -> None:
-    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
-    print(str(message).encode(encoding, errors="backslashreplace").decode(encoding, errors="replace"), flush=True)
-
-
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 from backend.logging.pipeline_logging import new_run_id, set_run_context  # noqa: E402
-from backend.pipeline.fetching.news import fetch_news_candidates  # noqa: E402
+from backend.pipeline.fetching.content.news.fetch import fetch_news_candidates  # noqa: E402
+from backend.pipeline.fetching.fetch_utils import safe_print  # noqa: E402
 from backend.pipeline.orchestrator import (  # noqa: E402
     _merge_candidate_pools,
     _merge_cycle_diagnostics,
@@ -48,10 +44,10 @@ from backend.pipeline.orchestrator import (  # noqa: E402
     shortlist_scan_pool_for_gpt,
     candidate_source_lane,
 )
-from backend.pipeline.modeling.prompts.news_prompt import build_news_selection_prompt  # noqa: E402
+from backend.pipeline.modeling.content.news.prompt import build_news_selection_prompt  # noqa: E402
 
-import backend.pipeline.filtering.memory as memory_module  # noqa: E402
-import backend.pipeline.filtering.editorial_rules as editorial_rules_module  # noqa: E402
+import backend.pipeline.filtering.shared.memory as memory_module  # noqa: E402
+import backend.pipeline.filtering.content.news.editorial as editorial_rules_module  # noqa: E402
 import backend.pipeline.modeling.model_client as model_client  # noqa: E402
 import backend.pipeline.modeling.gemini_client as gemini_client  # noqa: E402
 import backend.pipeline.modeling.openai_client as openai_client  # noqa: E402
@@ -139,7 +135,7 @@ def main() -> None:
 
     # Import here (after tracers installed) so the module-level bare-name
     # lookups inside filter_candidates resolve to the wrapped functions.
-    from backend.pipeline.filtering.news import filter_news_candidates
+    from backend.pipeline.filtering.content.news.rules import filter_news_candidates
 
     t0 = time.time()
     filtered = filter_news_candidates(candidates, diagnostics, single=False)

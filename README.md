@@ -36,7 +36,7 @@ Requirements:
 Create the environment file:
 
 ```powershell
-Copy-Item backend\config\.env.example backend\.env
+Copy-Item backend\.env.example backend\.env
 notepad backend\.env
 ```
 
@@ -53,8 +53,9 @@ Open:
 http://127.0.0.1:8000/News.html
 ```
 
-The first administrator account requires one-time Keycloak configuration. See
-[Setup](docs/SETUP.md) for the complete procedure.
+Keycloak provisions itself automatically on first startup (realm, client, roles,
+and a development-only `admin` / `admin123` account). Change all development
+credentials before shared or production use. See [Setup](docs/SETUP.md).
 
 ## Repository Structure
 
@@ -64,16 +65,17 @@ backend/
   config/                       Environment and pipeline settings
   logging/                      Structured pipeline logging
   pipeline/
-    fetching/                   News, course, and film discovery
-    filtering/                  Quality and duplicate filters
-    modeling/                   Model clients, prompts, and selection
-    enrichment/                 Newsletter card enrichment
+    fetching/content/           news / courses / films discovery
+    filtering/content/          news / courses / films quality rules
+    modeling/content/           news / courses / films prompts and selection
+    enrichment/content/         news / courses / films card enrichment
+    */shared/                   Logic genuinely shared across content types
     tool_discovery/             Tool registry and official-site discovery
   server/                       HTTP routes and PDF services
   services/                     Shared service integrations
   storage/                      PostgreSQL repositories and version management
   tests/                        Automated tests
-frontend/                       Editorial interface and static assets
+frontend/                       HTML shell, CSS, and responsibility-based JS files
 data/
   news/runtime/                 Editable, published, and model-usage state
   news/diagnostics/             Fetch, candidate, and run reports
@@ -100,12 +102,13 @@ scripts/                        Diagnostics and maintenance utilities
 | Guide | Use |
 | --- | --- |
 | [Setup](docs/SETUP.md) | First installation and local startup |
+| [User Guide](docs/USER_GUIDE.md) | Current editor and viewer workflow |
 | [Docker Setup](docs/DOCKER_SETUP.md) | Docker-specific setup and troubleshooting |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flow, and storage design |
 | [Maintenance](docs/MAINTENANCE.md) | Logs, backups, restarts, and operations |
 | [Deployment](docs/DEPLOYMENT.md) | Production deployment and security |
 | [Environment Guide](backend/config/ENVIRONMENT_GUIDE.md) | Environment variables and defaults |
-| [Cost Estimate](docs/COST_ESTIMATE.md) | Model usage and estimated operating cost |
+| [Cost Model](docs/COST_MODEL.md) | Workbook assumptions, uncertainty, and verified totals |
 | [Changelog](CHANGELOG.md) | Release history |
 
 ## Tests
@@ -113,5 +116,5 @@ scripts/                        Diagnostics and maintenance utilities
 Run the standard-library test suite:
 
 ```powershell
-python -m unittest discover backend/tests -v
+python -m unittest discover -s backend/tests -p "test*.py" -v
 ```

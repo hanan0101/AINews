@@ -7,9 +7,12 @@ Day-to-day operation, backups, and troubleshooting for an already-deployed insta
 Generate a newsletter:
 
 1. Open `News.html` and log in as an admin user.
-2. Click **Generate**.
-3. Watch the progress timeline: source fetch → filtering/memory → AI model selection → save → courses and films.
-4. Review cards, replace weak ones, edit text, and export when ready.
+2. Click **إنشاء النشرة** / **Generate Newsletter**.
+3. Watch the progress timeline: source fetch → filtering/memory → selection and Arabic rewrite → save → courses and films.
+4. Review cards, choose the current level/count/mode view, and edit or replace weak content.
+5. Click **حفظ ونشر** to create/publish the current version, then download PDF if needed.
+
+See [USER_GUIDE.md](USER_GUIDE.md) for the exact current interface workflow.
 
 Common Docker commands:
 
@@ -42,27 +45,33 @@ See [backend/logging/README.md](../backend/logging/README.md) for more on what g
 
 ## Backups & Restore
 
-PostgreSQL backups run automatically inside the `postgres` container on a cron schedule (`POSTGRES_BACKUP_CRON`, default `0 2 * * *` — daily at 02:00), keeping the newest 7 daily SQL files in the `postgres_backups` volume.
+PostgreSQL is backed up continuously with [pgBackRest](https://pgbackrest.org/), not periodic SQL dumps: `archive_mode` is on and every WAL segment is pushed to the repository as it's generated (`archive_command=pgbackrest --stanza=main archive-push %p`, see `docker/compose/postgres.yml`), so recovery can replay to nearly any point in time, not just the moment of the last snapshot. The repository itself lives in MinIO (S3-compatible object storage, its own container — see `docker/compose/minio.yml`), not on the Postgres container's own disk, so a lost `postgres_data` volume doesn't take the backups down with it.
 
-Trigger a manual backup:
+On top of continuous WAL archiving, `docker/postgres/pgbackrest-cron.sh` runs scheduled full/differential/incremental backups inside the `postgres` container, controlled by three cron env vars (defaults shown):
 
-```bash
-docker compose exec postgres /usr/local/bin/postgres-backup
+```text
+PGBACKREST_CRON_FULL=0 2 1 * *    # monthly full backup
+PGBACKREST_CRON_DIFF=0 2 * * 0    # weekly differential
+PGBACKREST_CRON_INCR=0 2 * * *    # daily incremental
 ```
 
-List available backups:
+Trigger a manual backup or check status at any time:
 
 ```bash
-docker compose exec postgres ls -la /backups
+docker compose exec postgres pgbackrest --stanza=main backup --type=full
+docker compose exec postgres pgbackrest --stanza=main info
 ```
 
-Restore from a backup (stops writes to the DB while restoring is recommended):
+Restore (stop the app first so nothing writes during recovery):
 
 ```bash
-docker compose exec -T postgres psql -U ainewsletter -d ainewsletter < path/to/backup_YYYY-MM-DD.sql
+docker compose stop ainewsletter
+docker compose exec postgres pgbackrest --stanza=main restore
+docker compose restart postgres
+docker compose start ainewsletter
 ```
 
-Adjust the username/database if you changed `POSTGRES_USER` / `POSTGRES_DB` from their defaults.
+See pgBackRest's own [restore documentation](https://pgbackrest.org/user-guide.html#restore) for point-in-time recovery options (`--type=time`, `--target`).
 
 Also back up `backend/.env` separately (it holds secrets and is not covered by any Docker volume) and the `data/` folder (generated newsletter state and exports).
 
@@ -90,10 +99,10 @@ A few files quietly accumulate state between runs. Clearing any of them is safe 
 ## Running Tests
 
 ```bash
-python -m unittest backend.tests.test_course_fetchers
+python -m unittest discover -s backend/tests -p "test*.py"
 ```
 
-Run this after dependency upgrades or before promoting a change to production, alongside the manual checks in [DEPLOYMENT.md, Step 5](DEPLOYMENT.md#step-5--confirm-it-actually-works).
+Run this after dependency upgrades or before promoting a change to production, alongside the manual checks in [DEPLOYMENT.md, Step 5](DEPLOYMENT.md#step-5--confirm-it-actually-works). To run one module on its own (e.g. while debugging just that area): `python -m unittest backend.tests.test_course_fetchers`.
 
 ## Updating Dependencies
 
@@ -113,7 +122,7 @@ taskkill /PID <PID> /F
 ```
 
 **Generate button does nothing / no admin controls**
-The logged-in user has the `user` role, not `admin`. See [SETUP.md, Step 4](SETUP.md#step-4--create-your-login-one-time-per-environment).
+The logged-in user doesn't have the `admin` role. Log in with `admin` / `admin123` (auto-provisioned — see [SETUP.md, Step 4](SETUP.md#step-4--log-in)), or assign the `admin` role to the account you're using.
 
 **Docker does not pick up new API keys**
 ```powershell
@@ -129,5 +138,17 @@ docker compose up --build
 **PDF export fails**
 Outside Docker: `python -m playwright install chromium`, then restart the server. Inside Docker this is already installed in the base image.
 
-**Gemini calls stop working mid-day**
-Gemini free-tier quota is project-level, not key-level — check `GEMINI_DAILY_REQUEST_BUDGET` and `GEMINI_FULL_RUN_REQUEST_BUDGET` in [ENVIRONMENT_GUIDE.md](../backend/config/ENVIRONMENT_GUIDE.md). `backend/pipeline/modeling/.gemini_rate_limit` stores only the last local request timestamp so concurrent callers respect the minimum delay; daily usage is stored in `data/news/runtime/model_usage_summary.json`.
+**Gemini calls stop working**
+Check the provider error and the local controls `GEMINI_DAILY_REQUEST_BUDGET`,
+`GEMINI_FULL_RUN_REQUEST_BUDGET`, and `GEMINI_STOP_ON_QUOTA` in
+[ENVIRONMENT_GUIDE.md](../backend/config/ENVIRONMENT_GUIDE.md). The checked
+configuration tracks 120 requests/day, disables the per-run cap with `0`, and
+does not enforce the local stop flag. These are local controls, not a promise
+of provider quota. `backend/pipeline/modeling/.gemini_rate_limit` stores the
+last local request timestamp; operational usage is recorded in
+`data/news/runtime/model_usage_summary.json`.
+
+**Cost baseline after prompt changes**
+The workbook averages predate the 2026-07-30 news/course prompt changes. After
+the next successful full run, compare the measured role usage with
+[COST_MODEL.md](COST_MODEL.md) before replacing any planning assumption.

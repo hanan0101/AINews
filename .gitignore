@@ -7,11 +7,16 @@ backend/logs/
 backend/backups/
 backend/versions.db-shm
 backend/versions.db-wal
+tmp/chrome-*/
 data/*
 !data/.gitkeep
 !data/news/
+data/news/*
 !data/news/.gitkeep
 !data/backups/
+data/backups/*
 !data/backups/.gitkeep
 !data/versions/
+data/versions/*
 !data/versions/.gitkeep
+!data/versions/versions.db

@@ -1,7 +1,7 @@
 # This file is part of the AI newsletter system.
 import unittest
 
-from backend.pipeline.fetching.courses import normalize_course_candidate
+from backend.pipeline.fetching.content.courses.discovery import normalize_course_candidate
 
 
 class CourseCandidateNormalizationTests(unittest.TestCase):

@@ -14,8 +14,8 @@ class PublishedSemanticMemoryTests(unittest.TestCase):
         }
 
         with (
-            patch("backend.pipeline.filtering.memory.save_news_memory", return_value=4) as save_news,
-            patch("backend.pipeline.filtering.supporting.save_supporting_memory", side_effect=[6, 2]) as save_supporting,
+            patch("backend.pipeline.filtering.shared.memory.save_news_memory", return_value=4) as save_news,
+            patch("backend.pipeline.filtering.shared.supporting.save_supporting_memory", side_effect=[6, 2]) as save_supporting,
         ):
             counts = save_published_store_memory(store)
 

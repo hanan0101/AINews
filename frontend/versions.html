@@ -4,22 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>إدارة النسخ</title>
+<link rel="stylesheet" href="tokens.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #EEDFD0;
-    --paper: #F5EDDF;
-    --card-bg: #FBF6ED;
-    --footer-bg: #F0DECC;
-    --text: #2e241d;
-    --muted: #78675d;
-    --line: #C73D39;
-    --ui-surface: rgba(238,223,208,.80);
-    --ui-surface-strong: rgba(238,223,208,.92);
-    --ui-surface-hover: rgba(238,223,208,.88);
-    --ui-border: rgba(120,80,40,.18);
-    --ui-shadow: 0 18px 38px rgba(91,61,30,.12);
-  }
   body {
     font-family: "Segoe UI", Arial, sans-serif;
     background:
@@ -465,22 +452,6 @@
     flex-shrink: 0;
     box-shadow: 0 8px 22px rgba(78,59,45,.05);
   }
-  .toast {
-    position: fixed;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1a1a1a;
-    color: white;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    opacity: 0;
-    transition: opacity .3s;
-    pointer-events: none;
-    z-index: 100;
-  }
-  .toast.show { opacity: 1; }
   @media (max-width: 850px) {
     body { padding: 8px; gap: 10px; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
@@ -533,6 +504,7 @@
 </div>
 <div class="toast" id="toast"></div>
 
+  <script src="shared-functions.js"></script>
 <script>
 let selectedId = null;
 let selectedKind = 'json';
@@ -754,6 +726,7 @@ async function toggleVersionVisibility(id, hidden) {
 
 function startRename(el) {
   if (!authIsAdmin) return;
+  el.dataset.originalTitle = el.textContent.trim();
   el.contentEditable = 'true';
   el.focus();
   const range = document.createRange();
@@ -777,12 +750,26 @@ async function finishRename(el, id) {
   if (!authIsAdmin) return;
   el.contentEditable = 'false';
   const newTitle = el.textContent.trim();
-  if (!newTitle) return;
-  await fetch(`/api/versions/${id}`, {
+  const originalTitle = el.dataset.originalTitle || '';
+  if (!newTitle) {
+    el.textContent = originalTitle;
+    return;
+  }
+  const res = await fetch(`/api/versions/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: newTitle })
   });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) {
+    el.textContent = originalTitle;
+    if (data.code === 'duplicate_version_title' || res.status === 409) {
+      showToast('يوجد ملف محفوظ بنفس الاسم، اختر اسمًا مختلفًا');
+    } else {
+      showToast(data.error || 'تعذر تعديل اسم الملف');
+    }
+    return;
+  }
   loadVersions();
 }
 
@@ -878,9 +865,6 @@ function goToMain() {
   try { sessionStorage.removeItem('aiNewsletterEditingVersionId'); } catch (_) {}
   window.location.href = 'News.html?new=1';
 }
-function escapeHtml(value='') {
-  return String(value).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
 function formatDate(dateStr) {
   const d = dateFromVersionValue(dateStr);
   if (Number.isNaN(d.getTime())) return '';
@@ -956,11 +940,7 @@ function formatSize(bytes=0) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(showToast.t);
-  showToast.t = setTimeout(() => t.classList.remove('show'), 2000);
+  flashToastElement(document.getElementById('toast'), msg, 2000);
 }
 
 document.addEventListener('click', closeSortMenu);
@@ -989,21 +969,13 @@ function isPageRefresh() {
 }
 function applyRolePermissions() {
   if (authIsAdmin) return;
-  const adminSelectors = [
+  hideAdminOnlySelectors([
     '.tb-btn.new-gen',
     '.action-group .tb-btn:first-child',
     '.action-group .tb-btn.danger',
     '.json-version .card-actions .action-icon:first-child',
     '.action-icon.del'
-  ];
-  adminSelectors.forEach(selector => {
-    document.querySelectorAll(selector).forEach(element => {
-      element.style.display = 'none';
-      element.setAttribute('aria-hidden', 'true');
-      if ('disabled' in element) element.disabled = true;
-      element.onclick = null;
-    });
-  });
+  ]);
 }
 function ensureLogoutButton() {
   if (document.querySelector('[data-action="logout"]')) return;
@@ -1032,4 +1004,3 @@ bootVersions();
 </script>
 </body>
 </html>
-

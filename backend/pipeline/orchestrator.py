@@ -42,32 +42,32 @@ from backend.config.settings import (
     source_domain,
     utc_now,
 )
-from backend.pipeline.enrichment.courses import (
+from backend.pipeline.enrichment.content.courses.pipeline import (
     apply_supporting_content,
     build_supporting_content,
     refresh_supporting_content,
 )
-from backend.pipeline.enrichment.news import (
+from backend.pipeline.enrichment.content.news.pipeline import (
     news_items_from_updates,
     save_news_report,
     write_news_fetch_state,
 )
-from backend.pipeline.fetching.courses import fetch_course_candidates
-from backend.pipeline.filtering.courses import filter_supporting_candidates, normalize_level
-from backend.pipeline.modeling.courses import select_supporting_content_cards
+from backend.pipeline.fetching.content.courses.discovery import fetch_course_candidates
+from backend.pipeline.filtering.content.courses.rules import filter_supporting_candidates, normalize_level
+from backend.pipeline.modeling.content.courses.model import select_supporting_content_cards
 from backend.pipeline.modeling.model_client import (
     MODEL_FLASH_MODEL,
     MODEL_PROVIDER,
     model_available,
     model_quota_remaining,
 )
-from backend.pipeline.fetching.films import fetch_movie_candidates
-from backend.pipeline.fetching.news import fetch_news_candidates
-from backend.pipeline.fetching.news_discovery import flag_weak_sectors, update_sector_terms
+from backend.pipeline.fetching.content.films.discovery import fetch_movie_candidates
+from backend.pipeline.fetching.content.news.fetch import fetch_news_candidates
+from backend.pipeline.fetching.content.news.normalization import flag_weak_sectors, update_sector_terms
 from backend.pipeline.tool_discovery.tools_aware import apply_tool_activity_signal
-from backend.pipeline.filtering.news import filter_news_candidates, items_same_story
-from backend.pipeline.modeling.news import save_model_report, select_news_updates
-from backend.pipeline.modeling.selection import balance_for_diversity
+from backend.pipeline.filtering.content.news.rules import filter_news_candidates, items_same_story
+from backend.pipeline.modeling.content.news.model import save_model_report, select_news_updates
+from backend.pipeline.modeling.content.news.selection import balance_for_diversity
 from backend.logging.pipeline_logging import (
     file_status,
     log_event,
@@ -425,66 +425,6 @@ def _apply_sector_filter(candidates: list[dict], diagnostics: dict, sector: str 
         "known_sectors": NEWS_SECTORS,
     }
     return matched if applied else candidates
-
-
-CULTURE_CREATIVE_SIGNALS = {
-    "museums",
-    "films",
-    "heritage",
-    "fashion",
-    "libraries",
-    "music",
-    "visual_arts",
-    "literature",
-    "cooking",
-    "architecture",
-    "theater",
-    "culture",
-    "creative",
-    "culture_knowledge",
-    "culture_cross_sector",
-    "design_visual",
-    "audio_voice",
-    "video_motion",
-    "literature_writing",
-    "fashion_style",
-    "food_cooking",
-    "archives_research",
-    "writing_storytelling",
-    "image_design",
-    "video_creation",
-    "music_voice",
-}
-
-
-# Performs the culture creative signal helper step.
-def culture_creative_signal(item: dict) -> bool:
-    """Detect candidates that directly serve the newsletter's culture/creative scope."""
-    values = {
-        normalized_text(str(item.get(key) or "")).replace(" ", "_")
-        for key in ("sector", "sector_hint", "tool_sector_hint", "bucket", "query_mix", "tool_sector_terms")
-    }
-    text = normalized_text(
-        " ".join(str(item.get(key) or "") for key in ("title", "content", "summary", "source_query"))
-    )
-    return bool(values & CULTURE_CREATIVE_SIGNALS) or any(
-        term in text
-        for term in (
-            "museum",
-            "heritage",
-            "archive",
-            "library",
-            "music",
-            "film",
-            "video",
-            "fashion",
-            "writing",
-            "storytelling",
-            "architecture",
-            "cooking",
-            "design",
-        )
-    )
 
 
 def candidate_source_lane(item: dict) -> str:
@@ -1133,6 +1073,86 @@ def run_single_update_pipeline(
     with timed_stage("gpt_news_selection", candidates=len(gpt_candidates or [])):
         report = select_news_updates(gpt_candidates, diagnostics, single=True)
     gpt_seconds = time.time() - gpt_started
+
+    # A targeted single fetch can occasionally leave only a handful of valid
+    # candidates after recency and memory checks. If that small pool cannot
+    # produce a card, use the second, broader fetch cycle from full generation
+    # and ask for just one result. This preserves the single-card response
+    # contract while giving it the same recovery path as Full Fetch.
+    if (
+        not report.get("success")
+        and NEWS_FETCH_CYCLES > 1
+        and model_quota_remaining() > 0
+    ):
+        initial_candidate_keys = {
+            _candidate_identity(item)
+            for item in gpt_candidates or []
+            if _candidate_identity(item)
+        }
+        log_event(
+            "single_news_expansion.started",
+            initial_candidates=len(gpt_candidates or []),
+            reason=report.get("error") or "no_selected_update",
+        )
+        expansion_fetch_started = time.time()
+        with timed_stage("source_fetch", target_hint=target_hint, cycle=2, expansion=True):
+            expansion_candidates, expansion_diagnostics = fetch_news_candidates(
+                exclude_items=exclude_items,
+                target_hint=target_hint,
+                single=False,
+                cycle=2,
+            )
+        source_fetch_seconds += time.time() - expansion_fetch_started
+        candidates = _merge_candidate_pools(candidates, expansion_candidates)
+        diagnostics = _merge_cycle_diagnostics(
+            diagnostics,
+            expansion_diagnostics,
+            2,
+            len(candidates),
+        )
+
+        expansion_filter_started = time.time()
+        with timed_stage("quality_filter", input_candidates=len(candidates), cycle=2, expansion=True):
+            expanded_filtered = filter_news_candidates(candidates, diagnostics, single=False)
+        if exclude_items:
+            expanded_filtered = [
+                item for item in expanded_filtered
+                if not any(items_same_story(item, existing) for existing in exclude_items or [])
+            ]
+        expanded_scan_pool = build_large_scan_pool(expanded_filtered, diagnostics)
+        expanded_gpt_candidates = [
+            item
+            for item in shortlist_scan_pool_for_gpt(expanded_scan_pool, diagnostics)
+            if _candidate_identity(item) not in initial_candidate_keys
+        ]
+        filter_seconds += time.time() - expansion_filter_started
+
+        expansion_gpt_started = time.time()
+        with timed_stage(
+            "gpt_news_selection",
+            candidates=len(expanded_gpt_candidates),
+            cycle=2,
+            expansion=True,
+        ):
+            expanded_report = select_news_updates(
+                expanded_gpt_candidates,
+                diagnostics,
+                single=True,
+            )
+        gpt_seconds += time.time() - expansion_gpt_started
+        if expanded_report.get("success"):
+            report = expanded_report
+        else:
+            report["diagnostics"] = diagnostics
+            report["expansion_error"] = expanded_report.get("error") or "no_selected_update"
+        diagnostics["single_expansion"] = {
+            "attempted": True,
+            "fetched_candidates": len(expansion_candidates or []),
+            "new_shortlist_candidates": len(expanded_gpt_candidates),
+            "success": bool(expanded_report.get("success")),
+        }
+        report["diagnostics"] = diagnostics
+        log_event("single_news_expansion.finished", **diagnostics["single_expansion"])
 
     performance = _performance(
         run_started,

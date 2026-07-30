@@ -7,8 +7,6 @@ separately from news/course/movie fetching.
 
 from __future__ import annotations
 
-import json
-import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
@@ -27,7 +25,6 @@ from backend.config.settings import (
     AI_UPDATES_TOOL_DISCOVERY_RESULTS,
     EXA_API_KEY,
     MONTHLY_TOOLS_FILE,
-    SEARXNG_URL,
     clean_text,
     env_int,
     load_json,
@@ -47,6 +44,7 @@ from backend.pipeline.tool_discovery.official_sites import (
     enrich_tools_with_official_sites,
     normalize_official_site_status,
     official_tool_site,
+    tool_record_key,
 )
 from backend.pipeline.tool_discovery.queries import (
     AUTO_EXPAND_AGGREGATOR_EXA_QUERIES,
@@ -365,18 +363,6 @@ def tool_group(item: dict) -> str:
         return group
     hint = str((item or {}).get("sector_hint") or "").lower()
     return "general_market" if hint == "general_market" else "culture_creative"
-
-
-# WHAT: Builds the stable identity key for one tool record.
-# HOW: Uses normalized JSON fields tool/company.
-# INPUT: item dictionary or string.
-# OUTPUT: Normalized key string.
-def tool_record_key(item: dict | str) -> str:
-    if isinstance(item, str):
-        return normalized_text(item)
-    if not isinstance(item, dict):
-        return ""
-    return normalized_text(item.get("tool") or item.get("company") or "")
 
 
 # WHAT: Checks whether a text contains any blocked business-only terms.

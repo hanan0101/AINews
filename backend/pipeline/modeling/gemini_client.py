@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import sys
 import threading
 import time
@@ -28,6 +27,7 @@ except Exception:
 
 from backend.services.gemini_limiter import wait_for_gemini_slot
 from backend.config.settings import MODEL_USAGE_SUMMARY_FILE
+from backend.pipeline.modeling.json_extract import extract_json_object
 from backend.pipeline.modeling.usage_state import load_usage_state, update_usage_state
 
 
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 # this project, so it fails 100% of the time regardless of retries or time
 # of day. gemini-flash-latest / gemini-flash-lite-latest / gemini-embedding-001
 # all probed SUCCESS on the same key. Back to role-split defaults until
-# billing is enabled on the Cloud project (see docs/COST_ESTIMATE.md).
+# billing is enabled on the Cloud project (see docs/COST_MODEL.md).
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
 GEMINI_SELECTION_MODEL = os.getenv("GEMINI_SELECTION_MODEL", "gemini-flash-lite-latest").strip() or "gemini-flash-lite-latest"
@@ -249,21 +249,6 @@ def _record_gemini_error(quota: dict[str, Any], exc: Exception, model: str) -> d
     return details
 
 
-# Performs the extract json helper step.
-def _extract_json(text: str = "") -> dict[str, Any]:
-    raw = str(text or "").strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE)
-        raw = re.sub(r"\s*```$", "", raw)
-    try:
-        return json.loads(raw)
-    except Exception:
-        match = re.search(r"\{[\s\S]*\}", raw)
-        if not match:
-            raise
-        return json.loads(match.group(0))
-
-
 # Waits before a Gemini request so test runs stay below the free-tier request limit.
 def _wait_for_gemini_test_rate_limit() -> None:
     global _LAST_GEMINI_CALL_STARTED_AT
@@ -389,7 +374,7 @@ def generate_json(
             f"(response text omitted: undisplayable on this console's {stdout_encoding} encoding)",
             flush=True,
         )
-    parsed = _extract_json(text)
+    parsed = extract_json_object(text)
     if usage:
         _record_gemini_usage(quota, usage, selected_model)
     if isinstance(parsed, dict):

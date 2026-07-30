@@ -1,12 +1,12 @@
 # Provides the OpenAI client helpers used by the pipeline.
 
 import json
-import re
 from typing import Any
 
 from openai import OpenAI
 
 from backend.config.settings import AI_UPDATES_EMBED_MODEL, OPENAI_API_KEY, OPENAI_MODEL
+from backend.pipeline.modeling.json_extract import extract_json_object
 
 _openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
@@ -14,21 +14,6 @@ _openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 # Returns whether OpenAI calls can be attempted.
 def openai_available() -> bool:
     return _openai_client is not None
-
-
-# Extracts a JSON object from model text.
-def _extract_json(text: str = "") -> dict[str, Any]:
-    raw = str(text or "").strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE)
-        raw = re.sub(r"\s*```$", "", raw)
-    try:
-        return json.loads(raw)
-    except Exception:
-        match = re.search(r"\{[\s\S]*\}", raw)
-        if not match:
-            raise
-        return json.loads(match.group(0))
 
 
 # Generates JSON through OpenAI when Gemini is unavailable or out of quota.
@@ -48,7 +33,7 @@ def generate_json(system_prompt: str, user_payload: Any, *, model: str | None = 
         ],
         text={"format": {"type": "json_object"}},
     )
-    parsed = _extract_json(response.output_text or "")
+    parsed = extract_json_object(response.output_text or "")
     usage = getattr(response, "usage", None)
     if isinstance(parsed, dict) and usage:
         usage_data = usage.model_dump() if hasattr(usage, "model_dump") else dict(usage or {})

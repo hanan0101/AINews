@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from threading import Lock
-from typing import Any, Callable
+from typing import Any
 
 
 class GeminiRateLimiter:
@@ -28,40 +28,6 @@ _limiter = GeminiRateLimiter()
 
 def wait_for_gemini_slot() -> None:
     _limiter.wait()
-
-
-def process_candidates_in_batches(
-    candidates: list[Any],
-    processor_fn: Callable[[Any], Any],
-    batch_size: int = 5,
-) -> dict[str, Any]:
-    """Process candidates in small batches and keep going after failures."""
-    successful: list[dict[str, Any]] = []
-    failed: list[dict[str, Any]] = []
-    total_batches = (len(candidates) + batch_size - 1) // batch_size
-
-    for index in range(0, len(candidates), batch_size):
-        batch = candidates[index:index + batch_size]
-        batch_num = (index // batch_size) + 1
-        print(f"[{batch_num}/{total_batches}] Processing {len(batch)} candidates...", flush=True)
-
-        for candidate in batch:
-            try:
-                result = processor_fn(candidate)
-                successful.append({"candidate": candidate, "result": result})
-            except Exception as exc:
-                print(f"  Failed: {exc}", flush=True)
-                failed.append({"candidate": candidate, "error": str(exc)})
-                continue
-
-        if index + batch_size < len(candidates):
-            time.sleep(3)
-
-    return {
-        "successful": successful,
-        "failed": failed,
-        "success_rate": len(successful) / len(candidates) if candidates else 0,
-    }
 
 
 def evaluate_run(processing_result: dict[str, Any], min_required: int = 6) -> dict[str, Any]:
