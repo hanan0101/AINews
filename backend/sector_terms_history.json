@@ -1,6 +1,6 @@
 {
   "schema": "sector_terms_history_v1",
-  "updated": "2026-07-30T07:50:14.479153+00:00",
+  "updated": "2026-07-30T10:07:49.546644+00:00",
   "sectors": {
     "museums": {
       "base_terms": "museum gallery exhibition visitor guide curation collections",
@@ -171,16 +171,16 @@
     },
     "إنتاجية العمل": {
       "learned_terms": [
-        "teams",
-        "إتاحة",
-        "نموذج",
-        "opus",
-        "بقدرات",
-        "متقدمة",
-        "للبرمجة",
-        "claude",
-        "anthropic",
-        "site"
+        "superstuff",
+        "video",
+        "tool",
+        "إطلاق",
+        "ميزة",
+        "enterprise",
+        "context",
+        "layer",
+        "منصة",
+        "designverse"
       ],
       "last_updated": "2026-07-30"
     },
@@ -201,18 +201,18 @@
     },
     "المكتبات": {
       "learned_terms": [
-        "assistant",
-        "إضافة",
-        "قنوات",
-        "اتصال",
-        "جديدة",
-        "منصة",
-        "elevenagents",
-        "elevenlabs",
-        "site",
-        "update"
+        "برنامج",
+        "أكاديمي",
+        "يتيح",
+        "chatgpt",
+        "لمئة",
+        "باحث",
+        "academic",
+        "researchers",
+        "openai",
+        "launches"
       ],
-      "last_updated": "2026-07-29"
+      "last_updated": "2026-07-30"
     },
     "الأزياء": {
       "learned_terms": [

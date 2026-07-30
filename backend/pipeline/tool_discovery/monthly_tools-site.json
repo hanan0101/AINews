@@ -120,8 +120,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -154,8 +154,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -188,8 +188,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -222,8 +222,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -256,8 +256,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -286,12 +286,12 @@
       "sector_classification_source": "gpt_auto_expand_tool_list",
       "updated": "2026-07-18",
       "discovery_date": "2026-07-18",
-      "status": "active",
-      "inactive_reason": "",
+      "status": "dormant",
+      "inactive_reason": "activity_score 25 below dormant threshold 40",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-23T08:34:09.079939+00:00",
-      "activity_score": 40,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 25,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -324,8 +324,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -358,8 +358,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -392,8 +392,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -426,8 +426,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 70,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 55,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -460,8 +460,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -495,8 +495,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -529,8 +529,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -563,8 +563,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -597,8 +597,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -631,8 +631,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -665,8 +665,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "auto_discovered"
     },
     {
@@ -702,8 +702,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -739,8 +739,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -776,8 +776,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -813,8 +813,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -845,8 +845,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools"
     },
     {
@@ -877,8 +877,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools"
     },
     {
@@ -909,8 +909,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools"
     },
     {
@@ -941,8 +941,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools"
     },
     {
@@ -974,7 +974,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-12T00:15:35.290015+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools"
     },
     {
@@ -1005,8 +1005,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools"
     },
     {
@@ -1035,8 +1035,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 60,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 45,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1062,11 +1062,11 @@
       "updated": "",
       "discovery_date": "",
       "status": "dormant",
-      "inactive_reason": "activity_score 30 below dormant threshold 40",
+      "inactive_reason": "activity_score 15 below dormant threshold 40",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 30,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 15,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1095,8 +1095,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1125,8 +1125,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1156,7 +1156,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1185,8 +1185,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1215,8 +1215,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1242,11 +1242,11 @@
       "updated": "",
       "discovery_date": "",
       "status": "dormant",
-      "inactive_reason": "activity_score 30 below dormant threshold 40",
+      "inactive_reason": "activity_score 15 below dormant threshold 40",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 30,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 15,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1275,8 +1275,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1306,7 +1306,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-29T15:15:31.023028+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1335,8 +1335,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1365,8 +1365,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1395,8 +1395,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1425,8 +1425,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1452,11 +1452,11 @@
       "updated": "",
       "discovery_date": "",
       "status": "dormant",
-      "inactive_reason": "activity_score 30 below dormant threshold 40",
+      "inactive_reason": "activity_score 15 below dormant threshold 40",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 30,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 15,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1486,7 +1486,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-23T08:34:09.079939+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1516,7 +1516,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-20T11:20:28.397292+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1545,8 +1545,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1575,8 +1575,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1605,8 +1605,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1635,8 +1635,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1661,12 +1661,12 @@
       "sector_classification_source": "monthly_tools_site",
       "updated": "",
       "discovery_date": "",
-      "status": "active",
-      "inactive_reason": "",
+      "status": "dormant",
+      "inactive_reason": "activity_score 25 below dormant threshold 40",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 40,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 25,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1695,8 +1695,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1725,8 +1725,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 100,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1756,7 +1756,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-23T06:46:56.115224+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T07:50:14.257078+00:00",
+      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
       "source": "monthly_tools_site"
     }
   ]
