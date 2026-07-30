@@ -50,6 +50,7 @@
   --guide-surface:var(--ui-surface);
   --guide-surface-solid:var(--ui-surface-strong);
   --guide-text:#201915;
+  --hint-surface:#f3e8da;
   --loading-surface:var(--ui-surface);
   --loading-border:var(--ui-border);
   --loading-shadow:var(--ui-shadow),inset 0 1px 0 rgba(255,255,255,.18);

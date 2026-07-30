@@ -31,6 +31,7 @@ load_dotenv(ROOT_DIR / ".env", override=True)
 
 SINGLE_REFILL_LOCK = threading.Lock()
 SINGLE_REFILL_STATE_LOCK = threading.Lock()
+SINGLE_REFILL_CANCEL_EVENT = threading.Event()
 SINGLE_REFILL_SECONDS = int(os.getenv("SINGLE_REFILL_SECONDS", "45") or "45")
 SINGLE_REFILL_SUPPORTING_TARGET = max(1, int(os.getenv("SINGLE_REFILL_SUPPORTING_TARGET", "2") or "2"))
 SINGLE_REFILL_FAST_MODE = os.getenv("SINGLE_REFILL_FAST_MODE", "0").strip().lower() in {"1", "true", "yes", "on"}
@@ -50,6 +51,7 @@ SINGLE_REFILL_STATE = {
     "finished_at": None,
     "refill": None,
     "refill_stages": [],
+    "cancel_requested": False,
 }
 
 
@@ -85,6 +87,19 @@ def publish_single_refill_state(section, index, stages, started_at, running=True
 def current_single_refill_state():
     with SINGLE_REFILL_STATE_LOCK:
         return dict(SINGLE_REFILL_STATE)
+
+
+def cancel_single_refill():
+    """Request cooperative cancellation of the active single-card pipeline."""
+    SINGLE_REFILL_CANCEL_EVENT.set()
+    with SINGLE_REFILL_STATE_LOCK:
+        running = bool(SINGLE_REFILL_STATE.get("running"))
+        SINGLE_REFILL_STATE["cancel_requested"] = running
+    return {"success": True, "running": running, "cancel_requested": running}
+
+
+def single_refill_cancelled():
+    return SINGLE_REFILL_CANCEL_EVENT.is_set()
 
 
 # Saves append single refill stage to the configured output or state store.
@@ -152,7 +167,10 @@ def try_ai_updates_single_refill(store, section, index, action, item_id, target_
         exclude_items.append(target_item)
     trace("single refill routed to modular AI updates pipeline")
     try:
-        report = run_ai_updates_single_pipeline(exclude_items=exclude_items)
+        report = run_ai_updates_single_pipeline(
+            exclude_items=exclude_items,
+            cancel_check=single_refill_cancelled,
+        )
     except Exception as exc:
         trace(f"single refill modular AI updates pipeline failed: {exc}")
         report = {"success": False, "error": "single_pipeline_exception", "exception": str(exc)}
@@ -171,6 +189,9 @@ def try_ai_updates_single_refill(store, section, index, action, item_id, target_
             f"{float(performance.get('total_seconds') or 0):.1f}s"
         ),
     )
+    if isinstance(report, dict) and report.get("cancelled"):
+        cancelled = append_single_refill_stage(stages, section, index, started, "cancelled", False, reason="user_cancelled", running=False)
+        return store, {"success": False, "cancelled": True, "running": False, "index": index, "refill": cancelled, "refill_stages": stages}
     selected = list(report.get("news_items") or []) if isinstance(report, dict) else []
     if selected:
         final_item = normalize_generated_refill_item(selected[0], section)
@@ -241,11 +262,15 @@ def try_ai_updates_supporting_single_refill(store, section, index, action, item_
             exclude_items=current_items or [],
             target_count=SINGLE_REFILL_SUPPORTING_TARGET,
             requested_level=requested_level,
+            cancel_check=single_refill_cancelled,
         )
     except Exception as exc:
         trace(f"single refill modular supporting pipeline failed: {exc}")
         report = {"success": False, "error": "single_supporting_pipeline_exception", "exception": str(exc), "cards": []}
 
+    if isinstance(report, dict) and report.get("cancelled"):
+        cancelled = append_single_refill_stage(stages, section, index, started, "cancelled", False, reason="user_cancelled", running=False)
+        return store, {"success": False, "cancelled": True, "running": False, "index": index, "refill": cancelled, "refill_stages": stages}
     performance = report.get("performance") if isinstance(report, dict) else {}
     append_single_refill_stage(
         stages,
@@ -313,6 +338,9 @@ def single_item_refill(store, section, item_id=None, index=None, action="replace
             "refill_stages": [refill_response_state("searching", started_at=started, reason="single_refill_busy")],
         }
     try:
+        SINGLE_REFILL_CANCEL_EVENT.clear()
+        with SINGLE_REFILL_STATE_LOCK:
+            SINGLE_REFILL_STATE["cancel_requested"] = False
         return _single_item_refill_impl(store, section, item_id=item_id, index=index, action=action, extra_exclude=extra_exclude, visible_exclude=visible_exclude, allow_fetch=allow_fetch, live_fetch=live_fetch, requested_level=requested_level)
     finally:
         SINGLE_REFILL_LOCK.release()
@@ -377,6 +405,7 @@ def _single_item_refill_impl(store, section, item_id=None, index=None, action="r
             current_items,
             stages,
             started,
+            requested_level=requested_level,
         )
         if supporting_result is not None:
             return supporting_result

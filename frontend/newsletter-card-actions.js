@@ -71,8 +71,13 @@ function findVisibleIndex(section, id){
       delete state.cardProgress[key];
       render();
     }
-    function cancelCardProgress(section, index){
+    async function cancelCardProgress(section, index){
       const key = progressKey(section, index);
+      try{
+        await request(`${API_BASE}/generation/cancel`, {method:'POST', body:'{}'});
+      }catch(error){
+        console.error(error);
+      }
       state.cardProgressAbort[key]?.abort();
       delete state.cardProgressAbort[key];
       hideCardProgress(section, index);
@@ -418,40 +423,52 @@ function findVisibleIndex(section, id){
       state.deleteConfirmResolve = null;
       if(resolve) resolve(Boolean(confirmed));
     }
-    function openDeleteConfirm(action='replace'){
+    function openDeleteConfirm(section='items'){
       closeDeleteConfirm(false);
       const isArabic = state.language === 'ar';
-      const isReplace = action === 'replace';
+      const names = {
+        items: isArabic ? 'الخبر' : 'news item',
+        courses: isArabic ? 'الدورة' : 'course',
+        movies: isArabic ? 'الفيلم' : 'film',
+      };
+      const itemName = names[section] || (isArabic ? 'العنصر' : 'item');
       setText(
         els.deleteConfirmTitle,
-        isArabic
-          ? (isReplace ? '\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0627\u0633\u062a\u0628\u062f\u0627\u0644' : '\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u062d\u0630\u0641')
-          : (isReplace ? 'Confirm replacement' : 'Confirm delete')
+        isArabic ? 'تأكيد الحذف' : 'Confirm deletion'
       );
       setText(
         els.deleteConfirmText,
-        isArabic
-          ? (isReplace
-            ? '\u0633\u064a\u062d\u0627\u0648\u0644 \u0627\u0644\u0646\u0638\u0627\u0645 \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u0647\u0630\u0647 \u0627\u0644\u0628\u0637\u0627\u0642\u0629 \u0628\u0628\u062f\u064a\u0644 \u062c\u0627\u0647\u0632 \u0623\u0648\u0644\u064b\u0627. \u0625\u0630\u0627 \u0644\u0645 \u064a\u0648\u062c\u062f \u0628\u062f\u064a\u0644\u060c \u0633\u064a\u0633\u0623\u0644\u0643 \u0642\u0628\u0644 \u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u062e\u0628\u0631 \u062c\u062f\u064a\u062f.'
-            : '\u0633\u064a\u062d\u0627\u0648\u0644 \u0627\u0644\u0646\u0638\u0627\u0645 \u062d\u0630\u0641 \u0647\u0630\u0647 \u0627\u0644\u0628\u0637\u0627\u0642\u0629 \u0648\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0628\u062f\u064a\u0644 \u062c\u0627\u0647\u0632 \u0623\u0648\u0644\u064b\u0627. \u0625\u0630\u0627 \u0644\u0645 \u064a\u0648\u062c\u062f \u0628\u062f\u064a\u0644\u060c \u0633\u064a\u0633\u0623\u0644\u0643 \u0642\u0628\u0644 \u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u0628\u062f\u064a\u0644 \u062c\u062f\u064a\u062f.')
-          : (isReplace
-            ? 'The system will replace this card with a prepared alternative first. If none is available, it will ask before searching for a new story.'
-            : 'The system will delete this card and try a prepared replacement first. If none is available, it will ask before searching for a new one.')
+        isArabic ? `هل تريد حذف ${itemName}؟ لا يمكن التراجع عن الحذف بعد تأكيده.`
+          : `Do you want to delete this ${itemName}? This action cannot be undone after confirmation.`
       );
       setText(
         els.deleteConfirmBtn,
-        isArabic
-          ? (isReplace ? '\u0646\u0639\u0645\u060c \u0627\u0633\u062a\u0628\u062f\u0644' : '\u0646\u0639\u0645\u060c \u0627\u062d\u0630\u0641')
-          : (isReplace ? 'Yes, replace' : 'Yes, delete')
+        isArabic ? 'نعم، احذف' : 'Yes, delete'
       );
       if(!els.deleteConfirmOverlay || !els.deleteConfirmBtn){
-        const message = els.deleteConfirmText?.textContent || (isReplace ? 'Confirm replacement?' : 'Confirm delete?');
+        const message = els.deleteConfirmText?.textContent || 'Confirm delete?';
         return Promise.resolve(window.confirm(message));
       }
       els.deleteConfirmOverlay.classList.add('show');
       return new Promise(resolve => {
         state.deleteConfirmResolve = resolve;
       });
+    }
+    async function deleteCard(section,id){
+      if(!state.isAdmin || !id) return;
+      const confirmed = await openDeleteConfirm(section);
+      if(!confirmed) return;
+      try{
+        saveSnapshot();
+        showToast('deleteRunning');
+        await request(cardUpdateRoute(section,id), {method:'DELETE'});
+        if(state.selected?.section === section && state.selected?.id === id) state.selected = null;
+        await loadState(false);
+        showToast(section === 'items' ? 'deleteNewsDone' : 'deleteItemDone');
+      }catch(error){
+        console.error(error);
+        showToast(error.data?.error || error.message || t('deleteFailed'));
+      }
     }
     function replacementExcludeItems(section, index){
       const nav = cardNavState(section, index);
@@ -937,7 +954,7 @@ function findVisibleIndex(section, id){
           : (item.logo_override_url || item.manual_logo_url || item.logo || item.provider_logo || item.source_logo || '');
       }
       if(els.editLevelField){
-        const showLevel = section === 'courses';
+        const showLevel = section === 'courses' || section === 'items';
         els.editLevelField.style.display = showLevel ? '' : 'none';
         if(showLevel && els.editLevel){
           const key = normalizeLevelName(item.level || item.course_level || item.difficulty || '') || 'beginner';
@@ -1008,7 +1025,7 @@ function findVisibleIndex(section, id){
         if(section === 'items') payload.original_source = sourceValue;
       }
       if(logoSize !== clampLogoSize(original.logo_size || original.logoSize || 30)) payload.logo_size = logoSize;
-      if(section === 'courses' && els.editLevel){
+      if((section === 'courses' || section === 'items') && els.editLevel){
         const nextLevel = els.editLevel.value;
         const originalLevelKey = normalizeLevelName(original.level || original.course_level || original.difficulty || '') || 'beginner';
         const originalLevel = originalLevelKey.charAt(0).toUpperCase() + originalLevelKey.slice(1);

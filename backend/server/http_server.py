@@ -19,7 +19,11 @@ from backend.server.card_items import (
     clamp_logo_size,# keeps logo size inside safe UI limits.
     normalize_item,
 )
-from backend.server.single_card_refill import current_single_refill_state, single_item_refill
+from backend.server.single_card_refill import (
+    cancel_single_refill,
+    current_single_refill_state,
+    single_item_refill,
+)
 from backend.storage.newsletter_store import (
     DISPLAY_COUNTS,
     FEATURE_MODES,
@@ -60,6 +64,7 @@ from backend.server.generator_bridge import (
     GENERATOR_STATE,
     NEWS_JSON_ONLY_MODE,
     generator_public_state,
+    cancel_generator,
     start_generator_background,
 )
 
@@ -199,11 +204,39 @@ def sync_item_in_saved_views(store, section, updated_item):
     if section == "items":
         for level, values in list((store.get("news_bank") or {}).items()):
             store["news_bank"][level] = replace_in_list(values)
+        updated_level = str(updated_item.get("level") or "").strip().lower()
+        if updated_level in {"beginner", "intermediate", "advanced"} and isinstance(store.get("news_bank"), dict):
+            existed_in_bank = any(
+                isinstance(entry, dict) and str(entry.get("id") or "").strip() == item_id
+                for values in store["news_bank"].values() if isinstance(values, list)
+                for entry in values
+            )
+            if existed_in_bank:
+                for level, values in list(store["news_bank"].items()):
+                    store["news_bank"][level] = [
+                        entry for entry in (values or [])
+                        if not (isinstance(entry, dict) and str(entry.get("id") or "").strip() == item_id)
+                    ]
+                store["news_bank"].setdefault(updated_level, []).append(dict(updated_item))
         if isinstance(store.get("recommended_view"), dict):
             store["recommended_view"]["news"] = replace_in_list(store["recommended_view"].get("news"))
     elif section == "courses":
         for level, values in list((store.get("courses_bank") or {}).items()):
             store["courses_bank"][level] = replace_in_list(values)
+        updated_level = str(updated_item.get("level") or "").strip().lower()
+        if updated_level in {"beginner", "intermediate", "advanced"} and isinstance(store.get("courses_bank"), dict):
+            existed_in_bank = any(
+                isinstance(entry, dict) and str(entry.get("id") or "").strip() == item_id
+                for values in store["courses_bank"].values() if isinstance(values, list)
+                for entry in values
+            )
+            if existed_in_bank:
+                for level, values in list(store["courses_bank"].items()):
+                    store["courses_bank"][level] = [
+                        entry for entry in (values or [])
+                        if not (isinstance(entry, dict) and str(entry.get("id") or "").strip() == item_id)
+                    ]
+                store["courses_bank"].setdefault(updated_level, []).append(dict(updated_item))
         if isinstance(store.get("recommended_view"), dict):
             store["recommended_view"]["courses"] = replace_in_list(store["recommended_view"].get("courses"))
     elif section == "movies" and isinstance(store.get("recommended_view"), dict):
@@ -227,6 +260,65 @@ def sync_item_in_saved_views(store, section, updated_item):
                 feature = saved_view.get("feature_item")
                 if section == "movies" and isinstance(feature, dict) and str(feature.get("id") or "").strip() == item_id:
                     saved_view["feature_item"] = {**feature, **updated_item}
+
+
+def remove_item_from_store(store, section, item_id):
+    """Remove one managed card from every persisted view that can render it."""
+    item_id = str(item_id or "").strip()
+    if section not in SECTION_KEYS or not item_id:
+        return False
+
+    removed = False
+
+    def without_item(values):
+        nonlocal removed
+        if not isinstance(values, list):
+            return values
+        filtered = [
+            entry for entry in values
+            if not (isinstance(entry, dict) and str(entry.get("id") or "").strip() == item_id)
+        ]
+        if len(filtered) != len(values):
+            removed = True
+        return filtered
+
+    store[section] = without_item(store.get(section))
+    bank_key = {"items": "news_bank", "courses": "courses_bank"}.get(section)
+    if bank_key and isinstance(store.get(bank_key), dict):
+        for level, values in list(store[bank_key].items()):
+            store[bank_key][level] = without_item(values)
+
+    recommended = store.get("recommended_view")
+    if isinstance(recommended, dict):
+        if section == "items":
+            recommended["news"] = without_item(recommended.get("news"))
+        elif section == "courses":
+            recommended["courses"] = without_item(recommended.get("courses"))
+        elif section == "movies":
+            movie = recommended.get("movie")
+            if isinstance(movie, dict) and str(movie.get("id") or "").strip() == item_id:
+                recommended["movie"] = None
+                removed = True
+
+    saved_views = store.get("saved_views")
+    if isinstance(saved_views, dict):
+        for mode_views in saved_views.values():
+            if not isinstance(mode_views, dict):
+                continue
+            for saved_view in mode_views.values():
+                if not isinstance(saved_view, dict):
+                    continue
+                saved_view[section] = without_item(saved_view.get(section))
+                feature = saved_view.get("feature_item")
+                if isinstance(feature, dict) and str(feature.get("id") or "").strip() == item_id:
+                    saved_view["feature_item"] = None
+                    removed = True
+
+    feature = store.get("feature_item")
+    if isinstance(feature, dict) and str(feature.get("id") or "").strip() == item_id:
+        store["feature_item"] = None
+        removed = True
+    return removed
 
 
 # Server role: Resolve cards rendered from a Mode/Level bank into the editable
@@ -1175,6 +1267,15 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                 return
         if handle_versions_post(self, path):
             return
+        if path in {f"{API_BASE}/generation/cancel", f"{API_BASE}/refill/cancel"}:
+            full = cancel_generator()
+            single = cancel_single_refill()
+            return self.send_json({
+                "success": True,
+                "cancel_requested": bool(full.get("cancel_requested") or single.get("cancel_requested")),
+                "generator": generator_public_state(),
+                "single_refill": current_single_refill_state(),
+            })
         data = read_json_body(self)
         store = load_store()
 
@@ -1413,6 +1514,7 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                 "practical_benefit", "user_can_do", "end_user_value",
                 "domain_bucket", "selection_reason", "verification_status",
                 "reader_access_type",
+                "level",
             )
             for field in editable_news_fields:
                 if field in data:
@@ -1551,6 +1653,29 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
             return
         if handle_versions_delete(self, path):
             return
+        store = load_store()
+        section = None
+        item_id = ""
+        if path.startswith(f"{API_BASE}/news/"):
+            section = "items"
+            item_id = path.rsplit("/", 1)[-1]
+        elif path.startswith(f"{API_BASE}/content/"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[2] in SECTION_KEYS:
+                section, item_id = parts[2], parts[3]
+        if section:
+            if not remove_item_from_store(store, section, item_id):
+                return self.send_json({"error": "Content item not found"}, 404)
+            saved = save_store(store, rebalance_news=False)
+            return self.send_json({
+                "success": True,
+                "section": section,
+                "deleted_id": item_id,
+                "items": visible_items(saved, "items"),
+                "courses": saved.get("courses", []),
+                "movies": saved.get("movies", []),
+                "feature_item": get_feature_item(saved),
+            })
         return self.send_json({"error": "Route not found"}, 404)
 
 if __name__ == "__main__":

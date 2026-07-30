@@ -49,6 +49,7 @@ AI_UPDATES_BACKGROUND_TOPUP_DELAY_SECONDS = max(
 NEWS_JSON_ONLY_MODE = os.getenv("NEWS_JSON_ONLY_MODE", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 GENERATOR_LOCK = threading.Lock()
+GENERATOR_CANCEL_EVENT = threading.Event()
 GENERATOR_STATE = {
     "running": False,
     "last_result": None,
@@ -63,6 +64,7 @@ GENERATOR_STATE = {
     "active_stage_key": "",
     "stage_started_at": {},
     "stage_completed_at": {},
+    "cancel_requested": False,
 }
 
 # Generator progress stages define the steps shown on the frontend's Generate
@@ -111,13 +113,31 @@ append_generator_timeline = lambda line: debug_append_generator_timeline(  # noq
     STAGE_KEY_TO_INDEX,
     TIMELINE_LIMIT,
 )
-generator_public_state = lambda: debug_generator_public_state(  # noqa: E731
-    GENERATOR_STATE,
-    GENERATOR_PROGRESS_STAGES,
-    STAGE_KEY_TO_INDEX,
-    load_news_fetch_state_server,
-    MESSAGE_LIMIT,
-)
+def generator_public_state():
+    state = debug_generator_public_state(
+        GENERATOR_STATE,
+        GENERATOR_PROGRESS_STAGES,
+        STAGE_KEY_TO_INDEX,
+        load_news_fetch_state_server,
+        MESSAGE_LIMIT,
+    )
+    state["cancel_requested"] = bool(GENERATOR_STATE.get("cancel_requested"))
+    return state
+
+
+def generator_cancelled():
+    return GENERATOR_CANCEL_EVENT.is_set()
+
+
+def cancel_generator():
+    """Request cooperative cancellation and preserve the pre-run newsletter."""
+    running = bool(GENERATOR_STATE.get("running"))
+    GENERATOR_CANCEL_EVENT.set()
+    GENERATOR_STATE["cancel_requested"] = running
+    GENERATOR_STATE["background_topup_pending"] = False
+    if running:
+        append_generator_timeline("Generation cancellation requested")
+    return {"success": True, "running": running, "cancel_requested": running}
 
 
 def should_use_ai_updates_generator(section=None, preserve_visible_sections=None):
@@ -151,9 +171,14 @@ def refresh_supporting_content_into_store(base_store, pre_run_store_snapshot):
         ("movie", "movies", lambda: fetch_movie_candidates(target_count=max(SUPPORTING_MOVIE_FETCH_POOL, DISPLAY_COUNTS.get("movies", 1) + 12))),
     )
     for content_type, section, fetcher in fetch_plan:
+        if generator_cancelled():
+            trace("Supporting content refresh cancelled")
+            break
         try:
             append_generator_timeline(f"Refreshing {section} with modular sources")
             raw = fetcher() or []
+            if generator_cancelled():
+                break
             required = DISPLAY_COUNTS.get(section, REQUIRED_COUNTS.get(section, 1))
             limit = max(required + 6, required)
             visible_items_list = []
@@ -167,6 +192,8 @@ def refresh_supporting_content_into_store(base_store, pre_run_store_snapshot):
                 content_type,
                 min(limit, len(result) or limit),
             )
+            if generator_cancelled():
+                break
             if content_type == "course" and len(gpt_result or []) < required:
                 trace(
                     f"AI updates supporting {section} prompt returned "
@@ -285,6 +312,9 @@ def schedule_background_topup(reason="under_min_partial_news_bank"):
     GENERATOR_STATE["background_topup_pending"] = True
 
     def run_later():
+        if not GENERATOR_STATE.get("background_topup_pending"):
+            trace("Background top-up cancelled before start")
+            return
         if GENERATOR_STATE.get("running"):
             timer = threading.Timer(AI_UPDATES_BACKGROUND_TOPUP_DELAY_SECONDS, run_later)
             timer.daemon = True
@@ -335,6 +365,10 @@ def run_ai_updates_generator(section=None, force_refresh=False, preserve_visible
             GENERATOR_STATE["sections"] = [section]
             append_generator_timeline(f"Refreshing {section} with modular pipeline")
             store, counts = refresh_supporting_content_into_store(pre_run_store_snapshot, pre_run_store_snapshot)
+            if generator_cancelled():
+                payload = {"success": False, "cancelled": True, "message": "Generation cancelled by user."}
+                GENERATOR_STATE["last_result"] = payload
+                return payload
             save_store(store, rebalance_news=True)
             selected = counts.get(section, 0)
             success = selected >= DISPLAY_COUNTS.get(section, REQUIRED_COUNTS.get(section, 1))
@@ -347,10 +381,21 @@ def run_ai_updates_generator(section=None, force_refresh=False, preserve_visible
             GENERATOR_STATE["sections"] = ["items", "courses", "movies"]
         trace("Starting SearXNG AI updates pipeline for old UI Generate")
         try:
-            report = run_ai_updates_pipeline(write_news_json=True, progress_callback=append_generator_timeline)
+            report = run_ai_updates_pipeline(
+                write_news_json=True,
+                progress_callback=append_generator_timeline,
+                cancel_check=generator_cancelled,
+            )
         except Exception as exc:
             report = {"success": False, "error": "ai_updates_pipeline_exception", "exception": str(exc)}
         performance = report.get("performance") if isinstance(report, dict) else {}
+        if generator_cancelled() or (isinstance(report, dict) and report.get("cancelled")):
+            save_store(pre_run_store_snapshot)
+            payload = {"success": False, "cancelled": True, "message": "Generation cancelled by user.", "performance": performance}
+            GENERATOR_STATE["last_log_tail"] = payload["message"]
+            GENERATOR_STATE["last_result"] = payload
+            append_generator_timeline("Generation cancelled; previous newsletter preserved")
+            return payload
         selected_count = len(report.get("latest_updates") or []) if isinstance(report, dict) else 0
         required_total = DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"]) + NEWS_BACKUP_COUNT
         # Flexible save gate: target the configured full bank, but accept only
@@ -472,6 +517,7 @@ def run_ai_updates_generator(section=None, force_refresh=False, preserve_visible
         GENERATOR_STATE["running"] = False
         GENERATOR_STATE["finished_at"] = time.time()
         GENERATOR_STATE["sections"] = []
+        GENERATOR_STATE["cancel_requested"] = False
         GENERATOR_LOCK.release()
 
 
@@ -504,6 +550,8 @@ def start_generator_background(section=None, reason="manual", force_refresh=Fals
         trace(f"Pipeline already running; request joined section={section or 'all'}")
         message = section_feedback(section) if section else "Fetching more content..."
         return {"success": True, "running": True, "message": message}
+    GENERATOR_CANCEL_EVENT.clear()
+    GENERATOR_STATE["cancel_requested"] = False
 
     now = time.time()
     if reason == "auto":

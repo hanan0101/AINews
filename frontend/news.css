@@ -49,7 +49,7 @@
     .toolbar-btn::after{
       content:attr(aria-label);position:absolute;top:calc(100% + 7px);left:50%;transform:translate(-50%,-3px);z-index:50;
       width:max-content;max-width:180px;padding:6px 9px;border:1px solid rgba(116,82,58,.16);border-radius:8px;
-      background:var(--chrome-bg);color:#3b302a;
+      background:var(--hint-surface);color:#3b302a;
       box-shadow:0 7px 18px rgba(91,61,38,.14);font-size:11px;font-weight:500;line-height:1.2;white-space:nowrap;
       opacity:0;visibility:hidden;pointer-events:none;transition:opacity .14s ease,transform .14s ease;
     }
@@ -156,7 +156,7 @@
     .card-popover button::after{
       content:attr(aria-label);position:absolute;top:calc(100% + 9px);left:50%;transform:translate(-50%,-3px);z-index:20;
       width:max-content;max-width:180px;padding:6px 9px;border:1px solid rgba(116,82,58,.16);border-radius:8px;
-      background:var(--chrome-bg);color:#3b302a;box-shadow:0 7px 18px rgba(91,61,38,.14);
+      background:var(--hint-surface);color:#3b302a;box-shadow:0 7px 18px rgba(91,61,38,.14);
       font-size:11px;font-weight:500;line-height:1.2;white-space:nowrap;
       opacity:0;visibility:hidden;pointer-events:none;transition:opacity .14s ease,transform .14s ease
     }
@@ -463,7 +463,7 @@
 
     .tip-pop{
       position:absolute;right:18px;z-index:70;max-width:270px;
-      background:var(--ui-surface);color:var(--guide-text);border:1px solid var(--ui-border);
+      background:var(--hint-surface);color:var(--guide-text);border:1px solid var(--ui-border);
       backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:20px;
       padding:14px 14px 12px;box-shadow:var(--ui-shadow);display:none
     }
@@ -473,7 +473,7 @@
     .tip-pop.reorder{top:41%; left:34px; right:auto}
     .tip-pop::before{
       content:"";position:absolute;left:-9px;top:42px;width:16px;height:16px;
-      background:var(--ui-surface);border-left:1px solid var(--ui-border);border-bottom:1px solid var(--ui-border);
+      background:var(--hint-surface);border-left:1px solid var(--ui-border);border-bottom:1px solid var(--ui-border);
       transform:rotate(45deg)
     }
     .tip-pop.choose::before{
@@ -549,7 +549,8 @@
 
     .field{display:grid;gap:8px;margin-bottom:12px}
     .field label{font-size:14px;font-weight:700}
-    .field input,.field textarea{border:1px solid var(--ui-border);background:var(--ui-surface-soft);color:var(--guide-text);border-radius:14px;padding:12px 14px;outline:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .field input,.field textarea,.field select{border:1px solid var(--ui-border);background:var(--ui-surface-strong);color:var(--guide-text);border-radius:14px;padding:12px 14px;outline:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .field select{width:100%;cursor:pointer;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#6d5140 50%),linear-gradient(135deg,#6d5140 50%,transparent 50%);background-position:calc(18px) 50%,calc(13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
     .field textarea{min-height:110px;resize:vertical}
     .field textarea.title-textarea{min-height:64px}
     .modal-actions{display:flex;gap:10px;justify-content:flex-start}
@@ -730,6 +731,7 @@
     .splash-action{margin-top:25px;width:min(215px,32vw);min-width:125px;height:38px;padding:0 18px;border-radius:12px;border:1px solid rgba(120,80,40,.14);background:var(--splash-surface);color:#3b2a1d;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 10px 22px rgba(85,55,32,.05),inset 0 1px 0 rgba(255,255,255,.24);transition:.2s ease;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
     .splash-action:hover{transform:translateY(-1px);box-shadow:0 18px 40px rgba(85,55,32,.08),inset 0 1px 0 rgba(255,255,255,.30);background:var(--splash-surface-hover)}
     .splash-loading{display:none;width:min(215px,100%);margin-top:18px;margin-inline:auto}
+    .splash-cancel{display:block;margin:12px auto 0;padding:8px 18px;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface-strong);color:var(--guide-text);cursor:pointer;box-shadow:var(--ui-shadow)}
     .splash.loading .splash-action{display:none}
     .splash.loading .splash-loading{display:block}
     @property --fill {

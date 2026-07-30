@@ -94,7 +94,8 @@ function levelMarkup(level=''){
       const safeSection = escapeHtml(section);
       const safeId = escapeHtml(id || '');
       return `<button type="button" data-card-action="ai" data-target-section="${safeSection}" data-target-id="${safeId}" aria-label="${escapeHtml(t('aiPrompt'))}"><span class="card-tool-ai">AI</span></button>
-          <button type="button" data-card-action="edit" data-target-section="${safeSection}" data-target-id="${safeId}" aria-label="${escapeHtml(t('edit'))}"><span class="card-tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></button>`;
+          <button type="button" data-card-action="edit" data-target-section="${safeSection}" data-target-id="${safeId}" aria-label="${escapeHtml(t('edit'))}"><span class="card-tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></button>
+          <button type="button" data-card-action="delete" data-target-section="${safeSection}" data-target-id="${safeId}" data-target-index="${index}" aria-label="${escapeHtml(t('delete'))}"><span class="card-tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg></span></button>`;
     }
     function newsCardMarkup(item, index=0){
       return `<article class="news-card ${state.selected?.id===item.id && state.selected?.section==='items'?'selected':''}" data-id="${escapeHtml(item.id)}" data-section="items" data-url="${escapeHtml(item.url||'#')}" draggable="true">
@@ -658,6 +659,7 @@ function levelMarkup(level=''){
             openLogoEditor(section,id);
           }
           if(action==='ai') openAi(section,id);
+          if(action==='delete' && id) await deleteCard(section,id);
           if(action==='restore-previous') await restorePreviousCard(section, Number(button.dataset.targetIndex || 0));
           if(action==='nav-back') await navigateCard(section, id, Number(button.dataset.targetIndex || 0), -1);
           if(action==='nav-forward') await navigateCard(section, id, Number(button.dataset.targetIndex || 0), 1);

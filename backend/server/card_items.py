@@ -187,6 +187,7 @@ def _finish_normalize_item(item, default_type="news"):
     normalized = {
         **common,
         **logo_fields,
+        "level": str(item.get("level", "") or ""),
         "company": str(item.get("company", "") or ""),
         "tool_name": str(item.get("tool_name") or item.get("product") or ""),
         "field_primary": str(item.get("field_primary", "") or ""),

@@ -452,6 +452,24 @@
     flex-shrink: 0;
     box-shadow: 0 8px 22px rgba(78,59,45,.05);
   }
+  .confirm-overlay {
+    position: fixed; inset: 0; z-index: 120; display: none; place-items: center;
+    background: rgba(64,45,32,.24); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .confirm-overlay.show { display: grid; }
+  .confirm-modal {
+    width: min(430px, calc(100vw - 32px)); padding: 20px;
+    border: 1px solid var(--ui-border); border-radius: 22px;
+    background: var(--ui-surface-strong); color: var(--text);
+    box-shadow: var(--ui-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .confirm-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .confirm-head h3 { font-size:18px; font-weight:500; }
+  .confirm-close { width:34px; height:34px; border:0; border-radius:10px; background:transparent; color:var(--text); cursor:pointer; }
+  .confirm-copy { color:var(--muted); font-size:14px; line-height:1.8; }
+  .confirm-actions { display:flex; gap:10px; margin-top:18px; }
+  .confirm-actions button { min-width:96px; border:1px solid var(--ui-border); border-radius:13px; padding:10px 16px; background:var(--ui-surface); color:var(--text); cursor:pointer; }
+  .confirm-actions .confirm-delete { background:#8e4640; color:#fff; border-color:#8e4640; }
   @media (max-width: 850px) {
     body { padding: 8px; gap: 10px; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
@@ -503,6 +521,16 @@
   <span id="footerCount">0 نسخ محفوظة</span>
 </div>
 <div class="toast" id="toast"></div>
+<div class="confirm-overlay" id="versionDeleteOverlay" role="dialog" aria-modal="true" aria-labelledby="versionDeleteTitle">
+  <div class="confirm-modal">
+    <div class="confirm-head"><h3 id="versionDeleteTitle">تأكيد الحذف</h3><button class="confirm-close" type="button" onclick="closeVersionDelete(false)" aria-label="إغلاق">×</button></div>
+    <p class="confirm-copy">هل تريد حذف هذه النسخة؟ لا يمكن التراجع عن الحذف بعد تأكيده.</p>
+    <div class="confirm-actions">
+      <button class="confirm-delete" type="button" onclick="closeVersionDelete(true)">نعم، احذف</button>
+      <button type="button" onclick="closeVersionDelete(false)">إلغاء</button>
+    </div>
+  </div>
+</div>
 
   <script src="shared-functions.js"></script>
 <script>
@@ -510,6 +538,22 @@ let selectedId = null;
 let selectedKind = 'json';
 let authIsAdmin = false;
 let versionsSortOrder = 'newest';
+let versionDeleteResolve = null;
+
+function closeVersionDelete(confirmed=false) {
+  document.getElementById('versionDeleteOverlay')?.classList.remove('show');
+  const resolve = versionDeleteResolve;
+  versionDeleteResolve = null;
+  if (resolve) resolve(Boolean(confirmed));
+}
+
+function confirmVersionDelete() {
+  closeVersionDelete(false);
+  const overlay = document.getElementById('versionDeleteOverlay');
+  if (!overlay) return Promise.resolve(window.confirm('هل تريد حذف هذه النسخة؟'));
+  overlay.classList.add('show');
+  return new Promise(resolve => { versionDeleteResolve = resolve; });
+}
 
 function visibilityIcon(hidden) {
   return hidden
@@ -702,7 +746,7 @@ function exportStoredVersion(id) {
 
 async function deleteVersion(id) {
   if (!authIsAdmin) return;
-  if (!confirm('هل تريد حذف هذه النسخة؟')) return;
+  if (!await confirmVersionDelete()) return;
   await fetch(`/api/versions/${id}`, { method: 'DELETE' });
   selectedId = null;
   document.getElementById('actionGroup').classList.remove('visible');

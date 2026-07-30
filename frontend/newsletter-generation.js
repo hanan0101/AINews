@@ -304,6 +304,7 @@ function formatStepElapsed(seconds){
     }
     async function startNewsletterGeneration(){
       if(landingProgress.running) return;
+      state.generationCancelRequested = false;
       clearPinnedState();
       clearEditingVersion();
       els.splash.classList.remove('error');
@@ -320,6 +321,12 @@ function formatStepElapsed(seconds){
         setLandingProgressFromBackend(refillData.generator);
         const finalData = await pollForGeneratorDone({applyWhileRunning:false});
         const finalResult = finalData?.generator?.last_result;
+        if(state.generationCancelRequested || finalResult?.cancelled){
+          await loadState(false);
+          revealNewsletterImmediately();
+          showPlainToast(state.language === 'ar' ? 'تم إلغاء العملية' : 'Generation cancelled');
+          return;
+        }
         // New-generate safety: the backend intentionally restores the previous
         // newsletter when a run fails or does not save enough fresh news. Do not
         // reveal that restored old version as if it were the new Generate result.
@@ -339,12 +346,33 @@ function formatStepElapsed(seconds){
       }catch(error){
         console.error(error);
         stopLandingProgress();
+        if(state.generationCancelRequested){
+          await loadState(false).catch(()=>null);
+          revealNewsletterImmediately();
+          showPlainToast(state.language === 'ar' ? 'تم إلغاء العملية' : 'Generation cancelled');
+          return;
+        }
         els.splash.classList.add('error');
         els.splash.classList.remove('loading');
         updateSplashStatusForLanguage();
         setLandingProgress(0);
         if(els.splashStatus) els.splashStatus.textContent = t('splashStatusError');
         if(els.splashError) els.splashError.textContent = t('splashErrorDetailed');
+      }
+    }
+    async function cancelGeneration(){
+      if(!state.isAdmin) return;
+      state.generationCancelRequested = true;
+      if(els.cancelGenerationBtn) els.cancelGenerationBtn.disabled = true;
+      try{
+        await request(`${API_BASE}/generation/cancel`, {method:'POST', body:'{}'});
+        if(els.splashStatus) els.splashStatus.textContent = state.language === 'ar' ? 'جاري إيقاف العملية...' : 'Stopping generation...';
+      }catch(error){
+        state.generationCancelRequested = false;
+        console.error(error);
+        showPlainToast(error.message || t('pageError'));
+      }finally{
+        if(els.cancelGenerationBtn) els.cancelGenerationBtn.disabled = false;
       }
     }
     function applyState(data, options={}){
@@ -574,6 +602,7 @@ function formatStepElapsed(seconds){
       applyLanguage();
       setLandingProgress(0);
       els.generateBtn?.addEventListener('click', startNewsletterGeneration);
+      els.cancelGenerationBtn?.addEventListener('click', cancelGeneration);
       window.addEventListener('beforeunload', ()=>{
         if(hasPinnedState()) savePinnedState();
       });
@@ -605,11 +634,7 @@ function formatStepElapsed(seconds){
           clearEditingVersion();
           await loadState(false);
         }
-        if(restored){
-          revealNewsletterImmediately();
-        }else{
-          await revealNewsletterForUser();
-        }
+        revealNewsletterImmediately();
         window.history.replaceState({}, document.title, 'News.html');
         return;
       }

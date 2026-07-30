@@ -329,7 +329,7 @@ const API_BASE = "/api";
       "Prepare Preview",
       "Newsletter Ready for Review"
     ];
-    const state = {items:[], all_items:[], movies:[], courses:[], news_bank:{}, courses_bank:{}, recommended_view:{}, saved_views:{}, defaultView:{}, selectedLevels:['all'], newsDisplayCount:4, viewInitialized:false, newsViewOverride:null, coursesViewOverride:null, movieViewOverride:null, levelFilterOpen:false, newsCountFilterOpen:false, toolbarFilterOutsideBound:false, feature_mode:"course", feature_item:null, selected:null, undoStack:[], redoStack:[], reorderSupported:true, editTarget:null, logoEditTarget:null, logoDrag:null, logoSaveTimer:null, suppressLogoClickUntil:0, aiTarget:null, alternativeTarget:null, alternativeResolve:null, deleteConfirmResolve:null, cardNav:{}, cardNavPending:{}, card_refill_history:{}, contentSignature:'', onboarding:null, language:"ar", cardProgress:{}, cardProgressTimers:{}, cardProgressAbort:{}, tips:{choose:false,edit:false,reorder:false}, tipTimers:{}, generator:null, timeline:[], previous_counts:{}, isAdmin:false, versionTitle:''};
+    const state = {items:[], all_items:[], movies:[], courses:[], news_bank:{}, courses_bank:{}, recommended_view:{}, saved_views:{}, defaultView:{}, selectedLevels:['all'], newsDisplayCount:4, viewInitialized:false, newsViewOverride:null, coursesViewOverride:null, movieViewOverride:null, levelFilterOpen:false, newsCountFilterOpen:false, toolbarFilterOutsideBound:false, feature_mode:"course", feature_item:null, selected:null, undoStack:[], redoStack:[], reorderSupported:true, editTarget:null, logoEditTarget:null, logoDrag:null, logoSaveTimer:null, suppressLogoClickUntil:0, aiTarget:null, alternativeTarget:null, alternativeResolve:null, deleteConfirmResolve:null, cardNav:{}, cardNavPending:{}, card_refill_history:{}, contentSignature:'', onboarding:null, language:"ar", cardProgress:{}, cardProgressTimers:{}, cardProgressAbort:{}, tips:{choose:false,edit:false,reorder:false}, tipTimers:{}, generator:null, timeline:[], previous_counts:{}, isAdmin:false, versionTitle:'', generationCancelRequested:false};
     // Native browser title bubbles cannot be styled; the toolbar uses the
     // accessible aria-label with the custom tooltip defined above instead.
     document.querySelectorAll('.topbar [title]').forEach(element => element.removeAttribute('title'));
@@ -337,6 +337,7 @@ const API_BASE = "/api";
       splash: document.getElementById('splashScreen'),
       shell: document.getElementById('appShell'),
       generateBtn: document.getElementById('generateNewsletterBtn'),
+      cancelGenerationBtn: document.getElementById('cancelGenerationBtn'),
       splashTitle: document.querySelector('.splash-title'),
       splashStatus: document.getElementById('splashStatus'),
       splashError: document.getElementById('splashError'),

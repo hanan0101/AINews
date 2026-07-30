@@ -663,7 +663,27 @@ def shortlist_scan_pool_for_gpt(scan_pool: list[dict], diagnostics: dict) -> lis
 
 
 # Runs run pipeline as an executable pipeline or service step.
-def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: str = "") -> dict:
+def _cancelled(cancel_check) -> bool:
+    try:
+        return bool(cancel_check and cancel_check())
+    except Exception:
+        return False
+
+
+def _cancelled_report(run_started, mode="full") -> dict:
+    return {
+        "latest_updates": [],
+        "news_items": [],
+        "cards": [],
+        "success": False,
+        "cancelled": True,
+        "error": "cancelled",
+        "message": "Generation cancelled by user.",
+        "performance": {"mode": mode, "total_seconds": round(time.time() - run_started, 2)},
+    }
+
+
+def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: str = "", cancel_check=None) -> dict:
     """Run the active full Generate path: news first, then courses/movies."""
     run_id = new_run_id("full")
     set_run_context(run_id, "full")
@@ -672,6 +692,8 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
     print("=" * 60, flush=True)
 
     run_started = time.time()
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started)
     pre_run_payload = load_json(NEWS_JSON_FILE, {})
     should_write_news = write_news_json or env_bool("AI_UPDATES_WRITE_NEWS_JSON", "0")
     log_event(
@@ -738,6 +760,8 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
     tool_activity_seen: set[str] = set()
     all_preselected_pool: list[dict] = []
     for cycle in range(1, NEWS_FETCH_CYCLES + 1):
+        if _cancelled(cancel_check):
+            return _cancelled_report(run_started)
         _notify(progress_callback, f"Starting news fetch cycle {cycle}/{NEWS_FETCH_CYCLES} with Exa and SearXNG")
         fetch_started = time.time()
         try:
@@ -762,6 +786,8 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
         diagnostics = _merge_cycle_diagnostics(diagnostics, cycle_diagnostics, cycle, len(candidates or []))
         cycle_fetch_seconds = time.time() - fetch_started
         source_fetch_seconds += cycle_fetch_seconds
+        if _cancelled(cancel_check):
+            return _cancelled_report(run_started)
         log_event(
             "source_fetch.summary",
             cycle=cycle,
@@ -787,6 +813,8 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
             gpt_candidates = shortlist_scan_pool_for_gpt(scan_pool, diagnostics)
         cycle_filter_seconds = time.time() - cycle_filter_started
         filter_seconds += cycle_filter_seconds
+        if _cancelled(cancel_check):
+            return _cancelled_report(run_started)
         log_event(
             "quality_filter.summary",
             cycle=cycle,
@@ -808,6 +836,8 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
             cycle_report = select_news_updates(gpt_candidates, diagnostics, single=False)
         cycle_gpt_seconds = time.time() - cycle_gpt_started
         gpt_seconds += cycle_gpt_seconds
+        if _cancelled(cancel_check):
+            return _cancelled_report(run_started)
         if cycle_report.get("preselected_pool"):
             all_preselected_pool.extend(cycle_report["preselected_pool"])
         # CHANGE: `report` used to be unconditionally overwritten by whatever
@@ -904,6 +934,8 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
         except Exception as activity_exc:
             diagnostics["tool_activity_signal_error"] = str(activity_exc)
 
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started)
     fetch_seconds = source_fetch_seconds + filter_seconds
     save_query_results_audit(diagnostics)
     update_sector_terms(report.get("latest_updates") or [], diagnostics)
@@ -933,6 +965,8 @@ def run_pipeline(write_news_json: bool = False, progress_callback=None, sector: 
         report["diagnostics"]["performance"] = performance
 
     saved_news = False
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started)
     if should_write_news:
         _notify(progress_callback, "Saving runtime/news.json")
         save_news_started = time.time()
@@ -1035,6 +1069,7 @@ def run_single_update_pipeline(
     *,
     exclude_items: list[dict] | None = None,
     target_hint: str = "",
+    cancel_check=None,
 ) -> dict:
     """Run the same editorial path as full Generate with smaller pools and a targeted angle."""
     run_id = new_run_id("single-news")
@@ -1044,6 +1079,8 @@ def run_single_update_pipeline(
     print("=" * 60, flush=True)
 
     run_started = time.time()
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, "single_news")
     fetch_started = time.time()
     log_event("single_news_pipeline.started", target_hint=target_hint, exclude_count=len(exclude_items or []))
     with timed_stage("source_fetch", target_hint=target_hint):
@@ -1052,6 +1089,8 @@ def run_single_update_pipeline(
             target_hint=target_hint,
             single=True,
         )
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, "single_news")
     diagnostics["mode"] = diagnostics.get("mode") or "single_parallel"
     source_fetch_seconds = time.time() - fetch_started
     filter_started = time.time()
@@ -1067,12 +1106,16 @@ def run_single_update_pipeline(
     scan_pool = build_large_scan_pool(filtered, diagnostics)
     gpt_candidates = shortlist_scan_pool_for_gpt(scan_pool, diagnostics)
     filter_seconds = time.time() - filter_started
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, "single_news")
     fetch_seconds = source_fetch_seconds + filter_seconds
 
     gpt_started = time.time()
     with timed_stage("gpt_news_selection", candidates=len(gpt_candidates or [])):
         report = select_news_updates(gpt_candidates, diagnostics, single=True)
     gpt_seconds = time.time() - gpt_started
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, "single_news")
 
     # A targeted single fetch can occasionally leave only a handful of valid
     # candidates after recency and memory checks. If that small pool cannot
@@ -1103,6 +1146,8 @@ def run_single_update_pipeline(
                 cycle=2,
             )
         source_fetch_seconds += time.time() - expansion_fetch_started
+        if _cancelled(cancel_check):
+            return _cancelled_report(run_started, "single_news")
         candidates = _merge_candidate_pools(candidates, expansion_candidates)
         diagnostics = _merge_cycle_diagnostics(
             diagnostics,
@@ -1126,6 +1171,8 @@ def run_single_update_pipeline(
             if _candidate_identity(item) not in initial_candidate_keys
         ]
         filter_seconds += time.time() - expansion_filter_started
+        if _cancelled(cancel_check):
+            return _cancelled_report(run_started, "single_news")
 
         expansion_gpt_started = time.time()
         with timed_stage(
@@ -1140,6 +1187,8 @@ def run_single_update_pipeline(
                 single=True,
             )
         gpt_seconds += time.time() - expansion_gpt_started
+        if _cancelled(cancel_check):
+            return _cancelled_report(run_started, "single_news")
         if expanded_report.get("success"):
             report = expanded_report
         else:
@@ -1198,6 +1247,7 @@ def run_single_supporting_pipeline(
     exclude_items: list[dict] | None = None,
     target_count: int = 1,
     requested_level: str = "",
+    cancel_check=None,
 ) -> dict:
     """Run the supporting-content pipeline for one replacement card.
 
@@ -1216,6 +1266,8 @@ def run_single_supporting_pipeline(
     set_run_context(run_id, "single_supporting")
     section = "courses" if content_type == "course" else "movies"
     run_started = time.time()
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, f"single_{content_type}")
     log_event("single_supporting_pipeline.started", content_type=content_type, target_count=target_count)
     fetch_started = time.time()
     if content_type == "course":
@@ -1231,6 +1283,8 @@ def run_single_supporting_pipeline(
         )
         raw = fetch_movie_candidates(target_count=fetch_pool)
     fetch_seconds = time.time() - fetch_started
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, f"single_{content_type}")
 
     filter_started = time.time()
     filtered = filter_supporting_candidates(
@@ -1246,6 +1300,8 @@ def run_single_supporting_pipeline(
         ]
         filtered = same_level
     filter_seconds = time.time() - filter_started
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, f"single_{content_type}")
 
     gpt_started = time.time()
     cards = select_supporting_content_cards(
@@ -1262,6 +1318,8 @@ def run_single_supporting_pipeline(
         for card in cards or []:
             card["level"] = requested_level
     gpt_seconds = time.time() - gpt_started
+    if _cancelled(cancel_check):
+        return _cancelled_report(run_started, f"single_{content_type}")
 
     performance = {
         "mode": "single_supporting",
