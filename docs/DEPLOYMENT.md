@@ -33,8 +33,7 @@ The full variable list, with what each one does, is in [backend/config/ENVIRONME
 The root `docker-compose.yml` is intentionally thin — it just lists which service files to run together. Each service lives in its own file under `docker/compose/`, and that's where you'd go to change something specific to one service (its port, image version, volumes):
 
 - `docker/compose/app.yml` → the app itself, runs `python -m backend.server.http_server`
-- `docker/compose/postgres.yml` → PostgreSQL, with continuous WAL archiving + scheduled pgBackRest backups baked into the same container (see [MAINTENANCE.md](MAINTENANCE.md#backups--restore))
-- `docker/compose/minio.yml` → S3-compatible object storage; the repository pgBackRest backs Postgres up into
+- `docker/compose/postgres.yml` → PostgreSQL
 - `docker/compose/keycloak.yml` → the login/authentication provider
 - `docker/compose/searxng.yml` → the metasearch engine discovery runs against
 - `docker/compose/qdrant.yml` → the vector store that remembers what's already been published
@@ -82,7 +81,6 @@ A few paths hold everything that would be painful to lose. Back these up, or at 
 
 - `data/` — generated newsletter state and exported files (bind-mounted into the container at `/app/data`)
 - the `postgres_data` volume — the actual version history
-- the `minio_data` volume — where pgBackRest's continuous WAL archive and scheduled backups actually live (not the `postgres` container itself — see [MAINTENANCE.md](MAINTENANCE.md#backups--restore))
 - the `qdrant_data` volume — semantic memory of what's already been published
 - `backend/.env` — this one is *not* in any Docker volume and *not* in git, so back it up yourself, somewhere secure. Losing it means recreating every secret from scratch.
 

@@ -1,11 +1,10 @@
 # Assembles the full AI newsletter stack from per-service files.
-# Each service (app, postgres, keycloak, searxng, qdrant, minio) is defined in
+# Each service (app, postgres, keycloak, searxng, qdrant) is defined in
 # its own file under docker/compose/ and pulled in here. This file only lists
 # what runs together — edit the individual service files for service config.
 name: ainewsletter_v0_2
 
 include:
-  - docker/compose/minio.yml
   - docker/compose/postgres.yml
   - docker/compose/keycloak.yml
   - docker/compose/searxng.yml

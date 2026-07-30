@@ -13,8 +13,7 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
 | Service | Role | Required for |
 | --- | --- | --- |
 | `ainewsletter` (this app) | HTTP server, pipeline orchestration, UI serving | Everything |
-| PostgreSQL | Stores newsletter versions, the durable course catalog/selection history; continuously WAL-archived via pgBackRest | Version history, export tracking, long-term course rotation |
-| MinIO | S3-compatible object storage; the repository pgBackRest backs Postgres up into | Postgres backup/restore |
+| PostgreSQL | Stores newsletter versions and the durable course catalog/selection history | Version history, export tracking, long-term course rotation |
 | Keycloak | Authentication provider (roles: `admin`, `user`); self-provisions its realm/client/roles/admin user on first startup | Login, admin-gated actions like Generate |
 | SearXNG | Self-hosted metasearch used by discovery | News/course source fetching |
 | Qdrant | Vector database | Semantic duplicate detection across runs |
@@ -71,7 +70,7 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
 | `frontend/newsletter-export-history.js` | PDF/export, undo/redo, pinning, and settings |
 | `frontend/newsletter-generation.js` | Generate progress, state loading, and page boot |
 | `frontend/shared-functions.js` | Small browser helpers shared by `News.html` and `versions.html` |
-| `docker` | Container support, including the PostgreSQL backup image |
+| `docker` | Container and Compose support |
 
 ## Key Technical Decisions
 

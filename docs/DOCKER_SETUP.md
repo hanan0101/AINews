@@ -12,14 +12,13 @@ Desktop). Run all Docker commands from the repository root.
 | Service | Compose file | Purpose |
 | --- | --- | --- |
 | `ainewsletter` | `docker/compose/app.yml` | Application server, UI, and generation pipeline |
-| `postgres` | `docker/compose/postgres.yml` | Versions, course data; continuously WAL-archived + scheduled pgBackRest backups |
+| `postgres` | `docker/compose/postgres.yml` | Versions and course data |
 | `keycloak` | `docker/compose/keycloak.yml` | Authentication and roles; self-provisions on first startup |
 | `searxng` | `docker/compose/searxng.yml` | Self-hosted web search |
 | `qdrant` | `docker/compose/qdrant.yml` | Semantic duplicate memory |
-| `minio` | `docker/compose/minio.yml` | Object storage — the pgBackRest repository for Postgres backups |
 
-The root `Dockerfile` builds only the application image. PostgreSQL-specific
-image and backup scripts are under `docker/postgres/`.
+The root `Dockerfile` builds only the application image. PostgreSQL uses the
+official image directly.
 
 ## Start and Stop
 
@@ -55,7 +54,6 @@ docker compose up -d --build ainewsletter
 ```powershell
 docker compose restart searxng
 docker compose logs --tail 100 postgres
-docker compose exec postgres pgbackrest --stanza=main backup --type=full
 ```
 
 For first installation, credentials, ports, and Keycloak setup, see

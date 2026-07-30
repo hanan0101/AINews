@@ -96,11 +96,4 @@ A fresh Keycloak volume comes up empty; this runs automatically on app startup a
 - `LOCAL_AUTH_SECRET`: signing secret for locally-issued session tokens.
 - `LOCAL_VIEWER_TOKEN_TTL_SECONDS`: how long a local-viewer session stays valid.
 
-### Postgres backups (pgBackRest + MinIO)
-
-See [docs/MAINTENANCE.md](../../docs/MAINTENANCE.md#backups--restore) for how these fit together; all are optional and default to working out of the box with the bundled `minio` service.
-
-- `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`: MinIO credentials, also used natively by pgBackRest as its S3 key/secret unless overridden below. Change these for anything beyond local dev.
-- `PGBACKREST_REPO1_S3_KEY` / `PGBACKREST_REPO1_S3_KEY_SECRET`: set only if pgBackRest should use a scoped MinIO user instead of the root credentials above.
-- `PGBACKREST_CRON_INCR` / `PGBACKREST_CRON_DIFF` / `PGBACKREST_CRON_FULL`: cron schedules for incremental/differential/full backups. Defaults: daily at 02:00, weekly on Sunday at 02:00, monthly on the 1st at 02:00.
 - `SQLITE_VERSIONS_PATH`: only used by the one-time `backend/storage/manage_versions/migrate_versions_to_postgres.py` script, which migrated version history out of the legacy SQLite database. Default: `data/versions/versions.db`.

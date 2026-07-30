@@ -1,49 +1,13 @@
-# PostgreSQL: durable storage for newsletter versions. Continuous WAL
-# archiving + scheduled pgBackRest backups run inside this container, with
-# MinIO (see docker/compose/minio.yml) as the durable repository - see
-# docker/postgres/ for the actual backup logic and docs/MAINTENANCE.md for
-# restore instructions.
+# PostgreSQL: durable storage for newsletter versions and course data.
 services:
   postgres:
-    build:
-      context: ..
-      dockerfile: postgres/Dockerfile
-    # List form (not a folded string) so archive_command's value - which
-    # contains spaces - arrives as one argv element instead of being
-    # word-split into unrelated separate arguments.
-    command:
-      - postgres
-      - -c
-      - archive_mode=on
-      - -c
-      - wal_level=replica
-      - -c
-      - archive_command=pgbackrest --stanza=main archive-push %p
-      - -c
-      - archive_timeout=60
+    image: postgres:15
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ainewsletter}
       POSTGRES_USER: ${POSTGRES_USER:-ainewsletter}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ainewsletter_local}
-      PGHOST: 127.0.0.1
-      PGPORT: 5432
-      PGDATABASE: ${POSTGRES_DB:-ainewsletter}
-      PGUSER: ${POSTGRES_USER:-ainewsletter}
-      PGPASSWORD: ${POSTGRES_PASSWORD:-ainewsletter_local}
-      # pgBackRest reads these two natively for its S3-compatible repo (MinIO).
-      # Reusing the MinIO root credentials for now; scoping a bucket-only MinIO
-      # user/policy is a good later hardening step, not required for this to work.
-      PGBACKREST_REPO1_S3_KEY: ${PGBACKREST_REPO1_S3_KEY:-${MINIO_ROOT_USER:-ainewsletter_minio}}
-      PGBACKREST_REPO1_S3_KEY_SECRET: ${PGBACKREST_REPO1_S3_KEY_SECRET:-${MINIO_ROOT_PASSWORD:-ainewsletter_minio_local}}
-      PGBACKREST_CRON_INCR: ${PGBACKREST_CRON_INCR:-0 2 * * *}
-      PGBACKREST_CRON_DIFF: ${PGBACKREST_CRON_DIFF:-0 2 * * 0}
-      PGBACKREST_CRON_FULL: ${PGBACKREST_CRON_FULL:-0 2 1 * *}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - postgres_backups:/backups
-    depends_on:
-      minio-init:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ainewsletter} -d ${POSTGRES_DB:-ainewsletter}"]
       interval: 5s
@@ -59,13 +23,8 @@ services:
       - newsletter_network
     restart: always
 
-    # Manual backup / status commands (run from the project root at any time):
-    # docker compose exec postgres pgbackrest --stanza=main backup --type=full
-    # docker compose exec postgres pgbackrest --stanza=main info
-
 volumes:
   postgres_data:
-  postgres_backups:
 
 networks:
   newsletter_network:

@@ -111,7 +111,7 @@ Most people should stop at Step 5. Use this path only if you need the Python pro
 
 1. Start everything except the app:
    ```powershell
-   docker compose up -d minio postgres keycloak searxng qdrant
+   docker compose up -d postgres keycloak searxng qdrant
    ```
 2. Open `backend/.env` and point it at `localhost` instead of the Docker service names, since the app is no longer inside the Docker network:
    ```text

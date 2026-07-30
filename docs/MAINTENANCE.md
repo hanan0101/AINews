@@ -38,42 +38,18 @@ For the surrounding process itself rather than the pipeline logic, use the conta
 
 ```bash
 docker compose logs -f ainewsletter   # the app's own stdout/stderr
-docker compose logs -f postgres       # database + backup-cron output
+docker compose logs -f postgres       # database output
 ```
 
 See [backend/logging/README.md](../backend/logging/README.md) for more on what gets logged and why.
 
-## Backups & Restore
+## Backups
 
-PostgreSQL is backed up continuously with [pgBackRest](https://pgbackrest.org/), not periodic SQL dumps: `archive_mode` is on and every WAL segment is pushed to the repository as it's generated (`archive_command=pgbackrest --stanza=main archive-push %p`, see `docker/compose/postgres.yml`), so recovery can replay to nearly any point in time, not just the moment of the last snapshot. The repository itself lives in MinIO (S3-compatible object storage, its own container — see `docker/compose/minio.yml`), not on the Postgres container's own disk, so a lost `postgres_data` volume doesn't take the backups down with it.
-
-On top of continuous WAL archiving, `docker/postgres/pgbackrest-cron.sh` runs scheduled full/differential/incremental backups inside the `postgres` container, controlled by three cron env vars (defaults shown):
-
-```text
-PGBACKREST_CRON_FULL=0 2 1 * *    # monthly full backup
-PGBACKREST_CRON_DIFF=0 2 * * 0    # weekly differential
-PGBACKREST_CRON_INCR=0 2 * * *    # daily incremental
-```
-
-Trigger a manual backup or check status at any time:
-
-```bash
-docker compose exec postgres pgbackrest --stanza=main backup --type=full
-docker compose exec postgres pgbackrest --stanza=main info
-```
-
-Restore (stop the app first so nothing writes during recovery):
-
-```bash
-docker compose stop ainewsletter
-docker compose exec postgres pgbackrest --stanza=main restore
-docker compose restart postgres
-docker compose start ainewsletter
-```
-
-See pgBackRest's own [restore documentation](https://pgbackrest.org/user-guide.html#restore) for point-in-time recovery options (`--type=time`, `--target`).
-
-Also back up `backend/.env` separately (it holds secrets and is not covered by any Docker volume) and the `data/` folder (generated newsletter state and exports).
+The bundled stack does not configure PostgreSQL backups. Back up the
+`postgres_data` volume using the database backup approach appropriate for your
+deployment. Also back up `backend/.env` separately (it holds secrets and is
+not covered by any Docker volume) and the `data/` folder (generated newsletter
+state and exports).
 
 ## Rotating API Keys
 
