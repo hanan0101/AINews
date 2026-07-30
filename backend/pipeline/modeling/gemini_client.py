@@ -36,31 +36,19 @@ ROOT_DIR = BACKEND_DIR.parent
 load_dotenv(BACKEND_DIR / ".env", override=False)
 logger = logging.getLogger(__name__)
 
-# Defaults use Google's "-latest" alias model ids, not dated/preview ids -
-# a dated id (e.g. gemini-2.5-flash) can get retired for new users with a
-# hard 404 (hit in production 2026-07-11); "-latest" auto-resolves to
-# whatever Google currently considers current, so a retirement degrades
-# gracefully instead of hard-breaking every Gemini call.
-#
-# CHANGE (2026-07-12, reverted same day): briefly consolidated selection AND
-# rewrite onto gemini-pro-latest, assuming this project's Google Cloud
-# billing was active. A direct API probe (bypassing our own quota tracker
-# entirely) proved it is NOT: every gemini-3.1-pro call returns 429 with
-# "limit: 0" - not "used up", a zero free-tier allowance for this model on
-# this project, so it fails 100% of the time regardless of retries or time
-# of day. gemini-flash-latest / gemini-flash-lite-latest / gemini-embedding-001
-# all probed SUCCESS on the same key. Back to role-split defaults until
-# billing is enabled on the Cloud project (see docs/COST_MODEL.md).
+# Pin generation models to the versions used by the cost model so quality,
+# usage measurements, and provider pricing remain comparable across runs.
+# gemini-3.1-pro-preview requires paid quota on the configured Google project;
+# provider-side 429 errors remain visible when that quota is unavailable.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
-GEMINI_SELECTION_MODEL = os.getenv("GEMINI_SELECTION_MODEL", "gemini-flash-lite-latest").strip() or "gemini-flash-lite-latest"
-GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_SELECTION_MODEL = os.getenv("GEMINI_SELECTION_MODEL", "gemini-3.5-flash").strip() or "gemini-3.5-flash"
+GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-3.1-pro-preview").strip() or "gemini-3.1-pro-preview"
 GEMINI_REWRITE_MAX_OUTPUT_TOKENS = max(
     1024,
     min(65536, int(os.getenv("GEMINI_REWRITE_MAX_OUTPUT_TOKENS", "32768") or "32768")),
 )
 GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001").strip() or "gemini-embedding-001"
-GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-3.5-flash").strip() or "gemini-3.5-flash"
 _GEMINI_RATE_LIMIT_LOCK = threading.RLock()
 _LAST_GEMINI_CALL_STARTED_AT = 0.0
 # Temporary testing limiter: 4 seconds keeps Gemini calls under 15 requests/minute.
@@ -316,7 +304,7 @@ def generate_json(
 ) -> dict[str, Any]:
     if not GEMINI_API_KEY:
         raise RuntimeError("missing_gemini_api_key")
-    selected_model = (model or GEMINI_FLASH_MODEL or "gemini-2.5-flash").strip()
+    selected_model = (model or GEMINI_FLASH_MODEL or "gemini-3.5-flash").strip()
     user_text = user_payload if isinstance(user_payload, str) else json.dumps(user_payload, ensure_ascii=False, separators=(",", ":"))
     client = genai.Client(api_key=GEMINI_API_KEY)
     config_kwargs: dict[str, Any] = {

@@ -199,9 +199,8 @@ GEMINI_API_KEY = (
     or os.getenv("GOOGLE_API_KEY")
     or ""
 ).strip()
-GEMINI_NEWS_MODEL = os.getenv("GEMINI_NEWS_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
-GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
-GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-flash-latest").strip() or "gemini-flash-latest"
+GEMINI_REWRITE_MODEL = os.getenv("GEMINI_REWRITE_MODEL", "gemini-3.1-pro-preview").strip() or "gemini-3.1-pro-preview"
+GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-3.5-flash").strip() or "gemini-3.5-flash"
 EXA_API_KEY = os.getenv("EXA_API_KEY", "").strip()
 TMDB_API_KEY = os.getenv("TMDB_API_KEY", "").strip()
 

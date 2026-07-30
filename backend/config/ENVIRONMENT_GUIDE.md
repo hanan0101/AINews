@@ -14,11 +14,10 @@ Create `backend/.env` from `backend/.env.example`.
 - `AI_UPDATES_OPENAI_MODEL`: OpenAI model name. Default in code: `gpt-5.2`.
 - `GEMINI_API_KEY` or `GOOGLE_API_KEY`: enables Gemini model calls.
 - `AI_UPDATES_MODEL_PROVIDER`: active provider. Default delivery mode: `gemini`.
-- `GEMINI_NEWS_MODEL`: compatibility/news model value. Default: `gemini-flash-latest`.
-- `GEMINI_SELECTION_MODEL`: model used for news and supporting-content selection. Code default: `gemini-flash-lite-latest`; the checked runtime overrides it with `gemini-flash-latest`.
-- `GEMINI_REWRITE_MODEL`: model used for Arabic rewriting. Code default: `gemini-flash-latest`; the checked runtime overrides it with `gemini-3.1-pro-preview`.
+- `GEMINI_SELECTION_MODEL`: model used for news and supporting-content selection. Default: `gemini-3.5-flash`.
+- `GEMINI_REWRITE_MODEL`: model used for Arabic rewriting. Default: `gemini-3.1-pro-preview`; this model requires paid quota on the configured Google project.
 - `GEMINI_EMBEDDING_MODEL`: model used directly by the Gemini embedding client. Default: `gemini-embedding-001`.
-- `GEMINI_FLASH_MODEL`: fallback model for Gemini JSON calls without an explicit role. Default: `gemini-flash-latest`.
+- `GEMINI_FLASH_MODEL`: fallback model for Gemini JSON calls without an explicit role. Default: `gemini-3.5-flash`.
 - `GEMINI_DAILY_REQUEST_BUDGET`: local tracking threshold. Current code and checked runtime default: `120`.
 - `GEMINI_FULL_RUN_REQUEST_BUDGET`: optional per-run threshold. `0` disables the per-run cap; this is the current default.
 - `GEMINI_MIN_SECONDS_BETWEEN_CALLS`: minimum delay between Gemini calls. Default: `6`.
