@@ -8,10 +8,10 @@ Already set up and just need to operate it day to day? See [MAINTENANCE.md](MAIN
 
 - **Docker Desktop**, installed and running. This is the recommended way to run the project — it starts the app together with the database, search engine, auth server, and vector store it depends on, all wired together correctly. Get it at [docker.com](https://www.docker.com/products/docker-desktop/).
 - **API keys for the integrations you enable:**
-  - `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) — required by the checked default configuration for selection, Arabic rewriting, and embeddings.
+  - `GEMINI_API_KEY` — required by the checked default configuration for selection, Arabic rewriting, and embeddings. Use this exact name because the direct Gemini client reads it.
   - `OPENAI_API_KEY` — required only when `AI_UPDATES_MODEL_PROVIDER=openai`.
-  - `EXA_API_KEY` — enables the Exa discovery source; SearXNG and official-source discovery are separate paths.
-  - `TMDB_API_KEY` — optional, used for AI-film metadata.
+  - `EXA_API_KEY` — used for Exa news discovery, course discovery, and related verification/tool-discovery lanes.
+  - `TMDB_API_KEY` — used by the film-discovery pipeline; without it the TMDB movie lane is skipped.
 
 (Python 3.11+ is only needed if you skip Docker entirely — that path is covered near the end, in [Running without Docker](#running-without-docker-only-if-you-need-to).)
 

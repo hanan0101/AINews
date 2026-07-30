@@ -20,9 +20,10 @@ cp backend/.env.example backend/.env
 
 For a server, pay attention to these in particular:
 
-- The active model/search API keys. The checked configuration requires
-  `GEMINI_API_KEY`; `OPENAI_API_KEY`, `EXA_API_KEY`, and `TMDB_API_KEY` are
-  conditional on the integrations you enable.
+- The complete checked pipeline uses `GEMINI_API_KEY` for model calls,
+  `EXA_API_KEY` for Exa news/course discovery, and `TMDB_API_KEY` for film
+  discovery. `OPENAI_API_KEY` is needed only if
+  `AI_UPDATES_MODEL_PROVIDER=openai`.
 - `HOST=0.0.0.0` — without this, the server only listens on localhost and nothing outside the container can reach it
 - The PostgreSQL credentials, if you're not using the defaults
 
