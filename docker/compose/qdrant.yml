@@ -1,10 +1,11 @@
 # Qdrant: vector database for semantic duplicate-content memory.
+# No host ports: only the ainewsletter container needs to reach Qdrant, over
+# the internal newsletter_network (AI_UPDATES_QDRANT_URL=http://qdrant:6333).
+# If you need to hit Qdrant's own dashboard/API directly from this machine
+# (e.g. debugging), add "127.0.0.1:6333:6333" back temporarily.
 services:
   qdrant:
     image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-      - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
     logging:

@@ -50,6 +50,10 @@
           button.removeAttribute('title');
         }
       });
+      setText('[data-download-format="pdf"] strong', 'PDF');
+      setText('[data-download-format="pdf"] span', t('downloadPdfHelp'));
+      setText('[data-download-format="pptx"] strong', t('downloadPptx'));
+      setText('[data-download-format="pptx"] span', t('downloadPptxHelp'));
       updatePinnedPageButton();
       setText('[data-feature-mode="course"] span', t('courseSwitch'));
       setText('[data-feature-mode="movie"] span', t('filmSwitch'));

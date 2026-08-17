@@ -63,6 +63,43 @@ class FrontendAssetTests(unittest.TestCase):
         ):
             self.assertNotIn(removed_token, frontend_text)
 
+    def test_download_menu_offers_pdf_and_editable_powerpoint(self):
+        html = (FRONTEND / "News.html").read_text(encoding="utf-8")
+        core = (FRONTEND / "newsletter-core.js").read_text(encoding="utf-8")
+        generation = (FRONTEND / "newsletter-generation.js").read_text(encoding="utf-8")
+        export_history = (FRONTEND / "newsletter-export-history.js").read_text(encoding="utf-8")
+        self.assertIn('data-download-format="pdf"', html)
+        self.assertIn('data-download-format="pptx"', html)
+        self.assertIn("/api/export-pptx", core)
+        self.assertIn("exportCleanPptx", generation)
+        self.assertIn("downloadPreviewPptx", export_history)
+
+    def test_toolbar_exposes_undo_and_redo_actions(self):
+        html = (FRONTEND / "News.html").read_text(encoding="utf-8")
+        generation = (FRONTEND / "newsletter-generation.js").read_text(encoding="utf-8")
+        export_history = (FRONTEND / "newsletter-export-history.js").read_text(encoding="utf-8")
+        self.assertIn('data-action="undo"', html)
+        self.assertIn('data-action="redo"', html)
+        self.assertIn("undoAction", generation)
+        self.assertIn("redoAction", generation)
+        self.assertIn("state.redoStack.push(current)", export_history)
+
+    def test_edit_level_dropdown_matches_toolbar_without_all_option(self):
+        html = (FRONTEND / "News.html").read_text(encoding="utf-8")
+        css = (FRONTEND / "news.css").read_text(encoding="utf-8")
+        actions = (FRONTEND / "newsletter-card-actions.js").read_text(encoding="utf-8")
+        generation = (FRONTEND / "newsletter-generation.js").read_text(encoding="utf-8")
+        self.assertIn('id="editLevelFilter"', html)
+        self.assertIn('data-edit-level="Beginner"', html)
+        self.assertIn('data-edit-level="Intermediate"', html)
+        self.assertIn('data-edit-level="Advanced"', html)
+        self.assertNotIn('data-edit-level="all"', html)
+        self.assertNotIn('data-edit-level="Beginner"><span>مبتدئ</span><span class="level-filter-check"', html)
+        self.assertIn(".edit-level-toggle", css)
+        self.assertIn(".edit-level-option", css)
+        self.assertIn("setEditLevelValue", actions)
+        self.assertIn("toggleEditLevelMenu", generation)
+
 
 if __name__ == "__main__":
     unittest.main()

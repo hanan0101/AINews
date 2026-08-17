@@ -1,11 +1,17 @@
 function currentNewsletterJsonPayload(){
-      const visibleIds = new Set((state.items || []).map(item => item.id));
+      const visibleView = displayItemsForRender(state);
+      const visibleNews = visibleView.news || state.items || [];
+      const visibleCourses = visibleView.courses || state.courses || [];
+      const visibleMovie = state.movieViewOverride || (
+        state.feature_item?.type === 'movie' ? state.feature_item : null
+      ) || (state.movies || [])[0] || null;
+      const visibleIds = new Set(visibleNews.map(item => item.id));
       const backups = (state.all_items || []).filter(item => !visibleIds.has(item.id));
       return {
-        items: state.items || [],
+        items: visibleNews,
         backup_news: backups,
-        movies: state.movies || [],
-        courses: state.courses || [],
+        movies: visibleMovie ? [visibleMovie] : [],
+        courses: visibleCourses,
         news_bank: state.news_bank || {},
         courses_bank: state.courses_bank || {},
         recommended_view: state.recommended_view || {},
@@ -15,14 +21,15 @@ function currentNewsletterJsonPayload(){
         news_display_count: newsViewCount(state),
         template: state.template || {},
         feature_mode: state.feature_mode || 'course',
+        feature_item: state.feature_item || null,
         // Persist the selected display count so exported/saved newsletter JSON
         // knows whether the user was viewing 4 compact news cards or 6 cards.
         metadata: {
           ...(state.metadata || {}),
-          source: 'ui_pdf_export',
+          source: 'ui_export',
           embedded_in_pdf: true,
           exported_at: new Date().toISOString(),
-          display_count: (state.items || []).length,
+          display_count: visibleNews.length,
           backup_count: backups.length,
           news_total_count: (state.items || []).length + backups.length
         }
@@ -84,6 +91,52 @@ function currentNewsletterJsonPayload(){
       return pdfBlob;
     }
 
+    async function downloadPreviewPptx(){
+      let exportClone = null;
+      try{
+        if(document.fonts?.ready){
+          try{ await document.fonts.ready; }catch{}
+        }
+        exportClone = await cloneCurrentPreviewForPdf();
+        const {host, width, height} = exportClone;
+        const previewWrapper = host.querySelector('.preview-window');
+        if(!previewWrapper) throw new Error('Preview export wrapper was not found');
+        const response = await fetch(`${API_BASE}/export-pptx`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            html: previewWrapper.outerHTML,
+            width,
+            height,
+            direction: document.documentElement.dir || 'rtl',
+            source_html: location.pathname.split('/').pop() || 'News.html',
+            newsletter_json: currentNewsletterJsonPayload()
+          })
+        });
+        if(!response.ok){
+          let message = 'PowerPoint export failed';
+          try{
+            const errorData = await response.json();
+            message = errorData.error || message;
+          }catch{}
+          throw new Error(message);
+        }
+        const pptxBlob = await response.blob();
+        const url = URL.createObjectURL(pptxBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        link.download = `${safeDownloadStem(state.versionTitle || `AINewsletter_v02_${stamp}`)}.pptx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 1200);
+        return pptxBlob;
+      }finally{
+        exportClone?.host?.remove();
+      }
+    }
+
     async function blobToBase64(blob){
       return new Promise((resolve, reject)=>{
         const reader = new FileReader();
@@ -132,6 +185,34 @@ function currentNewsletterJsonPayload(){
         showToast('pdfError');
       }finally{
         setDownloadLoading(false);
+      }
+    }
+
+    async function exportCleanPptx(){
+      try{
+        setDownloadLoading(true);
+        await downloadPreviewPptx();
+      }catch(error){
+        console.error(error);
+        showToast('pptxError');
+      }finally{
+        setDownloadLoading(false);
+      }
+    }
+
+    function closeDownloadMenu(){
+      els.downloadExport?.classList.remove('open');
+      els.downloadButton?.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleDownloadMenu(event){
+      event?.stopPropagation();
+      if(!els.downloadExport) return;
+      const shouldOpen = !els.downloadExport.classList.contains('open');
+      closeDownloadMenu();
+      if(shouldOpen){
+        els.downloadExport.classList.add('open');
+        els.downloadButton?.setAttribute('aria-expanded', 'true');
       }
     }
 

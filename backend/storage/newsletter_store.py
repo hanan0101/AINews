@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from datetime import date, datetime
 from pathlib import Path
 
@@ -34,6 +35,13 @@ NEWS_SELECTION_AUDIT_FILE = ROOT_DIR / "news_selection_audit.json"
 
 load_dotenv(ROOT_DIR / ".env", override=True)
 
+# DATA INTEGRITY BLOCK: Guards the news.json read-modify-save cycle - see
+# save_store() and load_store().
+STORE_SAVE_LOCK = threading.Lock()
+
+
+class StoreConflict(Exception):
+    """Raised when save_store() finds the file changed since it was read."""
 
 
 NEWS_JSON_FILE = env_path("NEWS_JSON_PATH", RUNTIME_DATA_DIR / "news.json")
@@ -424,13 +432,22 @@ def store_from_payload(raw):
 # Reads load store from the current store or request context.
 def load_store():
     raw = {}
+    source_mtime = None
     if NEWS_JSON_FILE.exists():
         try:
             with open(NEWS_JSON_FILE, "r", encoding="utf-8") as f:
+                source_mtime = os.fstat(f.fileno()).st_mtime
                 raw = json.load(f)
         except Exception:
             raw = {}
-    return store_from_payload(raw)
+    store = store_from_payload(raw)
+    # DATA INTEGRITY BLOCK: Recorded so a later save_store(store) can detect
+    # and reject a save if the file changed since this read (see
+    # STORE_SAVE_LOCK / StoreConflict). Not part of the newsletter shape
+    # itself - save_store() builds its own payload dict from named keys, so
+    # this key is never written back to news.json.
+    store["_source_mtime"] = source_mtime
+    return store
 
 
 def save_published_store_memory(store: dict) -> dict:
@@ -620,127 +637,142 @@ def restore_previous_card_at_index(store, section, index):
 
 # Saves save store to the configured output or state store.
 def save_store(store, *, rebalance_news=False, existing_payload=None, already_normalized=False):
-    existing = existing_payload if isinstance(existing_payload, dict) else {}
-    if existing_payload is None and NEWS_JSON_FILE.exists():
-        try:
-            with open(NEWS_JSON_FILE, "r", encoding="utf-8") as f:
-                existing = json.load(f)
-        except Exception:
-            existing = {}
-
-    existing = existing if isinstance(existing, dict) else {}
-    payload = {
-        "items": [],
-        "backup_news": [],
-        "movies": [],
-        "courses": [],
-        "template": newsletter_template_from_settings(load_newsletter_settings()),
-        "feature_mode": existing.get("feature_mode") or "course",
-        "metadata": store.get("metadata") if isinstance(store.get("metadata"), dict) else (existing.get("metadata") if isinstance(existing.get("metadata"), dict) else {}),
-        # Level-balanced newsletter fields: preserve the full generated bank
-        # while normal edit/save operations continue using legacy lists.
-        "news_bank": store.get("news_bank") if isinstance(store.get("news_bank"), dict) else existing.get("news_bank", {}),
-        "courses_bank": store.get("courses_bank") if isinstance(store.get("courses_bank"), dict) else existing.get("courses_bank", {}),
-        "recommended_view": store.get("recommended_view") if isinstance(store.get("recommended_view"), dict) else existing.get("recommended_view", {}),
-        "saved_views": store.get("saved_views") if isinstance(store.get("saved_views"), dict) else existing.get("saved_views", {}),
-        "default_view": store.get("default_view") if isinstance(store.get("default_view"), dict) else existing.get("default_view", {}),
-        "selected_levels": store.get("selected_levels") if isinstance(store.get("selected_levels"), list) else existing.get("selected_levels", ["all"]),
-        "news_display_count": 6 if int(store.get("news_display_count") or existing.get("news_display_count") or 4) == 6 else 4,
-    }
-    for key, default_type in (("items", "news"), ("movies", "movie"), ("courses", "course")):
-        if key in store:
-            source_items = store.get(key, [])
-            normalized_items = dedupe_store_items(
-                source_items if already_normalized else normalize_items_batch(source_items, default_type)
-            )
-            if key == "items":
-                visible_count = 6 if payload.get("news_display_count") == 6 else DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"])
-                # Level-balanced newsletter change: when a generated news_bank
-                # exists, preserve its recommended first view instead of running
-                # the older visible-diversity reorder pass.
-                if rebalance_news and not payload.get("news_bank"):
-                    normalized_items = order_news_for_visible_diversity(normalized_items, visible_count)
-                visible_news = normalized_items[:visible_count]
-                hidden_news = [
-                    item for item in normalized_items[visible_count:]
-                    if not looks_duplicate(item, visible_news)
-                    and (
-                        not rebalance_news
-                        or (
-                            is_gpt_accepted_news_item(item)
-                            and str(item.get("story_key") or "").strip()
-                        )
-                    )
-                ]
-                for index, item in enumerate(visible_news, start=1):
-                    item["status"] = "display"
-                    item["position"] = index
-                hidden_candidates = []
-                for hidden_item in dedupe_store_items(hidden_news):
-                    hidden_candidates.append(hidden_item)
-                    if rebalance_news and len(hidden_candidates) >= NEWS_BACKUP_COUNT:
-                        break
-                for index, item in enumerate(hidden_candidates, start=1):
-                    item["status"] = "backup"
-                    item["position"] = index
-                combined_payload = []
-                for index, item in enumerate(visible_news + hidden_candidates, start=1):
-                    item["status"] = "display" if index <= visible_count else "backup"
-                    item["position"] = index
-                    combined_payload.append(item)
-                visible_payload = combined_payload[:visible_count]
-                hidden_payload = combined_payload[visible_count:]
-                payload[key] = visible_payload
-                payload["backup_news"] = hidden_payload
-                metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
-                metadata["display_count"] = len(visible_payload)
-                metadata["backup_count"] = len(hidden_payload)
-                metadata["news_total_count"] = len(combined_payload)
-                metadata["story_fields_preserved"] = sum(1 for item in combined_payload if item.get("story_key"))
-                payload["metadata"] = metadata
-                trace(
-                    "server_story_fields_preserved "
-                    f"{metadata['story_fields_preserved']}/{len(combined_payload)}"
+    source_mtime = store.get("_source_mtime")
+    # DATA INTEGRITY BLOCK: Serialize the whole read-current-file -> merge
+    # -> write cycle so two concurrent saves (e.g. a manual card edit and an
+    # AI background job finishing around the same time) cannot interleave.
+    # If the caller's store came from load_store(), also reject the save
+    # outright when the file changed since then, instead of silently
+    # overwriting whatever the other writer just saved.
+    with STORE_SAVE_LOCK:
+        if existing_payload is None and source_mtime is not None:
+            current_mtime = NEWS_JSON_FILE.stat().st_mtime if NEWS_JSON_FILE.exists() else None
+            if current_mtime != source_mtime:
+                raise StoreConflict(
+                    "This newsletter was changed by someone else since it was loaded. "
+                    "Reload and try again."
                 )
-                continue
-            payload[key] = reorder_positions(dedupe_store_items(normalized_items))
-        else:
-            values = existing.get(key, [])
-            payload[key] = values if isinstance(values, list) else []
+        existing = existing_payload if isinstance(existing_payload, dict) else {}
+        if existing_payload is None and NEWS_JSON_FILE.exists():
+            try:
+                with open(NEWS_JSON_FILE, "r", encoding="utf-8") as f:
+                    existing = json.load(f)
+            except Exception:
+                existing = {}
 
-    if "template" in store:
-        payload["template"] = newsletter_template_from_settings(store.get("template") or {})
+        existing = existing if isinstance(existing, dict) else {}
+        payload = {
+            "items": [],
+            "backup_news": [],
+            "movies": [],
+            "courses": [],
+            "template": newsletter_template_from_settings(load_newsletter_settings()),
+            "feature_mode": existing.get("feature_mode") or "course",
+            "metadata": store.get("metadata") if isinstance(store.get("metadata"), dict) else (existing.get("metadata") if isinstance(existing.get("metadata"), dict) else {}),
+            # Level-balanced newsletter fields: preserve the full generated bank
+            # while normal edit/save operations continue using legacy lists.
+            "news_bank": store.get("news_bank") if isinstance(store.get("news_bank"), dict) else existing.get("news_bank", {}),
+            "courses_bank": store.get("courses_bank") if isinstance(store.get("courses_bank"), dict) else existing.get("courses_bank", {}),
+            "recommended_view": store.get("recommended_view") if isinstance(store.get("recommended_view"), dict) else existing.get("recommended_view", {}),
+            "saved_views": store.get("saved_views") if isinstance(store.get("saved_views"), dict) else existing.get("saved_views", {}),
+            "default_view": store.get("default_view") if isinstance(store.get("default_view"), dict) else existing.get("default_view", {}),
+            "selected_levels": store.get("selected_levels") if isinstance(store.get("selected_levels"), list) else existing.get("selected_levels", ["all"]),
+            "news_display_count": 6 if int(store.get("news_display_count") or existing.get("news_display_count") or 4) == 6 else 4,
+        }
+        for key, default_type in (("items", "news"), ("movies", "movie"), ("courses", "course")):
+            if key in store:
+                source_items = store.get(key, [])
+                normalized_items = dedupe_store_items(
+                    source_items if already_normalized else normalize_items_batch(source_items, default_type)
+                )
+                if key == "items":
+                    visible_count = 6 if payload.get("news_display_count") == 6 else DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"])
+                    # Level-balanced newsletter change: when a generated news_bank
+                    # exists, preserve its recommended first view instead of running
+                    # the older visible-diversity reorder pass.
+                    if rebalance_news and not payload.get("news_bank"):
+                        normalized_items = order_news_for_visible_diversity(normalized_items, visible_count)
+                    visible_news = normalized_items[:visible_count]
+                    hidden_news = [
+                        item for item in normalized_items[visible_count:]
+                        if not looks_duplicate(item, visible_news)
+                        and (
+                            not rebalance_news
+                            or (
+                                is_gpt_accepted_news_item(item)
+                                and str(item.get("story_key") or "").strip()
+                            )
+                        )
+                    ]
+                    for index, item in enumerate(visible_news, start=1):
+                        item["status"] = "display"
+                        item["position"] = index
+                    hidden_candidates = []
+                    for hidden_item in dedupe_store_items(hidden_news):
+                        hidden_candidates.append(hidden_item)
+                        if rebalance_news and len(hidden_candidates) >= NEWS_BACKUP_COUNT:
+                            break
+                    for index, item in enumerate(hidden_candidates, start=1):
+                        item["status"] = "backup"
+                        item["position"] = index
+                    combined_payload = []
+                    for index, item in enumerate(visible_news + hidden_candidates, start=1):
+                        item["status"] = "display" if index <= visible_count else "backup"
+                        item["position"] = index
+                        combined_payload.append(item)
+                    visible_payload = combined_payload[:visible_count]
+                    hidden_payload = combined_payload[visible_count:]
+                    payload[key] = visible_payload
+                    payload["backup_news"] = hidden_payload
+                    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+                    metadata["display_count"] = len(visible_payload)
+                    metadata["backup_count"] = len(hidden_payload)
+                    metadata["news_total_count"] = len(combined_payload)
+                    metadata["story_fields_preserved"] = sum(1 for item in combined_payload if item.get("story_key"))
+                    payload["metadata"] = metadata
+                    trace(
+                        "server_story_fields_preserved "
+                        f"{metadata['story_fields_preserved']}/{len(combined_payload)}"
+                    )
+                    continue
+                payload[key] = reorder_positions(dedupe_store_items(normalized_items))
+            else:
+                values = existing.get(key, [])
+                payload[key] = values if isinstance(values, list) else []
 
-    if "feature_mode" in store:
-        payload["feature_mode"] = store.get("feature_mode", "course")
+        if "template" in store:
+            payload["template"] = newsletter_template_from_settings(store.get("template") or {})
 
-    payload = cleanup_text_fields(payload)
-    NEWS_JSON_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temp_file = NEWS_JSON_FILE.with_suffix(".json.tmp")
-    with open(temp_file, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    safe_replace_json(temp_file, NEWS_JSON_FILE)
+        if "feature_mode" in store:
+            payload["feature_mode"] = store.get("feature_mode", "course")
 
-    # Same shape load_store() would return by re-reading the file we just
-    # wrote, without paying for another full normalize_items_batch pass -
-    # every item here was already normalized above. Callers that used to do
-    # `save_store(store); return load_store()` can use this return value
-    # directly instead of re-verifying every logo a second time.
-    return {
-        "items": dedupe_store_items(list(payload.get("items", [])) + list(payload.get("backup_news", []))),
-        "movies": payload.get("movies", []),
-        "courses": payload.get("courses", []),
-        "template": payload.get("template", {}),
-        "feature_mode": payload.get("feature_mode", "course"),
-        "news_bank": payload.get("news_bank", {}),
-        "courses_bank": payload.get("courses_bank", {}),
-        "recommended_view": payload.get("recommended_view", {}),
-        "saved_views": payload.get("saved_views", {}),
-        "default_view": payload.get("default_view", {}),
-        "selected_levels": payload.get("selected_levels", ["all"]),
-        "news_display_count": payload.get("news_display_count", 4),
-        "metadata": payload.get("metadata", {}),
-    }
+        payload = cleanup_text_fields(payload)
+        NEWS_JSON_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temp_file = NEWS_JSON_FILE.with_suffix(".json.tmp")
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        safe_replace_json(temp_file, NEWS_JSON_FILE)
+
+        # Same shape load_store() would return by re-reading the file we just
+        # wrote, without paying for another full normalize_items_batch pass -
+        # every item here was already normalized above. Callers that used to do
+        # `save_store(store); return load_store()` can use this return value
+        # directly instead of re-verifying every logo a second time.
+        return {
+            "items": dedupe_store_items(list(payload.get("items", [])) + list(payload.get("backup_news", []))),
+            "movies": payload.get("movies", []),
+            "courses": payload.get("courses", []),
+            "template": payload.get("template", {}),
+            "feature_mode": payload.get("feature_mode", "course"),
+            "news_bank": payload.get("news_bank", {}),
+            "courses_bank": payload.get("courses_bank", {}),
+            "recommended_view": payload.get("recommended_view", {}),
+            "saved_views": payload.get("saved_views", {}),
+            "default_view": payload.get("default_view", {}),
+            "selected_levels": payload.get("selected_levels", ["all"]),
+            "news_display_count": payload.get("news_display_count", 4),
+            "metadata": payload.get("metadata", {}),
+        }
 
 
 def canonical_newsletter_payload(raw):

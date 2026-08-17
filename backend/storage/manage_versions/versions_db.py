@@ -178,11 +178,13 @@ def versions_db():
     return postgres_connection()
 
 
-# PostgreSQL change: per-operation SQLite file copies are intentionally disabled.
-# The existing SQLite file remains the final legacy backup; PostgreSQL backups
-# will be implemented with pg_dump in a future migration step.
-def backup_versions_db():
-    return None
+# BACKUP NOTE: There is no automated backup of the PostgreSQL versions data.
+# A previous backup_versions_db() function was called after every important
+# change but never actually copied or saved anything - it was a no-op that
+# made backups look like they existed when they didn't, so it was removed
+# rather than kept as misleading dead code. A real backup (e.g. periodic
+# pg_dump, with a retention policy and a tested restore path) is a separate,
+# still-unscoped task - don't reintroduce a call here without one.
 
 
 # PostgreSQL change: normalize psycopg2 datetime objects to the string format

@@ -1,6 +1,6 @@
 {
   "schema": "sector_terms_history_v1",
-  "updated": "2026-07-30T10:07:49.546644+00:00",
+  "updated": "2026-07-30T13:12:55.022954+00:00",
   "sectors": {
     "museums": {
       "base_terms": "museum gallery exhibition visitor guide curation collections",
@@ -171,16 +171,16 @@
     },
     "إنتاجية العمل": {
       "learned_terms": [
-        "superstuff",
-        "video",
-        "tool",
-        "إطلاق",
-        "ميزة",
-        "enterprise",
-        "context",
-        "layer",
-        "منصة",
-        "designverse"
+        "نموذج",
+        "opus",
+        "بتكلفة",
+        "وقيود",
+        "مخففة",
+        "claude",
+        "anthropic",
+        "site",
+        "techcrunch",
+        "launches"
       ],
       "last_updated": "2026-07-30"
     },
@@ -276,16 +276,16 @@
     },
     "الفنون البصرية": {
       "learned_terms": [
-        "lumalabs",
-        "إطلاق",
-        "حزمة",
-        "replit",
-        "design",
-        "لتصميم",
-        "الواجهات",
-        "بالذكاء",
-        "الاصطناعي",
-        "creative"
+        "الكشف",
+        "نموذج",
+        "flux",
+        "لتوليد",
+        "الفيديو",
+        "والصوت",
+        "black",
+        "forest",
+        "labs",
+        "tool"
       ],
       "last_updated": "2026-07-30"
     },
@@ -530,16 +530,16 @@
     },
     "والتدريب والمهام اليومية": {
       "learned_terms": [
-        "توسيع",
-        "إتاحة",
-        "المساعد",
-        "الذكي",
-        "gemini",
-        "spark",
-        "الهند",
         "google",
         "site",
-        "blog"
+        "blog",
+        "إضافة",
+        "لتتبع",
+        "النفقات",
+        "إتاحة",
+        "المساعد",
+        "لتنظيم",
+        "المهام"
       ],
       "last_updated": "2026-07-30"
     },

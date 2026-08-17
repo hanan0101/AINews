@@ -56,25 +56,20 @@ Then open `http://<server-host>:8000/News.html` from a browser that can reach th
 
 ## Step 3 — Harden Keycloak before anyone else can reach it
 
-This is the step that's easy to skip locally and genuinely matters on a server. Realm/client/role/user provisioning is automatic (`backend/auth/keycloak_bootstrap.py` runs on app startup — see [SETUP.md, Step 4](SETUP.md#step-4--log-in)), but it provisions everything with **development defaults**, which is fine on your own machine and not fine on a server anyone else can reach: admin login `admin` / `admin123`, a bootstrap app user with the same `admin` / `admin123` credentials, a client secret that defaults to the literal string `dev-local-secret`, and Keycloak started in `start-dev` mode.
+This is the step that's easy to skip locally and genuinely matters on a server. Realm/client/role/user provisioning is automatic (`backend/auth/keycloak_bootstrap.py` runs on app startup — see [SETUP.md, Step 4](SETUP.md#step-4--log-in)). None of the credentials it provisions with are fixed defaults anymore — `LOCAL_VIEWER_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`/`KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD`, `KEYCLOAK_BOOTSTRAP_USER_PASSWORD`, and `KEYCLOAK_CLIENT_SECRET` are all either set by you in `backend/.env`/`backend/.env.local`, or auto-generated once (`python -m scripts.ensure_local_secrets`, or the app's own first-run fallback) into the untracked `backend/.env.local`. The app refuses to start if any of them is ever set back to one of the old hardcoded values (`admin123`, `news123`, `dev-local-secret`). `KEYCLOAK_CLIENT_SECRET` specifically is also re-synced to the Keycloak client on *every* startup, not just the first — so even a client that was already provisioned with an old secret gets corrected automatically the next time the app starts, no admin-console edit needed.
 
 Do these, in this order, before the server is reachable by anyone but you:
 
-1. **Edit `docker/compose/keycloak.yml`** to replace the hardcoded
-   `KEYCLOAK_ADMIN` and `KEYCLOAK_ADMIN_PASSWORD` development values. The
-   Keycloak service does not read `backend/.env`.
-2. **Set `KEYCLOAK_BOOTSTRAP_ADMIN_USER` and
-   `KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD`** in `backend/.env` to the same new
-   Keycloak master-realm credentials so application bootstrap can authenticate.
-3. **Set `KEYCLOAK_CLIENT_SECRET`** in `backend/.env` to a real generated secret before the first startup on this environment — bootstrap provisions the `newsletter-app` client with whatever this resolves to, so it must not be left at the `dev-local-secret` default.
-4. **Set `KEYCLOAK_BOOTSTRAP_USER_PASSWORD`** in `backend/.env` to something other than `admin123` before the first startup — this is the password bootstrap gives the one auto-created app admin account.
-5. **Move off `start-dev`** once you're past initial evaluation — switch to a real production Keycloak run mode (`start`, with a configured hostname and TLS). See Keycloak's own [production configuration guide](https://www.keycloak.org/server/configuration-production).
-6. **Set `AUTH_COOKIE_SECURE=1`** in `backend/.env` once the server is behind HTTPS, so login cookies require TLS and can't be read over plain HTTP.
+1. **Confirm `backend/.env.local` was generated with this server's own random values** — don't copy it over from your laptop. If you're reusing an existing `backend/.env.local` (e.g. redeploying the same environment), that's fine; just don't let a shared/default one slip in from a template or another machine.
+2. **Move off `start-dev`** once you're past initial evaluation — switch to a real production Keycloak run mode (`start`, with a configured hostname and TLS). See Keycloak's own [production configuration guide](https://www.keycloak.org/server/configuration-production).
+3. **Set `AUTH_COOKIE_SECURE=1`** in `backend/.env` once the server is behind HTTPS, so login cookies require TLS and can't be read over plain HTTP.
 
-These bootstrap credentials affect a fresh Keycloak volume/realm. If Keycloak
-has already initialized with the defaults, change the existing credentials and
-client through the admin console; editing configuration alone does not rewrite
-the stored users or client secret.
+The bootstrap admin/user accounts themselves (usernames, not just passwords)
+are only created once per realm - if Keycloak already has them from an
+earlier run, changing `KEYCLOAK_BOOTSTRAP_ADMIN_USER`/`KEYCLOAK_BOOTSTRAP_USER`
+afterward does not rename or recreate anyone; use the admin console for that.
+The client secret is the one credential here that self-heals on every
+startup, as described above.
 
 ## Step 4 — Make sure the right things survive a restart
 
@@ -96,7 +91,7 @@ python -m unittest discover -s backend/tests -p "test*.py"
 Then walk through it by hand, the same way a real user would:
 
 1. Open `/News.html` and confirm it loads.
-2. Log in twice — once with a Keycloak `admin` user, once with the local `news` / `news123` viewer — and confirm both work.
+2. Log in twice — once with a Keycloak `admin` user, once with the local `news` viewer (see `backend/.env.local` for both passwords) — and confirm both work.
 3. Click **إنشاء النشرة** / **Generate Newsletter** and watch the progress timeline move through all its stages.
 4. Click **حفظ ونشر** and confirm the saved title matches the current
    newsletter issue/month metadata.

@@ -23,7 +23,6 @@ from backend.storage.newsletter_store import (
 )
 from backend.storage.manage_versions.versions_db import (
     API_BASE,
-    backup_versions_db,
     init_versions_db,
     load_current_news_json_text,
     parse_version_id,
@@ -251,7 +250,6 @@ def handle_versions_post(handler, path):
             raise
         finally:
             con.close()
-        backup_versions_db()
         handler.send_json({
             "success": True,
             "id": convert_pdf_version_id,
@@ -300,7 +298,6 @@ def handle_versions_post(handler, path):
                 con.commit()
             finally:
                 con.close()
-            backup_versions_db()
             trace(f"PDF import saved PostgreSQL bytes version_id={new_id} title={title!r} bytes={len(pdf_bytes)}")
         except psycopg2.errors.UniqueViolation:
             handler.send_json({
@@ -359,7 +356,6 @@ def handle_versions_post(handler, path):
             return True
         finally:
             con.close()
-        backup_versions_db()
         publish_current_store()
         handler.send_json({"id": new_id, "title": title, "published": True})
         return True
@@ -506,12 +502,10 @@ def handle_versions_put(handler, path, data):
     if not updated:
         handler.send_json({"error": "not found"}, 404)
         return True
-    if save_current:
-        backup_versions_db()
-        # Updating an existing archived version is an edit, not a publish.
-        # Keep news_published.json pointing at the last version created through
-        # POST /api/versions so end users never jump to whichever old version
-        # an admin happened to edit most recently.
+    # Updating an existing archived version is an edit, not a publish. Keep
+    # news_published.json pointing at the last version created through
+    # POST /api/versions so end users never jump to whichever old version an
+    # admin happened to edit most recently.
     response = {
         "ok": True,
         "id": version_id,
@@ -544,7 +538,6 @@ def handle_versions_delete(handler, path):
     if not deleted:
         handler.send_json({"error": "not found"}, 404)
         return True
-    backup_versions_db()
     handler.send_json({"ok": True})
     return True
 

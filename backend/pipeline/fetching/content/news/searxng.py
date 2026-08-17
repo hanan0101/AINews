@@ -5,6 +5,10 @@ from .queries import *
 from .normalization import *
 
 def searxng_discovery_fetch_html(url: str, timeout: int = SEARXNG_DISCOVERY_PAGE_TIMEOUT) -> tuple[str, str, str]:
+    url_reject_reason = url_safety_reject_reason(url)
+    if url_reject_reason:
+        log_event("security.link_rejected", url=url, reason=url_reject_reason, source="searxng")
+        return "", url, f"url_blocked:{url_reject_reason}"
     try:
         response = requests.get(
             url,

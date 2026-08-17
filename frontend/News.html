@@ -8,6 +8,7 @@
   <title>نشرة أخبار الذكاء الاصطناعي</title>
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="news.css">
+  <link rel="stylesheet" href="news-fix-level.css">
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="shared-functions.js"></script>
@@ -90,7 +91,7 @@
         <!-- News-count filter: changes how many news cards are displayed and lets the page height follow the count. -->
         <div class="news-count-filter" id="newsCountFilter" aria-label="News count filter">
           <button class="level-filter-toggle" type="button" id="newsCountFilterToggle" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9 L12 15 L18 9" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <span>4 أخبار</span>
           </button>
           <div class="level-filter-menu" role="menu" aria-label="اختيار عدد الأخبار">
@@ -99,10 +100,17 @@
           </div>
         </div>
         <button class="toolbar-btn save-version-btn" data-action="save-version" onclick="saveVersion()" aria-label="حفظ ونشر" title="حفظ ونشر"><span>حفظ ونشر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h7"/></svg></button>
-        <button class="toolbar-btn" data-action="download" aria-label="تحميل" title="تحميل"><span>تحميل</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
+        <div class="download-export" id="downloadExport">
+          <button class="toolbar-btn" data-action="download" type="button" aria-label="تحميل" aria-haspopup="menu" aria-expanded="false"><span>تحميل</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
+          <div class="download-format-menu" role="menu" aria-label="خيارات التحميل">
+            <button type="button" role="menuitem" data-download-format="pdf"><strong>PDF</strong><span>نسخة عالية الجودة للطباعة والمشاركة</span></button>
+            <button type="button" role="menuitem" data-download-format="pptx"><strong>PowerPoint (.pptx)</strong><span>شرائح عالية الجودة قابلة للتعديل</span></button>
+          </div>
+        </div>
         <button class="toolbar-btn" data-action="preview" aria-label="معاينة" title="معاينة"><span>معاينة</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="toolbar-btn" data-action="settings" aria-label="الإعدادات" title="الإعدادات"><span>الإعدادات</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.3.37.8.6 1.4.6H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.4Z"/></svg></button>
-        <button class="toolbar-btn" data-action="undo" aria-label="تراجع" title="تراجع"><span>تراجع</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6l-3 3"/></svg></button>
+        <button class="toolbar-btn" data-action="redo" aria-label="إعادة" title="إعادة"><span>إعادة</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <button class="toolbar-btn" data-action="undo" aria-label="تراجع" title="تراجع"><span>تراجع</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
       </div>
     </header>
 
@@ -148,7 +156,7 @@
       </div>
       <div class="tip-pop edit" id="tipEdit" aria-live="polite">
         <h4>يمكنك تحرير النشرة</h4>
-        <p>يمكن تعديل كل بطاقة بشكل منفصل: العنوان، الوصف، الصورة، والمصدر.</p>
+        <p>يمكنك تعديل كل بطاقة بشكل منفصل.</p>
         <div class="tip-actions"><button class="tip-btn" data-tip-next="edit">التالي</button></div>
       </div>
       <div class="tip-pop reorder" id="tipReorder" aria-live="polite">
@@ -184,14 +192,28 @@
         <div class="field"><label for="editUrl">الرابط</label><input id="editUrl"></div>
         <!-- Active manual overrides: source text and company logo URL are saved back to news.json. -->
         <div class="field"><label for="editSource">المصدر</label><input id="editSource" placeholder="اسم المصدر أو الشركة"></div>
-        <div class="field" id="editLevelField" style="display:none">
-          <label for="editLevel">المستوى</label>
-          <select id="editLevel">
-            <option value="Beginner">مبتدئ</option>
-            <option value="Intermediate">متوسط</option>
-            <option value="Advanced">متقدم</option>
-          </select>
-        </div>
+
+        <!-- مستوى المحرر محذوف حسب طلب المستخدم -->
+          <div class="field" id="editLevelField" style="display:block">
+            <label id="editLevelLabel">المستوى</label>
+            <select id="editLevel" class="native-level-select-hidden" aria-hidden="true" tabindex="-1">
+              <option value="Beginner">مبتدئ</option>
+              <option value="Intermediate">متوسط</option>
+              <option value="Advanced">متقدم</option>
+            </select>
+            <div class="edit-level-filter" id="editLevelFilter">
+              <button class="edit-level-toggle" type="button" id="editLevelToggle" aria-expanded="false" aria-labelledby="editLevelLabel">
+                <span id="editLevelText">مبتدئ</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9 L12 15 L18 9" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="edit-level-menu" role="menu" aria-label="اختيار المستوى">
+                <button class="edit-level-option active" type="button" data-edit-level="Beginner"><span>مبتدئ</span></button>
+                <button class="edit-level-option" type="button" data-edit-level="Intermediate"><span>متوسط</span></button>
+                <button class="edit-level-option" type="button" data-edit-level="Advanced"><span>متقدم</span></button>
+              </div>
+            </div>
+          </div>
+
         <div class="field"><label for="editLogo">شعار الشركة</label><input id="editLogo" type="text" inputmode="url" placeholder="https://example.com/logo.png"></div>
         <div class="field">
           <label for="editLogoSize">حجم الشعار</label>
@@ -273,7 +295,7 @@
 
   <div class="preview-overlay" id="previewOverlay">
     <div class="preview-window">
-      <div class="preview-toolbar"><button class="toolbar-btn" data-close="preview">إغلاق</button></div>
+      <div class="preview-toolbar"><button class="btn" data-close="preview">إغلاق</button></div>
       <div id="previewMount"></div>
     </div>
   </div>

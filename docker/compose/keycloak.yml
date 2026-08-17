@@ -1,18 +1,30 @@
 # Keycloak: authentication provider. Runs independently of the app.
 # Port 8180 (host) avoids a conflict with SearXNG's 8080.
-# Dev-mode credentials below are for local use only — change them, and drop
-# `start-dev` for a real production run. See docs/DEPLOYMENT.md.
+# Drop `start-dev` for a real production run. See docs/DEPLOYMENT.md.
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
     # Do not set container_name here. Compose generates a project-scoped name
     # while the service remains reachable as `keycloak` on the shared network.
     # A fixed global name prevents parallel checkouts/stacks from starting.
+    # KEYCLOAK_ADMIN_PASSWORD is intentionally NOT set here. This container
+    # reads backend/.env.local directly (below) so the master-realm admin
+    # password is a random per-install value instead of a hardcoded default -
+    # run `python -m scripts.ensure_local_secrets` once before the first
+    # `docker compose up` so the value exists before this container starts.
+    # backend/auth/keycloak_bootstrap.py reads the same value (under
+    # KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD) to log in as this account.
+    # Only .env.local is wired in here (not the full backend/.env, unlike the
+    # app container) so Keycloak doesn't end up holding unrelated AI provider
+    # API keys in its own process environment. If you want to set
+    # KEYCLOAK_ADMIN_PASSWORD by hand instead of letting it auto-generate,
+    # set it in backend/.env.local specifically, not backend/.env.
+    env_file:
+      - ../../backend/.env.local
     environment:
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin123
     ports:
-      - "8180:8080"
+      - "127.0.0.1:8180:8080"
     command: start-dev
     # Without this, Keycloak's embedded H2 database (realm, client, roles,
     # users - everything from SETUP.md Step 4) lives only inside the

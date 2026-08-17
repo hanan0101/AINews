@@ -1,10 +1,14 @@
 # This file is part of the AI newsletter system.
 import http.server
+import ipaddress
 import json
 import os
+import socket
 import socketserver
 import sys
+import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -13,6 +17,7 @@ from dotenv import load_dotenv
 from backend.utils.debug_logging import configure_console_encoding, trace
 # PDF export helpers: render the newsletter preview HTML into downloadable PDF bytes.
 from backend.utils.pdf_export_service import export_preview_pdf_bytes, PDF_EXPORT_PROFILE
+from backend.utils.pptx_export_service import export_newsletter_pptx_bytes
 from backend.utils.text_normalization import cleanup_text_fields, repair_mojibake_text
 from backend.server.card_items import (
     clamp_logo_position,# keeps logo x/y positions inside safe UI limits.
@@ -50,6 +55,7 @@ from backend.storage.newsletter_store import (
     save_store,
     update_card_from_client,
     visible_items,
+    StoreConflict,
 )
 from backend.storage.manage_versions.version_routes import (
     handle_versions_delete,
@@ -128,9 +134,112 @@ ADMIN_GET_PREFIXES = (
 
 # AUTH BLOCK: Only explicit read/download POSTs are user-accessible.
 # Reason: Existing download flow posts rendered HTML to export a PDF.
-USER_POST_PATHS = {"/auth/logout", API_BASE + "/export-pdf"}
+USER_POST_PATHS = {"/auth/logout", API_BASE + "/export-pdf", API_BASE + "/export-pptx"}
 
 TRACE_HTTP = os.getenv("SERVER_TRACE_HTTP", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+# AVAILABILITY BLOCK: Cap JSON request bodies so a single request can't
+# exhaust memory. Every legitimate JSON payload this app sends (card edits,
+# refill requests, settings) is well under this. Multipart file uploads (PDF
+# import) are exempt - they already have their own 25MB cap in
+# read_multipart_upload (backend/storage/manage_versions/pdf_import.py).
+MAX_JSON_BODY_BYTES = max(1024, int(os.getenv("MAX_JSON_BODY_BYTES", str(2 * 1024 * 1024)) or str(2 * 1024 * 1024)))
+
+# AVAILABILITY BLOCK: PDF and PPTX export both launch a full Chromium process
+# (see backend/utils/pdf_export_service.py, pptx_export_service.py) - cap how
+# many can run at once so a burst of export requests can't exhaust memory/CPU.
+PDF_EXPORT_MAX_CONCURRENT = max(1, int(os.getenv("PDF_EXPORT_MAX_CONCURRENT", "1") or "1"))
+PDF_EXPORT_SEMAPHORE = threading.Semaphore(PDF_EXPORT_MAX_CONCURRENT)
+
+# AVAILABILITY BLOCK: Simple per-user sliding-window rate limit on PDF/PPTX
+# export, on top of the server-wide concurrency cap above.
+PDF_EXPORT_RATE_LIMIT_PER_MINUTE = max(1, int(os.getenv("PDF_EXPORT_RATE_LIMIT_PER_MINUTE", "6") or "6"))
+_PDF_EXPORT_RATE_LIMIT_LOCK = threading.Lock()
+_pdf_export_recent_requests = {}
+
+
+def _pdf_export_rate_limit_allows(username):
+    now = time.time()
+    cutoff = now - 60
+    key = username or "anonymous"
+    with _PDF_EXPORT_RATE_LIMIT_LOCK:
+        times = _pdf_export_recent_requests.setdefault(key, [])
+        while times and times[0] < cutoff:
+            times.pop(0)
+        if len(times) >= PDF_EXPORT_RATE_LIMIT_PER_MINUTE:
+            return False
+        times.append(now)
+        return True
+
+# SSRF BLOCK: Hostnames the image proxy must never reach, on top of the IP
+# range checks below. These are internal-only in every deployment of this
+# app (see docker-compose.yml's service names / localhost), so there is no
+# legitimate image source among them.
+IMAGE_PROXY_BLOCKED_HOSTNAMES = {
+    "localhost", "keycloak", "qdrant", "searxng", "postgres", "ainewsletter",
+}
+IMAGE_PROXY_ALLOWED_PORTS = {80, 443}
+
+
+# SSRF BLOCK: True if this resolved IP must never be reached by the image
+# proxy (loopback, private/RFC1918, link-local - which also covers the
+# 169.254.169.254 cloud metadata address, and other non-public ranges).
+# Checks the IPv4-mapped address too so "::ffff:127.0.0.1" can't slip past
+# an IPv6-only check.
+def _is_blocked_proxy_ip(ip_str):
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return True
+    candidates = [ip]
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped:
+        candidates.append(mapped)
+    return any(
+        candidate.is_private
+        or candidate.is_loopback
+        or candidate.is_link_local
+        or candidate.is_reserved
+        or candidate.is_multicast
+        or candidate.is_unspecified
+        for candidate in candidates
+    )
+
+
+# SSRF BLOCK: Resolve and validate a candidate image URL before the proxy is
+# allowed to fetch it. Reason: send_image_proxy used to fetch any http/https
+# URL a caller supplied, which could reach internal services, private
+# addresses, or the cloud metadata endpoint. Called both on the original
+# request and again on every redirect hop (see _SafeImageRedirectHandler).
+def _validate_image_proxy_url(url):
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except Exception:
+        return False
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return False
+    hostname = parsed.hostname.lower().rstrip(".")
+    if hostname in IMAGE_PROXY_BLOCKED_HOSTNAMES or hostname.endswith((".local", ".internal")):
+        return False
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    if port not in IMAGE_PROXY_ALLOWED_PORTS:
+        return False
+    try:
+        resolved = socket.getaddrinfo(hostname, None)
+    except Exception:
+        return False
+    if not resolved:
+        return False
+    return all(not _is_blocked_proxy_ip(info[4][0]) for info in resolved)
+
+
+# SSRF BLOCK: Re-validate the destination on every redirect hop instead of
+# letting urllib silently follow a redirect straight into a blocked address.
+class _SafeImageRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _validate_image_proxy_url(newurl):
+            raise urllib.error.HTTPError(newurl, 403, "Blocked redirect destination", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 # Performs the safe login next helper step.
@@ -487,6 +596,13 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, ReusableTCPServer):
 
 # Server role: HTTP handler for static UI files and JSON API routes.
 class BackendHandler(http.server.SimpleHTTPRequestHandler):
+    # AVAILABILITY BLOCK: A client that stalls mid-request (never finishes
+    # sending headers/body) used to hold its thread open forever. This
+    # applies to socket reads only, not to how long a request handler takes
+    # to run - a slow PDF export or AI generation isn't blocked on socket
+    # I/O, so this doesn't affect either.
+    timeout = max(5, int(os.getenv("HTTP_REQUEST_READ_TIMEOUT_SECONDS", "30") or "30"))
+
     # Server role: Bind the handler to frontend/ static files.
     def __init__(self, *args, **kwargs):
         # Always serve static files from frontend/, even if the process working
@@ -508,19 +624,6 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         if TRACE_HTTP:
             trace(f"HTTP {self.address_string()} - {format % args}")
-
-    # Server role: Add CORS headers for local frontend/API access.
-    def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        self.send_header("Access-Control-Allow-Credentials", "true")
-        request_path = urllib.parse.urlparse(getattr(self, "path", "")).path.lower()
-        if request_path.endswith(".html"):
-            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-            self.send_header("Pragma", "no-cache")
-            self.send_header("Expires", "0")
-        super().end_headers()
 
     # Server role: Answer CORS preflight requests.
     def do_OPTIONS(self):
@@ -966,8 +1069,17 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
         pending.extend(header for header in cookie_headers if header)
         self._pending_cookie_headers = pending
 
-    # Performs the end headers helper step.
+    # Performs the end headers helper step: CORS, cache-control, and any pending Set-Cookie headers.
     def end_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Access-Control-Allow-Credentials", "true")
+        request_path = urllib.parse.urlparse(getattr(self, "path", "")).path.lower()
+        if request_path.endswith((".html", ".css", ".js")):
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
         pending = getattr(self, "_pending_cookie_headers", [])
         for cookie_header in pending:
             self.send_header("Set-Cookie", cookie_header)
@@ -1026,6 +1138,24 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
         raw = self.rfile.read(length).decode("utf-8", errors="replace") if length else ""
         return {key: values[0] if values else "" for key, values in urllib.parse.parse_qs(raw).items()}
 
+    # AVAILABILITY BLOCK: Reject an oversized body before reading any of it
+    # into memory, based on the declared Content-Length alone. Multipart
+    # uploads (PDF import) are exempt - see MAX_JSON_BODY_BYTES. Closes the
+    # connection afterward since the client may still be sending more bytes
+    # than we're willing to buffer.
+    def reject_if_body_too_large(self, max_bytes=MAX_JSON_BODY_BYTES):
+        if "multipart/form-data" in (self.headers.get("Content-Type", "") or ""):
+            return False
+        try:
+            length = int(self.headers.get("Content-Length", 0) or 0)
+        except (TypeError, ValueError):
+            length = 0
+        if length <= max_bytes:
+            return False
+        self.close_connection = True
+        self.send_json({"error": "Request body too large"}, 413)
+        return True
+
     # Server role: Send no-cache JSON responses.
     def send_json(self, data, status=200):
         data = cleanup_text_fields(data, all_strings=True)
@@ -1052,14 +1182,23 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    # Server role: Send an editable PowerPoint presentation response.
+    def send_pptx(self, payload, filename="AINewsletter_v02.pptx"):
+        self.send_response(200)
+        self.send_header(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        )
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     # Server role: Proxy remote images needed by the UI/PDF preview.
     def send_image_proxy(self, query):
         raw_url = (query.get("url", [""])[0] or "").strip()
-        try:
-            parsed = urllib.parse.urlparse(raw_url)
-        except Exception:
-            parsed = None
-        if not parsed or parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        if not _validate_image_proxy_url(raw_url):
             self.send_json({"error": "Invalid image URL"}, 400)
             return
         try:
@@ -1070,7 +1209,8 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                     "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
                 },
             )
-            with urllib.request.urlopen(request, timeout=10) as response:
+            opener = urllib.request.build_opener(_SafeImageRedirectHandler)
+            with opener.open(request, timeout=10) as response:
                 content_type = response.headers.get("Content-Type", "image/png").split(";")[0].strip()
                 payload = response.read(3 * 1024 * 1024 + 1)
             if len(payload) > 3 * 1024 * 1024:
@@ -1105,7 +1245,6 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
         query = urllib.parse.parse_qs(parsed_url.query)
-        auto_fetch_enabled = (query.get("auto", ["0"])[0] or "0").lower() in {"1", "true", "yes", "on"}
         if TRACE_HTTP:
             trace(f"GET {path or '/'}")
         # AUTH BLOCK: Public login page and protected read routes.
@@ -1157,15 +1296,15 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
             user = self.current_user()
             store = load_store() if user.get("is_admin") else load_published_store()
             hidden_news = store.get("items", [])[DISPLAY_COUNTS.get("items", REQUIRED_COUNTS["items"]):]
+            # AUTHZ BLOCK: GET /api/news no longer triggers generation, even
+            # with ?auto=1. Reason: this route only requires the "user" role
+            # (see USER_GET_PREFIXES), so any logged-in viewer could trigger a
+            # paid AI-generation run. Missing content is now only ever fetched
+            # through POST /api/refill, which is admin-only (ensure_admin) and
+            # already single-flighted (GENERATOR_LOCK in generator_bridge.py).
             feedback = []
             missing = missing_sections(store)
             display_missing = missing_display_sections(store)
-            if auto_fetch_enabled and display_missing and not GENERATOR_STATE["running"] and not NEWS_JSON_ONLY_MODE:
-                section = display_missing[0] if len(display_missing) == 1 else None
-                result = start_generator_background(section, reason="auto")
-                feedback.append(result["message"])
-            elif auto_fetch_enabled and NEWS_JSON_ONLY_MODE:
-                feedback.append("JSON-only mode active. Showing current news.json content only.")
             return self.send_json({
                 "items": visible_items(store, "items"),
                 "backup_news": hidden_news,
@@ -1233,8 +1372,18 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
                 return self.send_json({"latest_updates": [], "timestamp": None, "message": "No AI updates yet"})
         return super().do_GET()
 
-    # Server role: Handle generate/refill/edit/settings API actions.
+    # DATA INTEGRITY BLOCK: Turn a StoreConflict raised anywhere in the POST
+    # handling (a direct edit, or several layers deep through single-card
+    # refill/version restore) into a clean 409 instead of an unhandled
+    # exception. See backend/storage/newsletter_store.py save_store().
     def do_POST(self):
+        try:
+            return self._do_POST_impl()
+        except StoreConflict as exc:
+            return self.send_json({"success": False, "error": str(exc), "conflict": True}, 409)
+
+    # Server role: Handle generate/refill/edit/settings API actions.
+    def _do_POST_impl(self):
         path = urllib.parse.urlparse(self.path).path
         if TRACE_HTTP:
             trace(f"POST {path}")
@@ -1265,6 +1414,8 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
         else:
             if not self.ensure_admin(path):
                 return
+        if self.reject_if_body_too_large():
+            return
         if handle_versions_post(self, path):
             return
         if path in {f"{API_BASE}/generation/cancel", f"{API_BASE}/refill/cancel"}:
@@ -1313,41 +1464,73 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
             )
 
         if path == f"{API_BASE}/export-pdf":
-            preview_html = str(data.get("html") or "")
-            width = data.get("width") or 1000
-            height = data.get("height") or 1340
-            direction = str(data.get("direction") or "rtl")
-            pdf_profile = str(data.get("pdf_profile") or data.get("share_profile") or PDF_EXPORT_PROFILE)
-            pdf_scale = data.get("scale")
-            source_html = str(data.get("source_html") or "")
-            host = self.headers.get("Host") or "127.0.0.1:8000"
-            origin = f"http://{host}"
-            try:
-                pdf_bytes = export_preview_pdf_bytes(
-                    preview_html,
-                    width,
-                    height,
-                    origin,
-                    direction,
-                    scale=pdf_scale,
-                    profile=pdf_profile,
-                    source_file=source_html,
+            if not _pdf_export_rate_limit_allows((self.current_user() or {}).get("username")):
+                return self.send_json(
+                    {"success": False, "error": "Too many export requests. Try again in a moment."}, 429
                 )
-                newsletter_json = data.get("newsletter_json")
-                if isinstance(newsletter_json, dict):
-                    trace(
-                        "PDF export received newsletter_json "
-                        f"items={len(newsletter_json.get('items') or [])} "
-                        f"backup={len(newsletter_json.get('backup_news') or [])} "
-                        f"courses={len(newsletter_json.get('courses') or [])}"
+            if not PDF_EXPORT_SEMAPHORE.acquire(blocking=False):
+                return self.send_json(
+                    {"success": False, "error": "An export is already in progress. Try again shortly."}, 429
+                )
+            try:
+                preview_html = str(data.get("html") or "")
+                width = data.get("width") or 1000
+                height = data.get("height") or 1340
+                direction = str(data.get("direction") or "rtl")
+                pdf_profile = str(data.get("pdf_profile") or data.get("share_profile") or PDF_EXPORT_PROFILE)
+                pdf_scale = data.get("scale")
+                source_html = str(data.get("source_html") or "")
+                host = self.headers.get("Host") or "127.0.0.1:8000"
+                origin = f"http://{host}"
+                try:
+                    pdf_bytes = export_preview_pdf_bytes(
+                        preview_html,
+                        width,
+                        height,
+                        origin,
+                        direction,
+                        scale=pdf_scale,
+                        profile=pdf_profile,
+                        source_file=source_html,
                     )
-                    pdf_bytes = attach_newsletter_json_to_pdf(pdf_bytes, newsletter_json)
-                else:
-                    trace("PDF export did not receive newsletter_json; exported PDF will not be fully re-importable")
-            except Exception as exc:
-                trace(f"PDF export failed: {exc}")
-                return self.send_json({"success": False, "error": str(exc)}, 500)
-            return self.send_pdf(pdf_bytes)
+                    newsletter_json = data.get("newsletter_json")
+                    if isinstance(newsletter_json, dict):
+                        trace(
+                            "PDF export received newsletter_json "
+                            f"items={len(newsletter_json.get('items') or [])} "
+                            f"backup={len(newsletter_json.get('backup_news') or [])} "
+                            f"courses={len(newsletter_json.get('courses') or [])}"
+                        )
+                        pdf_bytes = attach_newsletter_json_to_pdf(pdf_bytes, newsletter_json)
+                    else:
+                        trace("PDF export did not receive newsletter_json; exported PDF will not be fully re-importable")
+                except Exception as exc:
+                    trace(f"PDF export failed: {exc}")
+                    return self.send_json({"success": False, "error": str(exc)}, 500)
+                return self.send_pdf(pdf_bytes)
+            finally:
+                PDF_EXPORT_SEMAPHORE.release()
+
+        if path == f"{API_BASE}/export-pptx":
+            if not _pdf_export_rate_limit_allows((self.current_user() or {}).get("username")):
+                return self.send_json(
+                    {"success": False, "error": "Too many export requests. Try again in a moment."}, 429
+                )
+            if not PDF_EXPORT_SEMAPHORE.acquire(blocking=False):
+                return self.send_json(
+                    {"success": False, "error": "An export is already in progress. Try again shortly."}, 429
+                )
+            try:
+                host = self.headers.get("Host") or "127.0.0.1:8000"
+                origin = f"http://{host}"
+                try:
+                    pptx_bytes = export_newsletter_pptx_bytes(data, origin)
+                except Exception as exc:
+                    trace(f"PowerPoint export failed: {exc}")
+                    return self.send_json({"success": False, "error": str(exc)}, 500)
+                return self.send_pptx(pptx_bytes)
+            finally:
+                PDF_EXPORT_SEMAPHORE.release()
 
         if path == f"{API_BASE}/refill":
             section = data.get("section")
@@ -1486,14 +1669,23 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
 
         return self.send_json({"error": "Route not found"}, 404)
 
-    # Server role: Handle direct card/settings state updates.
+    # DATA INTEGRITY BLOCK: See do_POST's wrapper - same reasoning.
     def do_PUT(self):
+        try:
+            return self._do_PUT_impl()
+        except StoreConflict as exc:
+            return self.send_json({"success": False, "error": str(exc), "conflict": True}, 409)
+
+    # Server role: Handle direct card/settings state updates.
+    def _do_PUT_impl(self):
         path = urllib.parse.urlparse(self.path).path
         if TRACE_HTTP:
             trace(f"PUT {path}")
         # AUTH BLOCK: All PUT routes edit newsletter/version state.
         # Reason: Read-only users must not modify items, settings, order, or versions.
         if not self.ensure_admin(path):
+            return
+        if self.reject_if_body_too_large():
             return
         data = read_json_body(self)
         if handle_versions_put(self, path, data):
@@ -1642,8 +1834,15 @@ class BackendHandler(http.server.SimpleHTTPRequestHandler):
 
         return self.send_json({"error": "Route not found"}, 404)
 
-    # Handles do DELETE for the HTTP API layer.
+    # DATA INTEGRITY BLOCK: See do_POST's wrapper - same reasoning.
     def do_DELETE(self):
+        try:
+            return self._do_DELETE_impl()
+        except StoreConflict as exc:
+            return self.send_json({"success": False, "error": str(exc), "conflict": True}, 409)
+
+    # Handles do DELETE for the HTTP API layer.
+    def _do_DELETE_impl(self):
         path = urllib.parse.urlparse(self.path).path
         if TRACE_HTTP:
             trace(f"DELETE {path}")

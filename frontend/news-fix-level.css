@@ -1,0 +1,13 @@
+/* Overrides for the edit-level UI inside the edit-card modal (#editOverlay). */
+
+/* Hide tiny legacy check boxes */
+#editOverlay .level-filter-check { display: none !important; }
+
+/* Hide level label and dots in feature cards (removes 'المستوى: مبتدئ' and the small dots) */
+.feature-meta > span,
+.feature-meta .level-dots {
+  display: none !important;
+}
+
+/* The toggle (full-width, shows the current level + arrow) and the rounded list it opens
+   are styled in news.css — this file only keeps the small legacy cleanups above. */

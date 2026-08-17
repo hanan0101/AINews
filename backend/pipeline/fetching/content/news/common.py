@@ -8,6 +8,7 @@ SearXNG, Exa, tracker, merge, and runtime modules.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import math
 import re
@@ -378,6 +379,83 @@ DISALLOWED_SOURCE_DOMAINS = (
     "zoominfo.com",
     "leadiq.com",
 )
+
+# AI Security Layer 1 (hard gate): reject SSRF-shaped and malformed links
+# before any candidate is fetched, parsed, or stored. Checked at the top of
+# every function that does requests.get(url, ...) on a candidate's own URL,
+# and again inside normalize_candidate() for the URL that ends up stored.
+ALLOWED_URL_SCHEMES = {"http", "https"}
+
+# Hostnames/suffixes that never point to a legitimate public news source.
+# Suffix matching mirrors domain_blocked()'s "== or endswith('.'+blocked)"
+# convention below, so "local"/"internal" also cover subdomains like
+# metadata.google.internal without needing every metadata hostname listed.
+SSRF_BLOCKED_HOST_PATTERNS = (
+    "localhost",
+    "local",
+    "internal",
+)
+
+# Punycode (xn--) hosts are rejected by default (homograph-lookalike risk).
+# Empty on purpose - add a specific host here only if a real source needs it.
+SSRF_ALLOWED_PUNYCODE_HOSTS: tuple[str, ...] = ()
+
+
+def url_safety_reject_reason(url: str) -> str:
+    """Hard SSRF/malformed-link gate. Empty string means the URL is safe to fetch."""
+    raw = str(url or "").strip()
+    if not raw:
+        return "missing_url"
+    try:
+        parsed = urlparse(raw)
+    except Exception:
+        return "unparseable_url"
+    if (parsed.scheme or "").lower() not in ALLOWED_URL_SCHEMES:
+        return "disallowed_url_scheme"
+    if parsed.username or parsed.password:
+        return "url_contains_userinfo"
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        return "missing_host"
+    try:
+        ipaddress.ip_address(hostname)
+        return "raw_ip_literal_host"
+    except ValueError:
+        pass
+    if any(hostname == blocked or hostname.endswith(f".{blocked}") for blocked in SSRF_BLOCKED_HOST_PATTERNS):
+        return "blocked_internal_host"
+    if hostname not in SSRF_ALLOWED_PUNYCODE_HOSTS and any(label.startswith("xn--") for label in hostname.split(".")):
+        return "punycode_host_not_allowlisted"
+    return ""
+
+
+# AI Security Layer 1 (neutralize, not reject): fetched article text can
+# carry instruction-shaped spans aimed at a later AI step (prompt injection).
+# Only the matched span is replaced - the rest of the article still proceeds
+# through the pipeline. English + Arabic patterns per the reviewed design.
+INJECTION_NEUTRALIZED_PLACEHOLDER = "[محتوى محذوف]"
+
+INJECTION_SPAN_PATTERNS = (
+    ("ignore_previous_instructions", re.compile(r"ignore\s+(?:all\s+|any\s+)?(?:previous|prior|above)\s+instructions", re.IGNORECASE)),
+    ("disregard_instructions", re.compile(r"disregard\s+.{0,40}?instructions", re.IGNORECASE)),
+    ("system_role_marker", re.compile(r"system\s*:", re.IGNORECASE)),
+    ("you_are_now", re.compile(r"you\s+are\s+now\b", re.IGNORECASE)),
+    ("ar_ignore_previous_instructions", re.compile(r"تجاهل\s+التعليمات\s+السابقة")),
+    ("ar_you_are_now", re.compile(r"أنت\s+الآن")),
+)
+
+
+def neutralize_injection_spans(text: str) -> tuple[str, list[dict]]:
+    """Strip prompt-injection-shaped spans from fetched text; keep the rest intact."""
+    value = str(text or "")
+    matches: list[dict] = []
+    for pattern_name, pattern in INJECTION_SPAN_PATTERNS:
+        def _replace(match: re.Match, _name: str = pattern_name) -> str:
+            matches.append({"pattern": _name, "span_length": len(match.group(0))})
+            return INJECTION_NEUTRALIZED_PLACEHOLDER
+        value = pattern.sub(_replace, value)
+    return value, matches
+
 
 LOCAL_OR_UNKNOWN_APP_TERMS = (
     "australia-only",

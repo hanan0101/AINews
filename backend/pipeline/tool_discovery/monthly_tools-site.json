@@ -1,6 +1,6 @@
 {
   "schema": "monthly_tools_site_v1",
-  "updated": "2026-07-29",
+  "updated": "2026-08-15",
   "live_discovery": {
     "enabled": true,
     "ran": false,
@@ -10,6 +10,8 @@
   },
   "tools": [
     "ChatGPT",
+    "Sheets canvas",
+    "TheBean.ai",
     "InstaLILY",
     "Emergent",
     "Rime",
@@ -64,24 +66,17 @@
   ],
   "auto_expansion": {
     "ran": true,
-    "pages": 0,
-    "accepted": 0,
-    "errors": [
-      "exa:aggregators:ConnectionError",
-      "exa:aggregators:ConnectionError",
-      "exa:funding_growth:ConnectionError",
-      "exa:aggregators:ConnectionError",
-      "exa:funding_growth:ConnectionError",
-      "exa:funding_growth:ConnectionError"
-    ],
-    "updated": "2026-07-29",
-    "added": 0,
+    "pages": 42,
+    "accepted": 2,
+    "errors": [],
+    "updated": "2026-08-15",
+    "added": 2,
     "refresh_days": 7,
     "inactive_after_days": 60,
     "source_counts": {
-      "funding_growth": 30,
-      "aggregators": 3,
-      "searxng_parallel_discovery": 18
+      "aggregators": 1,
+      "funding_growth": 22,
+      "searxng_parallel_discovery": 19
     }
   },
   "tool_records": [
@@ -119,10 +114,78 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
+    },
+    {
+      "tool": "Sheets canvas",
+      "company": "Google",
+      "group": "general_market",
+      "sector": "work_productivity",
+      "primary_sector": "work_productivity",
+      "sector_hint": "general_market",
+      "tool_type": "general",
+      "cultural_applications": [],
+      "secondary_sectors": [],
+      "reason": "Launched globally within Google Sheets, a product used by over 900 million monthly active users.",
+      "mention_count": 1,
+      "best_rank": null,
+      "popularity_score": 60,
+      "sources": [
+        "auto_discovered",
+        "exa",
+        "searxng"
+      ],
+      "official_site": "blog.google",
+      "official_site_reason": "auto_detected_domain",
+      "official_site_verified": true,
+      "official_site_status": "active",
+      "sector_classification_source": "gpt_auto_expand_tool_list",
+      "updated": "2026-08-15",
+      "discovery_date": "2026-08-15",
+      "status": "active",
+      "inactive_reason": "",
+      "updates_last_60_days": null,
+      "last_update_seen": "",
+      "activity_score": 60,
+      "activity_checked_at": "",
+      "source": "auto_discovered"
+    },
+    {
+      "tool": "TheBean.ai",
+      "company": "TheBean.ai",
+      "group": "general_market",
+      "sector": "physical_health",
+      "primary_sector": "physical_health",
+      "sector_hint": "daily_assistant",
+      "tool_type": "specialized",
+      "cultural_applications": [],
+      "secondary_sectors": [],
+      "reason": "Globally launched AI fitness platform featured in tech press this week.",
+      "mention_count": 1,
+      "best_rank": null,
+      "popularity_score": 60,
+      "sources": [
+        "auto_discovered",
+        "exa",
+        "searxng"
+      ],
+      "official_site": "thebean.ai",
+      "official_site_reason": "",
+      "official_site_verified": false,
+      "official_site_status": "active",
+      "sector_classification_source": "gpt_auto_expand_tool_list",
+      "updated": "2026-08-15",
+      "discovery_date": "2026-08-15",
+      "status": "active",
+      "inactive_reason": "",
+      "updates_last_60_days": null,
+      "last_update_seen": "",
+      "activity_score": 60,
+      "activity_checked_at": "",
+      "source": "auto_discovered"
     },
     {
       "tool": "InstaLILY",
@@ -153,9 +216,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -187,9 +250,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -221,9 +284,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -255,9 +318,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -287,11 +350,11 @@
       "updated": "2026-07-18",
       "discovery_date": "2026-07-18",
       "status": "dormant",
-      "inactive_reason": "activity_score 25 below dormant threshold 40",
+      "inactive_reason": "activity_score 0 below dormant threshold 40",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-23T08:34:09.079939+00:00",
-      "activity_score": 25,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_score": 0,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -323,9 +386,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -357,9 +420,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -391,9 +454,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -425,9 +488,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 55,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 85,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -459,9 +522,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
+      "last_update_seen": "2026-07-30T12:46:16.734173+00:00",
       "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -494,9 +557,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -528,9 +591,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -563,8 +626,8 @@
       "inactive_reason": "",
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_score": 55,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -596,9 +659,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -630,9 +693,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -664,9 +727,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "auto_discovered"
     },
     {
@@ -701,9 +764,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -738,9 +801,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -775,9 +838,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -812,9 +875,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "live_monthly_discovery"
     },
     {
@@ -844,9 +907,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools"
     },
     {
@@ -876,9 +939,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools"
     },
     {
@@ -908,9 +971,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools"
     },
     {
@@ -940,9 +1003,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools"
     },
     {
@@ -974,7 +1037,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-12T00:15:35.290015+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools"
     },
     {
@@ -1004,9 +1067,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools"
     },
     {
@@ -1034,9 +1097,9 @@
       "status": "active",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 45,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 75,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1061,12 +1124,12 @@
       "sector_classification_source": "monthly_tools_site",
       "updated": "",
       "discovery_date": "",
-      "status": "dormant",
-      "inactive_reason": "activity_score 15 below dormant threshold 40",
+      "status": "active",
+      "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 15,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 45,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1094,9 +1157,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1124,9 +1187,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1156,7 +1219,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1184,9 +1247,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1214,9 +1277,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1241,12 +1304,12 @@
       "sector_classification_source": "monthly_tools_site",
       "updated": "",
       "discovery_date": "",
-      "status": "dormant",
-      "inactive_reason": "activity_score 15 below dormant threshold 40",
+      "status": "active",
+      "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 15,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 45,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1274,9 +1337,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1306,7 +1369,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-29T15:15:31.023028+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1334,9 +1397,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1364,9 +1427,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1394,9 +1457,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1424,9 +1487,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1451,12 +1514,12 @@
       "sector_classification_source": "monthly_tools_site",
       "updated": "",
       "discovery_date": "",
-      "status": "dormant",
-      "inactive_reason": "activity_score 15 below dormant threshold 40",
+      "status": "active",
+      "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 15,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 45,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1486,7 +1549,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-23T08:34:09.079939+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1516,7 +1579,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-20T11:20:28.397292+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1544,9 +1607,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1574,9 +1637,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1604,9 +1667,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1634,9 +1697,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1661,12 +1724,12 @@
       "sector_classification_source": "monthly_tools_site",
       "updated": "",
       "discovery_date": "",
-      "status": "dormant",
-      "inactive_reason": "activity_score 25 below dormant threshold 40",
+      "status": "active",
+      "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 25,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 55,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1694,9 +1757,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1724,9 +1787,9 @@
       "status": "",
       "inactive_reason": "",
       "updates_last_60_days": null,
-      "last_update_seen": "2026-07-30T07:50:14.257078+00:00",
-      "activity_score": 85,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "last_update_seen": "2026-07-30T13:12:54.877226+00:00",
+      "activity_score": 100,
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     },
     {
@@ -1756,7 +1819,7 @@
       "updates_last_60_days": null,
       "last_update_seen": "2026-07-23T06:46:56.115224+00:00",
       "activity_score": 0,
-      "activity_checked_at": "2026-07-30T10:07:49.469167+00:00",
+      "activity_checked_at": "2026-07-30T13:12:54.877226+00:00",
       "source": "monthly_tools_site"
     }
   ]

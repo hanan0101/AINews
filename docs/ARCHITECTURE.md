@@ -4,7 +4,14 @@ Read this to understand how the code is organized and how a request or a "Genera
 
 ## System Overview
 
-The system is a Python backend plus a static HTML/JS frontend that produces an Arabic AI newsletter. The backend owns discovery, filtering, model selection, card enrichment, persistence, authentication, versioning, and PDF export. The frontend (`frontend/News.html`) reads the generated newsletter JSON and lets editors review, edit, replace, reorder, and export cards.
+The system is a Python backend plus a static HTML/JS frontend that produces an
+Arabic AI newsletter. The backend owns discovery, filtering, model selection,
+card enrichment, persistence, authentication, versioning, cancellation, and
+PDF/PowerPoint export. The frontend (`frontend/News.html`) reads the generated newsletter
+JSON and lets administrators review, edit, delete, replace, reorder, change
+news/course levels, cancel generation, and export cards. Read-only users open
+the latest published newsletter directly instead of entering the generation
+screen.
 
 The generation pipeline is stage-based: each stage has one job and passes plain dictionaries/lists to the next stage. There is no heavyweight framework in the pipeline itself.
 
@@ -18,17 +25,23 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
 | SearXNG | Self-hosted metasearch used by discovery | News/course source fetching |
 | Qdrant | Vector database | Semantic duplicate detection across runs |
 | Exa API (external) | Live news/course search | News/course discovery |
-| TMDb API (external) | Film metadata | Optional AI-film suggestions |
+| TMDb API (external) | AI-film discovery and metadata | Film generation; this lane is skipped when `TMDB_API_KEY` is absent |
 | Gemini API (active configuration) | Selection, Arabic rewrite, and embeddings | Editorial judgment, rewriting, semantic duplicate memory |
 | OpenAI API (optional provider) | Alternative editorial model and embeddings | Used only when `AI_UPDATES_MODEL_PROVIDER=openai` |
 
 ## Request / Generation Flow
 
 1. `backend/server/http_server.py` serves the UI and the HTTP API.
-2. The **Generate** action calls `backend/pipeline/orchestrator.py`.
+2. The **Generate** action starts the background bridge, which calls
+   `backend/pipeline/orchestrator.py`; single-card runs use the same pipeline
+   through the single-refill bridge.
 3. The orchestrator runs the pipeline stages in order: tool discovery → fetching → filtering → modeling (selection and rewrite) → enrichment.
 4. Enrichment saves the newsletter JSON and a run report.
-5. The server exposes the saved state to the frontend, plus version history and PDF export routes.
+5. The server exposes the saved state to the frontend, plus card
+   edit/delete, cancellation, version history, and PDF/PowerPoint export routes.
+6. A cancellation request sets a cooperative stop signal. The pipeline stops
+   at the next safe boundary after the active external request and restores
+   the pre-run newsletter rather than saving incomplete output.
 
 ## Data Flow (inside a Generate run)
 
@@ -40,7 +53,7 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
    rewriting uses the rewrite role. Deterministic checks then reject stale
    events, unsupported claims, and summaries outside 50–64 Arabic words.
 5. **Enrichment** converts selected updates into frontend-ready cards: identity, logos, sector tags, and supporting course/film content.
-6. The server persists edits, versions and course selection history (PostgreSQL), and exports (PDF). Published manual cards are also indexed in Qdrant.
+6. The server persists edits, versions and course selection history (PostgreSQL), and exports (PDF and editable PowerPoint). Published manual cards are also indexed in Qdrant.
 
 ## Folder-to-Stage Map
 
@@ -60,14 +73,14 @@ The generation pipeline is stage-based: each stage has one job and passes plain 
 | `backend/logging` | Run ids, JSONL event logging, stage timing, summary helpers |
 | `backend/pipeline/modeling/{gemini_client,openai_client,model_client}.py` | External model interfaces and role/provider switching |
 | `backend/auth` | Keycloak integration plus the local view-only fallback login |
-| `backend/server` | HTTP routes, auth enforcement, store mutation, version routes, PDF export, single-card refill |
-| `backend/utils` | Shared text cleanup, debug timeline helpers, PDF rendering helpers |
+| `backend/server` | HTTP routes, auth enforcement, store mutation, version routes, PDF/PowerPoint export, single-card refill |
+| `backend/utils` | Shared text cleanup, debug timeline helpers, PDF rendering, and editable PowerPoint overlay helpers |
 | `frontend/News.html` | Markup shell only; it no longer embeds the application CSS or JavaScript |
 | `frontend/news.css` | Newsletter page and editor styles |
 | `frontend/newsletter-core.js` | API client, authentication state, shared page state, and basic actions |
 | `frontend/newsletter-rendering.js` | Card and newsletter rendering and view filters |
 | `frontend/newsletter-card-actions.js` | Edit, replace, navigate, drag/drop, and logo actions |
-| `frontend/newsletter-export-history.js` | PDF/export, undo/redo, pinning, and settings |
+| `frontend/newsletter-export-history.js` | PDF/PowerPoint export, undo/redo, pinning, and settings |
 | `frontend/newsletter-generation.js` | Generate progress, state loading, and page boot |
 | `frontend/shared-functions.js` | Small browser helpers shared by `News.html` and `versions.html` |
 | `docker` | Container and Compose support |

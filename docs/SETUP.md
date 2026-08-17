@@ -39,7 +39,15 @@ Never commit this file or send it to anyone — it holds live credentials.
 
 ## Step 3 — Start everything with Docker
 
-One command brings up the whole stack: the app itself, PostgreSQL (stores newsletter version history), SearXNG (the search engine discovery runs on), Keycloak (handles login), and Qdrant (remembers what's already been published, so it doesn't repeat itself).
+First, generate this install's local credentials — a one-time step that fills in `backend/.env.local` with a random password/secret for everything that used to ship as a fixed default (`admin`/`admin123`, `news`/`news123`, etc.). This has to run before Docker starts, because Keycloak reads its own admin password from that file the moment its container starts up:
+
+```powershell
+python -m scripts.ensure_local_secrets
+```
+
+It's safe to re-run any time — it only fills in what's missing and never overwrites a value you set yourself.
+
+Now bring up the whole stack: the app itself, PostgreSQL (stores newsletter version history), SearXNG (the search engine discovery runs on), Keycloak (handles login), and Qdrant (remembers what's already been published, so it doesn't repeat itself).
 
 ```powershell
 docker compose up --build
@@ -66,18 +74,20 @@ To shut everything down later:
 docker compose down
 ```
 
-For reference, here's what's now running and where you can reach it directly: the app on port `8000`, SearXNG on `8080`, Keycloak's admin console on `8180`, and Qdrant on `6333`/`6334`. PostgreSQL isn't exposed to your machine directly — only the app talks to it.
+For reference, here's what's now running and where you can reach it directly: the app on `127.0.0.1:8000` and Keycloak's admin console on `127.0.0.1:8180`. SearXNG, Qdrant, and PostgreSQL aren't exposed to your machine directly — only the app talks to them, over the internal Docker network.
 
 ## Step 4 — Log in
 
 There are two ways to log in, and neither one needs any manual Keycloak setup — the app provisions Keycloak itself on first startup (`backend/auth/keycloak_bootstrap.py`): it creates the `newsletter` realm, the `newsletter-app` client, the `admin`/`user` roles, and one ready-to-use admin account, all through Keycloak's Admin REST API. This is idempotent (it checks whether the realm already exists first), so it's safe on every restart and does nothing once it's already run.
 
-- **`news` / `news123`** — **view-only**, no Generate button. Works immediately, no Keycloak involved.
-- **`admin` / `admin123`** — the auto-provisioned Keycloak account with the `admin` role. This is what lets you click Generate, edit cards, and export. Just log in with it — nothing to create.
+- **`news`** — **view-only**, no Generate button. Works immediately, no Keycloak involved.
+- **`admin`** — the auto-provisioned Keycloak account with the `admin` role. This is what lets you click Generate, edit cards, and export. Just log in with it — nothing to create.
 
-(These bootstrap credentials come from `KEYCLOAK_BOOTSTRAP_USER`/`KEYCLOAK_BOOTSTRAP_USER_PASSWORD`, default `admin`/`admin123` — same defaults as the Keycloak master-realm admin console login itself, at `http://localhost:8180/`, in case you ever need to look inside Keycloak directly. Change both before this runs anywhere other than your own machine; see [DEPLOYMENT.md](DEPLOYMENT.md).)
+Both passwords are random, generated for this install by Step 3's `ensure_local_secrets` script (or on first app startup if you skipped that). Find them in `backend/.env.local`: `LOCAL_VIEWER_PASSWORD` (the `news` login) and `KEYCLOAK_BOOTSTRAP_USER_PASSWORD` (the `admin` login) — that file also shows up once in the app's startup log the first time each value is generated. The Keycloak master-realm admin console itself, at `http://localhost:8180/`, uses `admin` / the `KEYCLOAK_ADMIN_PASSWORD` value from that same file, in case you ever need to look inside Keycloak directly.
 
-**Adding a teammate:** the bootstrap only creates one user. For anyone else, open the Keycloak admin console (`admin`/`admin123`) → your realm → **Users** → **Add user** → set a password on the **Credentials** tab → assign the `admin` or `user` role on **Role mapping**.
+Want a specific password instead of a generated one? Set `LOCAL_VIEWER_PASSWORD`, `KEYCLOAK_BOOTSTRAP_USER_PASSWORD`, or `KEYCLOAK_ADMIN_PASSWORD`/`KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD` in `backend/.env` or `backend/.env.local` yourself before first startup — whatever you set always wins over auto-generation.
+
+**Adding a teammate:** the bootstrap only creates one user. For anyone else, open the Keycloak admin console (`admin` / the `KEYCLOAK_ADMIN_PASSWORD` from `backend/.env.local`) → your realm → **Users** → **Add user** → set a password on the **Credentials** tab → assign the `admin` or `user` role on **Role mapping**.
 
 **If bootstrap didn't run** (e.g. Keycloak was still starting up when the app container came up, and the wait timeout in `KEYCLOAK_BOOTSTRAP_WAIT_SECONDS` was reached): check the app logs for `Keycloak bootstrap failed` or `Keycloak bootstrap skipped`, then just restart the app once Keycloak is confirmed up:
 
@@ -88,7 +98,7 @@ docker compose restart ainewsletter
 ## Step 5 — Generate your first newsletter
 
 1. Open `http://127.0.0.1:8000/News.html`.
-2. Log in with `admin` / `admin123` (or `news` / `news123` if you only want to look around).
+2. Log in with `admin` (or `news` if you only want to look around) and the matching password from `backend/.env.local` — see Step 4.
 3. Click **إنشاء النشرة** / **Generate Newsletter**. A progress timeline appears and moves through fetching sources → filtering and memory checks → selection and Arabic rewrite → saving → courses and films.
 4. Once it finishes, review the cards, choose 4 or 6 news items, edit or replace weak cards, and switch the lower section between courses and films as needed.
 5. Click **حفظ ونشر** when the result is final. A new version is saved and
@@ -107,13 +117,14 @@ A successful run updates a few files, if you ever need to check what actually ha
 
 ## Running without Docker (only if you need to)
 
-Most people should stop at Step 5. Use this path only if you need the Python process itself running directly on your machine — for example, attaching a debugger during backend development. It's more moving parts: PostgreSQL and Qdrant aren't reachable from outside Docker by default in this project (only SearXNG on `8080` and Keycloak on `8180` are published to `localhost`), so you still run those four supporting services in Docker and only pull the app itself out.
+Most people should stop at Step 5. Use this path only if you need the Python process itself running directly on your machine — for example, attaching a debugger during backend development. It's more moving parts: PostgreSQL, Qdrant, and SearXNG aren't reachable from outside Docker by default in this project (only the app on `8000` and Keycloak's admin console on `8180` are published to `127.0.0.1`), so you still run those four supporting services in Docker and only pull the app itself out.
 
-1. Start everything except the app:
+1. Temporarily republish the two ports this flow needs from the host, since they're otherwise only reachable inside the Docker network: add `"127.0.0.1:6333:6333"` under `ports:` in `docker/compose/qdrant.yml`, and `"127.0.0.1:8080:8080"` under `ports:` in `docker/compose/searxng.yml`.
+2. Start everything except the app:
    ```powershell
    docker compose up -d postgres keycloak searxng qdrant
    ```
-2. Open `backend/.env` and point it at `localhost` instead of the Docker service names, since the app is no longer inside the Docker network:
+3. Open `backend/.env` and point it at `localhost` instead of the Docker service names, since the app is no longer inside the Docker network:
    ```text
    HOST=127.0.0.1
    AI_UPDATES_SEARXNG_URL=http://localhost:8080
@@ -121,8 +132,8 @@ Most people should stop at Step 5. Use this path only if you need the Python pro
    KEYCLOAK_SERVER_URL=http://localhost:8180/
    POSTGRES_HOST=127.0.0.1
    ```
-   PostgreSQL still won't be reachable at `localhost` unless you add `ports: ["5432:5432"]` to the `postgres` service in `docker/compose/postgres.yml`, or point `POSTGRES_HOST` at a PostgreSQL instance you're running some other way.
-3. Set up Python:
+   PostgreSQL still won't be reachable at `localhost` unless you add `ports: ["127.0.0.1:5432:5432"]` to the `postgres` service in `docker/compose/postgres.yml`, or point `POSTGRES_HOST` at a PostgreSQL instance you're running some other way.
+4. Set up Python:
    ```powershell
    python -m venv venv
    venv\Scripts\activate
@@ -130,12 +141,12 @@ Most people should stop at Step 5. Use this path only if you need the Python pro
    python -m playwright install chromium
    ```
    That last line installs the browser engine PDF export needs — the Docker image already has it built in, which is why this step only exists here.
-4. Nothing to do for Keycloak — it bootstraps itself the same way described in Step 4 as soon as the app starts and can reach `http://localhost:8180/`.
-5. Start the server:
+5. Nothing to do for Keycloak — it bootstraps itself the same way described in Step 4 as soon as the app starts and can reach `http://localhost:8180/`.
+6. Start the server:
    ```powershell
    python -m backend.server.http_server
    ```
-6. Open `http://127.0.0.1:8000/News.html` — same as the Docker path from here.
+7. Open `http://127.0.0.1:8000/News.html` — same as the Docker path from here.
 
 To restart a manually-run backend on Windows without doing all that by hand each time:
 
@@ -153,7 +164,7 @@ netstat -ano | findstr :8000
 taskkill /PID <PID> /F
 ```
 
-**Generate does nothing, and there are no admin controls.** You're logged in as `news`, not an admin account. Log in with `admin` / `admin123` (Step 4), or open the Keycloak admin console and assign the `admin` role to the account you're using.
+**Generate does nothing, and there are no admin controls.** You're logged in as `news`, not an admin account. Log in with `admin` and its password from `backend/.env.local` (Step 4), or open the Keycloak admin console and assign the `admin` role to the account you're using.
 
 **Keycloak login fails even though the admin console loads fine in your browser.** `KEYCLOAK_SERVER_URL` in `backend/.env` is probably set to `http://localhost:8180/`. That works from your browser, but not from inside the `ainewsletter` container — there, `localhost` means the container itself, not your machine. It needs to be `http://keycloak:8080/`. Fix it, then `docker compose restart ainewsletter`.
 

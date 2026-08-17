@@ -958,11 +958,36 @@ function findVisibleIndex(section, id){
         els.editLevelField.style.display = showLevel ? '' : 'none';
         if(showLevel && els.editLevel){
           const key = normalizeLevelName(item.level || item.course_level || item.difficulty || '') || 'beginner';
-          els.editLevel.value = key.charAt(0).toUpperCase() + key.slice(1);
+          setEditLevelValue(key.charAt(0).toUpperCase() + key.slice(1));
+          // ensure edit level UI is visible and up-to-date
         }
       }
       updateLogoSizeValue(item.logo_size || item.logoSize || 30);
       els.editOverlay.classList.add('show');
+    }
+    function editLevelLabel(value){
+      const key = normalizeLevelName(value || '') || 'beginner';
+      if(key === 'advanced') return state.language === 'ar' ? 'متقدم' : 'Advanced';
+      if(key === 'intermediate') return state.language === 'ar' ? 'متوسط' : 'Intermediate';
+      return state.language === 'ar' ? 'مبتدئ' : 'Beginner';
+    }
+    function setEditLevelValue(value){
+      if(els.editLevel) els.editLevel.value = value;
+      if(els.editLevelText) els.editLevelText.textContent = editLevelLabel(value);
+      document.querySelectorAll('[data-edit-level]').forEach(button=>{
+        const active = button.dataset.editLevel === value;
+        button.classList.toggle('active', active);
+      });
+    }
+    function closeEditLevelMenu(){
+      els.editLevelFilter?.classList.remove('open');
+      els.editLevelToggle?.setAttribute('aria-expanded','false');
+    }
+    function toggleEditLevelMenu(event){
+      event?.stopPropagation();
+      const open = !els.editLevelFilter?.classList.contains('open');
+      els.editLevelFilter?.classList.toggle('open', open);
+      els.editLevelToggle?.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
     function openAi(section,id){ const pool = getSectionList(section); const item = pool.find(entry=>entry.id===id); if(!item) return; state.aiTarget={section,id}; els.aiModalTitle.textContent = section==='items' ? t('aiNews') : t('aiContent'); els.aiInstruction.value=t('aiDefaultInstruction'); els.aiOverlay.classList.add('show'); }
     async function saveAi(event){

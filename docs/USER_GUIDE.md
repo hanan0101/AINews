@@ -17,7 +17,9 @@ There are two types of users:
 - A user with the `admin` role can generate, edit, save, and publish the
   newsletter, as well as manage versions.
 - A user with the `user` role can view the published version and other versions
-  available to them, without access to generation or editing tools.
+  available to them, without access to generation or editing tools. After
+  login, the latest published newsletter opens directly without showing the
+  administrator generation screen.
 
 The `admin / admin123` and `news / news123` accounts are for local development
 only and may be different in the deployment environment. Do not use these
@@ -32,6 +34,9 @@ credentials in a shared or production environment.
    filtering and duplicate-memory checks, performs model selection and
    rewriting, saves the result, and then processes the course and movie
    content.
+   Select **Cancel** when you need to stop the run. Cancellation preserves the
+   previous newsletter and stops at the next safe boundary after any external
+   request already in progress.
 4. If generation fails, review the interface message and the run log before
    trying again. A retry may submit new model requests.
 
@@ -58,10 +63,15 @@ On the newsletter page, the editor can:
 - Switch the lower section between courses and movies.
 - Navigate between the alternatives saved for a card.
 - Edit card fields using the edit button, then select **Save Changes**.
+- Change the level of a news or course card from the cream level control in the
+  edit window.
 - Give the card-specific AI instructions using the `AI` tool.
-- Delete an item and replace it with a suitable alternative when one is
-  available.
+- Delete a news, course, or film card after confirming the action in the cream
+  confirmation window. Deletion removes the card; it does not silently replace
+  it.
 - Select **Fetch New Item** when no saved alternative is available.
+- Cancel a targeted single-card search for news, courses, or films from its
+  progress panel.
 - Reorder cards by dragging them within the interface.
 - Undo the most recent change using **Undo**.
 - Edit the page title, footer text, issue number, and displayed month and year
@@ -74,8 +84,9 @@ necessarily trigger a new fetch.
 ## Preview and Download
 
 - **Preview** opens a clean preview of the current newsletter.
-- **Download** generates a PDF from the currently displayed state and downloads
-  it through the browser.
+- **Download** opens a small format menu. Choose **PDF** for the normal
+  print/share copy, or **PowerPoint (.pptx)** for a page that matches the PDF
+  design while keeping newsletter text, source links, and logos editable.
 - Before downloading, select the required news count, level, and lower-section
   content type because the export uses the current view.
 
@@ -116,8 +127,9 @@ on the version type and the user's permissions, it supports:
 - Converting an editable version to PDF through the editing workflow.
 - Hiding a version from viewing users or making it visible.
 - Editing the version name or date.
-- Deleting a version. This is an administrative action and cannot be undone
-  from the interface.
+- Deleting a version after confirming it in the same cream dialog style used
+  by the editor. This is an administrative action and cannot be undone from
+  the interface.
 
 An imported PDF version opens as a file and cannot be restored as editable JSON
 cards.
@@ -137,7 +149,7 @@ cards.
   not have the `admin` role.
 - If too few results are returned, check Gemini, Exa, SearXNG, and the internet
   connection, then review `backend/logs/ai_updates_run.jsonl`.
-- If PDF generation fails outside Docker, run
+- If PDF or PowerPoint generation fails outside Docker, run
   `python -m playwright install chromium`, then restart the server.
 - For operational and backup details, see
   [MAINTENANCE.md](MAINTENANCE.md).

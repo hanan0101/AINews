@@ -140,6 +140,10 @@ const API_BASE = "/api";
         settingsTitle: "إعدادات النشرة",
         saveSettings: "حفظ الإعدادات",
         downloadPdf: "تنزيل PDF",
+        downloadPptx: "PowerPoint (.pptx)",
+        downloadPdfHelp: "نسخة عالية الجودة للطباعة والمشاركة",
+        downloadPptxHelp: "شرائح عالية الجودة قابلة للتعديل",
+        pptxError: "حدث خطأ أثناء تحميل PowerPoint",
         close: "إغلاق",
         footerText: "تطوير : إدارة المرصد الثقافي\t\t|\t\tوكالة الاستراتيجيات والسياسات الثقافية\t\t|\t\tمايو 2026 م\t\t|\t\tالإصدار السابع",
         tipChooseTitle: "يمكنك اختيار ما سيظهر في القسم السفلي",
@@ -290,6 +294,10 @@ const API_BASE = "/api";
         settingsTitle: "Newsletter Settings",
         saveSettings: "Save Settings",
         downloadPdf: "Download PDF",
+        downloadPptx: "PowerPoint (.pptx)",
+        downloadPdfHelp: "High-quality copy for printing and sharing",
+        downloadPptxHelp: "High-quality, editable slides",
+        pptxError: "An error occurred while downloading PowerPoint",
         close: "Close",
         footerText: "Cultural Observatory\t|\tMay\t|\tSixteenth Edition",
         tipChooseTitle: "Choose what appears in the lower section",
@@ -347,6 +355,8 @@ const API_BASE = "/api";
       newsGrid: document.getElementById('newsGrid'),
       levelFilter: document.getElementById('levelFilter'),
       newsCountFilter: document.getElementById('newsCountFilter'),
+      downloadExport: document.getElementById('downloadExport'),
+      downloadButton: document.querySelector('[data-action="download"]'),
       featureTitle: document.getElementById('featureSectionTitle'),
       featureList: document.getElementById('featureList'),
       page: document.getElementById('newsletterPage'),
@@ -383,6 +393,9 @@ const API_BASE = "/api";
       editSource: document.getElementById('editSource'),
       editLevelField: document.getElementById('editLevelField'),
       editLevel: document.getElementById('editLevel'),
+      editLevelFilter: document.getElementById('editLevelFilter'),
+      editLevelToggle: document.getElementById('editLevelToggle'),
+      editLevelText: document.getElementById('editLevelText'),
       editLogo: document.getElementById('editLogo'),
       editLogoSize: document.getElementById('editLogoSize'),
       editLogoSizeValue: document.getElementById('editLogoSizeValue'),
@@ -406,7 +419,7 @@ const API_BASE = "/api";
       const method = String(options.method || 'GET').toUpperCase();
       const target = String(url || '');
       if(method === 'GET') return true;
-      if(method === 'POST' && (target.includes('/api/export-pdf') || target.includes('/auth/logout'))) return true;
+      if(method === 'POST' && (target.includes('/api/export-pdf') || target.includes('/api/export-pptx') || target.includes('/auth/logout'))) return true;
       return false;
     }
     async function request(url, options={}){

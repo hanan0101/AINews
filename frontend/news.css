@@ -67,6 +67,28 @@
     .version-nav-btn svg{width:14px;height:14px;stroke:#3b302a}
     .version-nav-btn::after{display:none}
     .save-version-btn svg{width:16px;height:16px}
+    .download-export{position:relative;display:inline-flex}
+    .download-format-menu{
+      position:absolute;top:calc(100% + 9px);left:50%;z-index:65;width:278px;padding:7px;
+      display:grid;gap:5px;direction:rtl;border:1px solid var(--ui-border);border-radius:17px;
+      background:var(--hint-surface);box-shadow:0 18px 42px rgba(64,40,24,.16);
+      opacity:0;visibility:hidden;pointer-events:none;transform:translateX(-50%) translateY(-5px);
+      transition:opacity .16s ease,transform .16s ease,visibility .16s ease;
+    }
+    .download-export.open .download-format-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+    .download-export.open .toolbar-btn::after{display:none}
+    .download-format-menu button{
+      width:100%;padding:11px 12px;border:1px solid transparent;border-radius:12px;background:transparent;
+      color:var(--guide-text);cursor:pointer;text-align:right;display:grid;gap:3px;font:inherit;
+      transition:background .15s ease,border-color .15s ease,transform .15s ease;
+    }
+    .download-format-menu button:hover,.download-format-menu button:focus-visible{
+      background:rgba(255,255,255,.32);border-color:rgba(116,82,58,.13);transform:translateY(-1px);outline:none;
+    }
+    .download-format-menu strong{font-size:13px;font-weight:700}
+    .download-format-menu span{font-size:11px;line-height:1.5;color:var(--muted)}
+    html[dir="ltr"] .download-format-menu{direction:ltr}
+    html[dir="ltr"] .download-format-menu button{text-align:left}
 
     html[dir="ltr"] .brand,html[dir="ltr"] .top-actions{direction:ltr}
     html[dir="ltr"] .splash-bar-wrap{text-align:left}
@@ -286,13 +308,14 @@
     .level-filter-toggle:hover{background:transparent;color:#201915;opacity:.72;transform:translateY(-1px)}
     .news-count-filter .level-filter-toggle{min-width:82px}
     .level-filter-toggle svg{width:14px;height:14px;flex:0 0 14px}
-    .level-filter-menu{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-4px);width:184px;padding:6px 12px;border-radius:14px;border:1px solid var(--ui-border);background:rgba(248,241,234,.96);box-shadow:0 18px 42px rgba(64,40,24,.14);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:.16s ease}
+    .level-filter-menu{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-4px);width:184px;padding:6px 12px;border-radius:14px;border:1px solid var(--ui-border);background:rgba(234,217,199,.75);box-shadow:0 18px 42px rgba(64,40,24,.14);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:.16s ease}
     .news-count-filter .level-filter-menu{width:150px}
     .level-filter.open .level-filter-menu,.news-count-filter.open .level-filter-menu{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
     .level-filter-option{width:100%;height:44px;border:0;border-bottom:1px solid rgba(var(--line-rgb),.14);background:transparent;color:var(--guide-text);display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-size:14px;font-weight:500;text-align:right}
     .level-filter-option:last-child{border-bottom:0}
     .level-filter-check{width:17px;height:17px;border-radius:4px;border:1px solid rgba(120,80,40,.28);display:grid;place-items:center;background:rgba(255,255,255,.24);color:#fff;font-size:12px;line-height:1}
     .level-filter-option.active .level-filter-check{background:#C73D39;border-color:#C73D39}
+    .level-filter-option.active{background:rgba(142,70,64,.14) !important;color:#8e4640 !important;font-weight:700 !important;border-radius:8px !important}
     .feature-list{display:grid;gap:18px;position:relative;z-index:1;min-height:0;align-content:start}
     .feature-list.course-mode{min-height:420px;gap:22px}
     .page.course-layout .feature-list.course-mode{padding-bottom:0}
@@ -550,7 +573,70 @@
     .field{display:grid;gap:8px;margin-bottom:12px}
     .field label{font-size:14px;font-weight:700}
     .field input,.field textarea,.field select{border:1px solid var(--ui-border);background:var(--ui-surface-strong);color:var(--guide-text);border-radius:14px;padding:12px 14px;outline:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-    .field select{width:100%;cursor:pointer;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#6d5140 50%),linear-gradient(135deg,#6d5140 50%,transparent 50%);background-position:calc(18px) 50%,calc(13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+    .native-level-select-hidden{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+    .edit-level-filter{width:100%;position:relative;z-index:6;direction:rtl}
+    .edit-level-toggle{width:100%;height:48px;border:1px solid var(--ui-border);border-radius:14px;background:var(--ui-surface-strong);color:var(--guide-text);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;cursor:pointer;text-align:right;box-shadow:inset 0 1px 0 rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:inherit}
+    .edit-level-toggle:hover,.edit-level-filter.open .edit-level-toggle{border-color:rgba(var(--line-rgb),.34);background:var(--ui-surface-hover)}
+    .edit-level-toggle svg{width:18px;height:18px;flex:0 0 18px;color:#3b302a;transition:transform .16s ease}
+    .edit-level-filter.open .edit-level-toggle svg{transform:rotate(180deg)}
+    .edit-level-menu{position:absolute;top:calc(100% + 8px);left:0;right:0;padding:6px 12px;border-radius:14px;border:1px solid var(--ui-border);background:rgba(248,241,234,.96);box-shadow:0 18px 42px rgba(64,40,24,.14);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;pointer-events:none;transform:translateY(-4px);transition:.16s ease}
+    .edit-level-filter.open .edit-level-menu{opacity:1;pointer-events:auto;transform:translateY(0)}
+    .edit-level-option{width:100%;height:44px;border:0;border-bottom:1px solid rgba(var(--line-rgb),.14);background:transparent;color:var(--guide-text);display:flex;align-items:center;justify-content:flex-end;gap:12px;cursor:pointer;font-size:14px;font-weight:500;text-align:right;padding:0 8px}
+      /* Ensure edit overlay level options do not show old white boxed buttons */
+      .edit-level-filter .level-filter-check,
+      #editOverlay .level-filter-check{display:none!important}
+      .edit-level-filter .edit-level-option{background:transparent;border:0}
+    .edit-level-option:last-child{border-bottom:0}
+    .edit-level-option.active{color:#201915;font-weight:700}
+    /* Hide the small white checkbox/check visuals inside edit dropdowns */
+    .edit-level-filter .level-filter-check,
+    #editOverlay .level-filter-check{display:none!important}
+    /* --- User request: remove all white boxes --- */
+    /* Make form fields transparent (no white boxed background) */
+    .field input, .field textarea, .field select{
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+      border-radius:6px !important;
+      padding:10px 12px !important;
+    }
+    /* Hide the small check boxes used in filter options */
+    .level-filter-check{display:none!important}
+    /* Make filter option buttons plain (no white pills) */
+    .level-filter-option, .edit-level-option{
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+    }
+    /* Make modal form action buttons neutral (no solid white background) */
+    .modal .btn, .icon-btn, .btn.primary{
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+    }
+    /* Force-remove any remaining white boxed UI for levels */
+    /* Large visible selection (the 'مبتدئ' pill) */
+    .edit-level-toggle, .level-filter-toggle{
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+      color:inherit !important;
+      padding:0 6px !important;
+      height:auto !important;
+    }
+    /* The small option buttons under the toggle */
+    .level-filter-option, .edit-level-option{
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+      color:inherit !important;
+      padding:6px 8px !important;
+      border-radius:6px !important;
+    }
+    /* Remove any visible checkboxes or check backgrounds */
+    .level-filter-check, .level-filter-option .level-filter-check, .edit-level-option .level-filter-check{display:none!important}
+    /* If any inputs use ui-surface backgrounds, make them neutral */
+    .field input[placeholder], .field input, .field textarea, .field select{background:transparent !important}
     .field textarea{min-height:110px;resize:vertical}
     .field textarea.title-textarea{min-height:64px}
     .modal-actions{display:flex;gap:10px;justify-content:flex-start}
@@ -558,9 +644,51 @@
     .btn{border:1px solid var(--ui-border);background:var(--ui-surface);color:var(--guide-text);border-radius:14px;padding:10px 16px;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
     .btn:hover{background:var(--ui-surface-hover)}
     .btn.primary{background:var(--ui-surface-strong)}
+    /* Strong overrides to remove any remaining white boxes for level UI */
+    #editOverlay .level-filter-option, #editOverlay .edit-level-option,
+    .modal #editLevelField .level-filter-option, .modal .edit-level-option,
+    #editOverlay .edit-level-toggle, .modal .edit-level-toggle,
+    #editOverlay .level-filter-toggle, .modal .level-filter-toggle{
+      background:transparent !important;
+      background-color:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+      color:inherit !important;
+      padding:4px 6px !important;
+    }
+    /* hide any check markers */
+    #editOverlay .level-filter-check, #editOverlay .edit-level-option .level-filter-check,
+    .modal .level-filter-check{display:none !important}
+    /* ensure select-like display (the 'مبتدئ' pill) is transparent */
+    #editOverlay .edit-level-toggle span, #editOverlay .level-filter-toggle span{background:transparent !important}
+
+  /* Edit-overlay level control: full-width like the other fields, shows the current level, arrow on the right */
+  #editOverlay .edit-level-filter{position:relative !important;display:block !important}
+  #editOverlay .edit-level-toggle{
+    display:flex !important;
+    width:100% !important;
+    min-width:0 !important;
+    height:48px !important;
+    padding:0 14px !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    background:var(--ui-surface-strong) !important;
+    border:1px solid var(--ui-border) !important;
+    border-radius:14px !important;
+    box-shadow:none !important;
+    color:#3b302a !important;
+  }
+  #editOverlay .edit-level-toggle span{display:block !important;color:var(--guide-text) !important}
+  #editOverlay .edit-level-toggle svg{width:18px !important;height:18px !important;margin:0 !important;color:#3b302a !important;stroke-width:2px !important}
+  /* Custom rounded list — in normal flow (not floating), so opening it pushes the fields below down instead of covering them */
+  #editOverlay .edit-level-menu{position:static !important;width:100% !important;margin-top:8px !important;border-radius:14px !important;opacity:1 !important;transform:none !important;display:none !important;pointer-events:auto !important}
+  #editOverlay .edit-level-filter.open .edit-level-menu{display:block !important}
+  #editOverlay .edit-level-option{border-radius:8px !important;color:var(--guide-text) !important;justify-content:flex-start !important;text-align:right !important}
+  #editOverlay .edit-level-option.active{background:rgba(142,70,64,.14) !important;color:#8e4640 !important;font-weight:700 !important}
+  #editOverlay .level-filter-option{display:none !important;visibility:hidden !important;pointer-events:none !important}
 
     .preview-window{width:min(1120px,calc(100vw - 40px));max-height:calc(100vh - 40px);overflow:auto;background:rgba(238,223,208,.20);border:1px solid var(--ui-border);border-radius:24px;padding:18px;box-shadow:var(--ui-shadow);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-    .preview-toolbar{display:flex;gap:10px;justify-content:flex-start;position:sticky;top:0;background:rgba(238,223,208,.20);padding-bottom:14px;z-index:2;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .preview-toolbar{display:flex;gap:10px;justify-content:flex-start;position:sticky;top:0;background:transparent;padding-bottom:14px;z-index:2}
     .preview-window .page{
       width:var(--newsletter-width);
       max-width:var(--newsletter-width);

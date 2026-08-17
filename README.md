@@ -2,8 +2,9 @@
 
 An editorial platform for producing Arabic AI newsletters. It discovers recent
 AI updates, filters weak or duplicate results, uses an AI model for selection
-and rewriting, enriches cards with supporting content, and provides a browser
-interface for review, publishing, versioning, and PDF export.
+and rewriting, enriches cards with courses and films, and provides separate
+administrator and viewer experiences for review, publishing, versioning, and
+PDF/PowerPoint export.
 
 ## Features
 
@@ -12,14 +13,29 @@ interface for review, publishing, versioning, and PDF export.
 - Exact and semantic duplicate detection with Qdrant.
 - Editorial selection and rewriting with Gemini or OpenAI-compatible models.
 - Editable newsletter layouts with independent mode and level views.
-- Published-version separation from the administrator's working draft.
-- Version history, PDF import/export, authentication, and role-based access.
+- Manual card editing for news, courses, and films, including news/course level
+  changes.
+- Confirmed deletion of individual news, course, and film cards without
+  silently replacing the deleted content.
+- Saved-alternative navigation and targeted single-card generation for all
+  three content types.
+- Cooperative cancellation for full generation and single-card runs; a
+  cancelled run preserves the previous newsletter instead of saving a partial
+  result.
+- A unified cream editor UI for tools, hints, level controls, and confirmation
+  dialogs.
+- Published-version separation from the administrator's working draft; viewers
+  open the latest published newsletter directly.
+- Version history with confirmed deletion, duplicate-name protection, PDF
+  import/export, authentication, and role-based access.
+- One-click export of the current newsletter view as PDF or as a matching
+  PowerPoint page whose text, source links, and logos remain editable.
 
 ## Services
 
 | Service | Purpose |
 | --- | --- |
-| Application | HTTP API, editorial UI, generation pipeline, and PDF handling |
+| Application | HTTP API, editorial UI, generation pipeline, and PDF/PowerPoint handling |
 | PostgreSQL | Newsletter versions, course catalog, and persistent application data |
 | Keycloak | Authentication and administrator roles |
 | SearXNG | Web search and candidate discovery |
@@ -101,6 +117,7 @@ scripts/                        Diagnostics and maintenance utilities
 
 | Guide | Use |
 | --- | --- |
+| [Developer Handover (Arabic)](docs/DEVELOPER_HANDOVER.md) | Simplified overview for a new developer, with links to the full guides |
 | [Setup](docs/SETUP.md) | First installation and local startup |
 | [User Guide](docs/USER_GUIDE.md) | Current editor and viewer workflow |
 | [Docker Setup](docs/DOCKER_SETUP.md) | Docker-specific setup and troubleshooting |

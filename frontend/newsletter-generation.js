@@ -327,6 +327,13 @@ function formatStepElapsed(seconds){
           showPlainToast(state.language === 'ar' ? 'تم إلغاء العملية' : 'Generation cancelled');
           return;
         }
+        // Polling gave up without the backend ever reporting done (e.g. a
+        // stuck pipeline run). Treat this the same as an explicit failure
+        // instead of silently falling through to reveal whatever stale
+        // newsletter is already saved - that looked like "nothing happened".
+        if(!finalData){
+          throw new Error(state.language === 'ar' ? 'التوليد استغرق وقتًا طويلاً ولم يكتمل' : 'Generate timed out without finishing');
+        }
         // New-generate safety: the backend intentionally restores the previous
         // newsletter when a run fails or does not save enough fresh news. Do not
         // reveal that restored old version as if it were the new Generate result.
@@ -552,7 +559,21 @@ function formatStepElapsed(seconds){
       return data;
     }
     function initActions(){
-      document.querySelector('[data-action="download"]')?.addEventListener('click', exportCleanPdf);
+      els.downloadButton?.addEventListener('click', toggleDownloadMenu);
+      document.querySelectorAll('[data-download-format]').forEach(button=>button.addEventListener('click', ()=>{
+        const format = button.dataset.downloadFormat;
+        closeDownloadMenu();
+        if(format === 'pptx') exportCleanPptx();
+        else exportCleanPdf();
+      }));
+      document.addEventListener('click', event=>{
+        if(els.downloadExport && !els.downloadExport.contains(event.target)) closeDownloadMenu();
+        if(els.editLevelFilter && !els.editLevelFilter.contains(event.target)) closeEditLevelMenu();
+      });
+      document.addEventListener('keydown', event=>{
+        if(event.key === 'Escape') closeDownloadMenu();
+        if(event.key === 'Escape') closeEditLevelMenu();
+      });
       document.querySelector('[data-action="preview"]')?.addEventListener('click', openPreview);
       document.querySelector('[data-action="undo"]')?.addEventListener('click', undoAction);
       document.querySelector('[data-action="redo"]')?.addEventListener('click', redoAction);
@@ -560,6 +581,14 @@ function formatStepElapsed(seconds){
       document.querySelector('[data-action="pin-page"]')?.addEventListener('click', togglePinnedPage);
       document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click', ()=>closeOverlay(btn.dataset.close)));
       document.querySelectorAll('[data-feature-mode]').forEach(btn=>btn.addEventListener('click', ()=>switchFeature(btn.dataset.featureMode)));
+      els.editLevelToggle?.addEventListener('click', toggleEditLevelMenu);
+      document.querySelectorAll('[data-edit-level]').forEach(button=>button.addEventListener('click', ()=>{
+        // When an admin clicks a level option in the edit modal, set the
+        // select value and update visuals without relying on the old boxed
+        // white buttons. Then close the menu.
+        setEditLevelValue(button.dataset.editLevel);
+        closeEditLevelMenu();
+      }));
       els.alternativeFetchBtn?.addEventListener('click', async ()=>{
         const target = state.alternativeTarget;
         const resolve = state.alternativeResolve;
@@ -592,6 +621,8 @@ function formatStepElapsed(seconds){
       els.aiOverlay?.addEventListener('click', e=>{ if(e.target===els.aiOverlay) closeOverlay('ai');});
       els.alternativeOverlay?.addEventListener('click', e=>{ if(e.target===els.alternativeOverlay) closeOverlay('alternative');});
       els.deleteConfirmOverlay?.addEventListener('click', e=>{ if(e.target===els.deleteConfirmOverlay) closeOverlay('deleteConfirm');});
+
+      
       els.settingsOverlay?.addEventListener('click', e=>{ if(e.target===els.settingsOverlay) closeOverlay('settings');});
       els.aiForm?.addEventListener('submit', saveAi);
     }

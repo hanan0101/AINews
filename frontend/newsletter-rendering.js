@@ -473,7 +473,7 @@ function levelMarkup(level=''){
       const manualNews = data === state && Array.isArray(state.newsViewOverride) ? state.newsViewOverride : null;
       const manualCourses = data === state && Array.isArray(state.coursesViewOverride) ? state.coursesViewOverride : null;
       return {
-        news: manualNews && manualNews.length ? manualNews.slice(0,count) : (view.news && view.news.length ? view.news.slice(0,count) : fallbackNews.slice(0,count)),
+        news: manualNews && manualNews.length ? fillNewsToCount(manualNews, data, count) : (view.news && view.news.length ? view.news.slice(0,count) : fallbackNews.slice(0,count)),
         courses: manualCourses && manualCourses.length ? manualCourses.slice(0,2) : (view.courses && view.courses.length ? view.courses : (data.courses || []).slice(0,2))
       };
     }
@@ -536,7 +536,7 @@ function levelMarkup(level=''){
       renderNewsletter(state, {page: els.page});
       renderFloatingProgress();
       bindSelection();
-      bindDragAndDrop();
+      if(state.isAdmin) bindDragAndDrop();
       bindLevelFilter();
       bindNewsCountFilter();
       if(state.isAdmin) bindTips();
@@ -556,6 +556,7 @@ function levelMarkup(level=''){
           event.stopPropagation();
           state.levelFilterOpen = !state.levelFilterOpen;
           state.newsCountFilterOpen = false;
+          if(state.levelFilterOpen) showTip(null);
           render();
         };
       }
@@ -596,6 +597,7 @@ function levelMarkup(level=''){
           event.stopPropagation();
           state.newsCountFilterOpen = !state.newsCountFilterOpen;
           state.levelFilterOpen = false;
+          if(state.newsCountFilterOpen) showTip(null);
           render();
         };
       }

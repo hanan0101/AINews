@@ -123,6 +123,23 @@ secrets, set `AUTH_COOKIE_SECURE=1` behind HTTPS, and align
 `KEYCLOAK_BOOTSTRAP_ADMIN_USER` / `KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD` with the
 Keycloak service credentials.
 
+## Login session lifetime
+
+The checked configuration keeps users signed in for about one year by default.
+Browsers and Keycloak do not provide a reliable literal "never expires" session,
+so the app uses long-lived cookies and matching Keycloak session lifetimes:
+
+- `AUTH_SESSION_MAX_AGE_SECONDS`: app cookie lifetime. Default: `31536000`.
+- `KEYCLOAK_ACCESS_TOKEN_LIFESPAN_SECONDS`: Keycloak access token lifetime.
+  Default: `31536000`.
+- `KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT_SECONDS`: Keycloak idle session timeout.
+  Default: `31536000`.
+- `KEYCLOAK_SSO_SESSION_MAX_LIFESPAN_SECONDS`: Keycloak absolute session
+  lifetime. Default: `31536000`.
+
+The session can still end if the user logs out, clears browser cookies, changes
+the auth secrets, or if a production identity provider enforces a shorter policy.
+
 `SQLITE_VERSIONS_PATH` is not part of normal runtime. It is read only by the
 one-time `backend/storage/manage_versions/migrate_versions_to_postgres.py`
 migration script.

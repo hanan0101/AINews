@@ -1,11 +1,13 @@
 # SearXNG: self-hosted metasearch used by discovery.
 # Search behavior itself comes from the upstream image; the app reaches it
 # through AI_UPDATES_SEARXNG_URL=http://searxng:8080.
+# No host ports: only the ainewsletter container needs to reach SearXNG, over
+# the internal newsletter_network. If you need to open SearXNG's own search
+# UI directly from this machine (e.g. debugging), add "127.0.0.1:8080:8080"
+# back temporarily.
 services:
   searxng:
     image: searxng/searxng:latest
-    ports:
-      - "8080:8080"
     volumes:
       - ../../searxng:/etc/searxng
     logging:

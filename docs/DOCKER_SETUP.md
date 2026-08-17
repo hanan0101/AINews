@@ -39,9 +39,14 @@ docker compose up -d --force-recreate ainewsletter
 ```
 
 `backend/.env` is attached to the `ainewsletter` service only. The Keycloak
-master admin values are currently defined directly in
-`docker/compose/keycloak.yml`; changing them in `backend/.env` does not change
-the Keycloak container.
+container reads its master admin password (`KEYCLOAK_ADMIN_PASSWORD`) from
+`backend/.env.local` instead — see `docker/compose/keycloak.yml`. Editing
+`backend/.env` does not change the Keycloak container; edit `backend/.env.local`
+and recreate the `keycloak` service instead:
+
+```powershell
+docker compose up -d --force-recreate keycloak
+```
 
 Rebuild when application dependencies or the root `Dockerfile` change:
 
