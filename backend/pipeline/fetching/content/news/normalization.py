@@ -336,18 +336,6 @@ def normalize_candidate(raw: dict, *, query: str, bucket: str, source: str, sing
     )[:2200]
     if not title or not url:
         return None
-    url_reject_reason = url_safety_reject_reason(url)
-    if url_reject_reason:
-        log_event("security.link_rejected", url=url, reason=url_reject_reason, source=source)
-        return None
-    content, injection_matches = neutralize_injection_spans(content)
-    for match in injection_matches:
-        log_event(
-            "security.injection_neutralized",
-            url=url,
-            matched_pattern=match["pattern"],
-            span_length=match["span_length"],
-        )
     if not query_site_domain_matches_url(query, url):
         return None
     domain = source_domain(url)

@@ -145,10 +145,6 @@ def exa_recent_date_from_sitemap(url: str, *, timeout: int = EXA_RECENT_PAGE_TIM
 
 
 def exa_recent_verify_date_details(url: str, timeout: int = EXA_RECENT_PAGE_TIMEOUT):
-    url_reject_reason = url_safety_reject_reason(url)
-    if url_reject_reason:
-        log_event("security.link_rejected", url=url, reason=url_reject_reason, source="exa")
-        return None, "", f"url_blocked:{url_reject_reason}", url
     try:
         response = requests.get(
             url,

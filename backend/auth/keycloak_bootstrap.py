@@ -26,41 +26,17 @@ from backend.auth.authentication import (
     KEYCLOAK_CLIENT_SECRET,
     KEYCLOAK_REALM,
     KEYCLOAK_SERVER_URL,
-    _generate_password,
-    _persisted_local_value,
-    _persisted_shared_password,
-    _reject_known_default_password,
 )
 from backend.utils.debug_logging import trace
 
 BOOTSTRAP_ADMIN_URL = os.getenv("KEYCLOAK_ADMIN_URL", KEYCLOAK_SERVER_URL).strip().rstrip("/")
 BOOTSTRAP_ADMIN_USERNAME = os.getenv("KEYCLOAK_BOOTSTRAP_ADMIN_USER", "admin").strip()
-# Must equal KEYCLOAK_ADMIN_PASSWORD in docker/compose/keycloak.yml - that's
-# the Keycloak container's own master-realm admin password. The Keycloak
-# container gets it directly from backend/.env.local via Compose's env_file
-# (it has no idea backend/auth/authentication.py or this module exist);
-# this app process gets the same value under the KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD
-# name so it can log in as that account. _persisted_shared_password reuses
-# whichever of the two names already has a value instead of generating two
-# independent ones that could drift out of sync; run
-# scripts/ensure_local_secrets.py once before the first `docker compose up`
-# so the value exists before the Keycloak container starts.
-BOOTSTRAP_ADMIN_PASSWORD = _persisted_shared_password(
-    "KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD", "KEYCLOAK_ADMIN_PASSWORD"
-)
-_reject_known_default_password("KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD", BOOTSTRAP_ADMIN_PASSWORD)
+BOOTSTRAP_ADMIN_PASSWORD = os.getenv("KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD", "admin123").strip()
 BOOTSTRAP_USER_USERNAME = os.getenv("KEYCLOAK_BOOTSTRAP_USER", "admin").strip()
-BOOTSTRAP_USER_PASSWORD = _persisted_local_value("KEYCLOAK_BOOTSTRAP_USER_PASSWORD", _generate_password)
-_reject_known_default_password("KEYCLOAK_BOOTSTRAP_USER_PASSWORD", BOOTSTRAP_USER_PASSWORD)
+BOOTSTRAP_USER_PASSWORD = os.getenv("KEYCLOAK_BOOTSTRAP_USER_PASSWORD", "admin123").strip()
 BOOTSTRAP_WAIT_SECONDS = int(os.getenv("KEYCLOAK_BOOTSTRAP_WAIT_SECONDS", "60") or "60")
 ACCESS_TOKEN_LIFESPAN_SECONDS = int(
-    os.getenv("KEYCLOAK_ACCESS_TOKEN_LIFESPAN_SECONDS", "31536000") or "31536000"
-)
-SSO_SESSION_IDLE_TIMEOUT_SECONDS = int(
-    os.getenv("KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT_SECONDS", "31536000") or "31536000"
-)
-SSO_SESSION_MAX_LIFESPAN_SECONDS = int(
-    os.getenv("KEYCLOAK_SSO_SESSION_MAX_LIFESPAN_SECONDS", "31536000") or "31536000"
+    os.getenv("KEYCLOAK_ACCESS_TOKEN_LIFESPAN_SECONDS", "7200") or "7200"
 )
 
 
@@ -115,29 +91,6 @@ def _master_admin_token() -> str:
         return json.loads(response.read()).get("access_token", "")
 
 
-# AUTH BLOCK: Re-apply KEYCLOAK_CLIENT_SECRET to the existing client on every
-# startup, not just first bootstrap. Reason: KEYCLOAK_CLIENT_SECRET no longer
-# has a fixed value (see authentication.py) - it can change if it's rotated,
-# or the first time an install moves off the old dev-local-secret default -
-# without this, the app would keep authenticating with a secret Keycloak no
-# longer recognizes, and admin login would silently break until someone
-# fixed it by hand in the Keycloak admin console.
-def _sync_client_secret(token: str) -> None:
-    status, clients = _request(
-        "GET", f"/admin/realms/{KEYCLOAK_REALM}/clients?clientId={KEYCLOAK_CLIENT_ID}", token
-    )
-    if status != 200 or not clients:
-        trace(f"Keycloak bootstrap: client secret sync skipped, client lookup returned {status}")
-        return
-    client = clients[0]
-    client["secret"] = KEYCLOAK_CLIENT_SECRET
-    update_status, _ = _request(
-        "PUT", f"/admin/realms/{KEYCLOAK_REALM}/clients/{client['id']}", token, client
-    )
-    if update_status not in (200, 204):
-        trace(f"Keycloak bootstrap: client secret sync returned {update_status}")
-
-
 def bootstrap_keycloak_if_missing() -> None:
     # This runs at server startup, before the HTTP server itself is listening -
     # any unhandled exception here (e.g. Keycloak's container process has
@@ -178,22 +131,17 @@ def _bootstrap_keycloak_if_missing_unsafe() -> None:
         status, realm = _request("GET", f"/admin/realms/{KEYCLOAK_REALM}", token)
         if status == 200:
             realm["accessTokenLifespan"] = ACCESS_TOKEN_LIFESPAN_SECONDS
-            realm["ssoSessionIdleTimeout"] = SSO_SESSION_IDLE_TIMEOUT_SECONDS
-            realm["ssoSessionMaxLifespan"] = SSO_SESSION_MAX_LIFESPAN_SECONDS
             update_status, _ = _request(
                 "PUT", f"/admin/realms/{KEYCLOAK_REALM}", token, realm
             )
             if update_status not in (200, 204):
                 trace(f"Keycloak bootstrap: token lifespan update returned {update_status}")
-        _sync_client_secret(token)
         return
 
     status, _ = _request("POST", "/admin/realms", token, {
         "realm": KEYCLOAK_REALM,
         "enabled": True,
         "accessTokenLifespan": ACCESS_TOKEN_LIFESPAN_SECONDS,
-        "ssoSessionIdleTimeout": SSO_SESSION_IDLE_TIMEOUT_SECONDS,
-        "ssoSessionMaxLifespan": SSO_SESSION_MAX_LIFESPAN_SECONDS,
     })
     if status not in (201, 409):
         trace(f"Keycloak bootstrap: realm creation returned {status}, continuing anyway")
@@ -216,9 +164,9 @@ def _bootstrap_keycloak_if_missing_unsafe() -> None:
             action["enabled"] = False
             _request("PUT", f"/admin/realms/{KEYCLOAK_REALM}/authentication/required-actions/{alias}", token, action)
 
-    # Whatever KEYCLOAK_CLIENT_SECRET currently resolves to (set explicitly,
-    # or auto-generated - see authentication.py) - the app authenticates with
-    # that exact value, so the client must be provisioned with it too.
+    # Whatever KEYCLOAK_CLIENT_SECRET currently resolves to (env var, or the
+    # dev-local-secret default in authentication.py) - the app authenticates
+    # with that exact value, so the client must be provisioned with it too.
     status, _ = _request("POST", f"/admin/realms/{KEYCLOAK_REALM}/clients", token, {
         "clientId": KEYCLOAK_CLIENT_ID,
         "enabled": True,
@@ -253,8 +201,7 @@ def _bootstrap_keycloak_if_missing_unsafe() -> None:
             )
         trace(
             f"Keycloak bootstrap: created realm '{KEYCLOAK_REALM}', client '{KEYCLOAK_CLIENT_ID}', "
-            f"and admin user '{BOOTSTRAP_USER_USERNAME}' "
-            "(password from KEYCLOAK_BOOTSTRAP_USER_PASSWORD - see backend/.env.local)"
+            f"and admin user '{BOOTSTRAP_USER_USERNAME}' (password from KEYCLOAK_BOOTSTRAP_USER_PASSWORD, default admin123)"
         )
     elif status != 409:
         trace(f"Keycloak bootstrap: user creation returned {status}, continuing anyway")

@@ -7,7 +7,6 @@ import base64
 import os
 import re
 import sys
-import threading
 from html import escape as html_escape
 from pathlib import Path
 
@@ -23,48 +22,6 @@ EDGE_EXECUTABLES = [
 ]
 PDF_EXPORT_PROFILE = os.getenv("PDF_EXPORT_PROFILE", "whatsapp").strip().lower() or "whatsapp"
 PDF_EXPORT_SCALE_OVERRIDE = os.getenv("PDF_EXPORT_SCALE", "").strip()
-# HARDEN BLOCK: /api/export-pdf and /api/export-pptx both render HTML the
-# client supplied directly (the live-rendered newsletter preview), not
-# HTML this server generated. javascript is disabled on every export page
-# below and every request is blocked unless it is a same-origin request or
-# an inline data:/blob: URI - the frontend already inlines every remote
-# image as a data: URI before sending HTML here (see fetchImageAsDataUrl in
-# frontend/pdf-export.js), so this should never affect a normal export; it
-# only stops a crafted payload from reaching an internal service or a slow
-# external host through <img>/<link>/<iframe> tags.
-PDF_EXPORT_HARD_TIMEOUT_SECONDS = max(10, int(os.getenv("PDF_EXPORT_HARD_TIMEOUT_SECONDS", "90") or "90"))
-
-
-def _export_page_route_handler(route, origin):
-    request_url = route.request.url
-    if request_url.startswith(("data:", "blob:", "about:")):
-        return route.continue_()
-    if origin and request_url.startswith(origin.rstrip("/") + "/"):
-        return route.continue_()
-    trace(f"PDF/PPTX export blocked a request to {request_url}")
-    return route.abort()
-
-
-# Server role: Apply the same containment to every Playwright page used for
-# PDF/PPTX export (main render, WhatsApp raster page, PPTX overlay page).
-def harden_export_page(page, origin):
-    page.route("**/*", lambda route: _export_page_route_handler(route, origin))
-
-
-# Server role: Force-close a browser that has run past the hard export
-# timeout, so a single stuck render can't hold a Chromium process forever.
-def start_export_watchdog(browser, seconds=PDF_EXPORT_HARD_TIMEOUT_SECONDS):
-    def _force_close():
-        try:
-            trace(f"PDF/PPTX export exceeded {seconds}s; force-closing the browser")
-            browser.close()
-        except Exception:
-            pass
-
-    timer = threading.Timer(seconds, _force_close)
-    timer.daemon = True
-    timer.start()
-    return timer
 
 # Performs the resolve frontend html file helper step.
 def resolve_frontend_html_file(source_file: str = "") -> Path:
@@ -469,7 +426,7 @@ def build_image_pdf_document(jpeg_base64: str, width: float, height: float, link
 
 
 # Server role: Render a compressed image-based PDF for mobile sharing.
-def render_whatsapp_image_pdf(browser, rendered_page, output_width: float, output_height: float, origin: str = "") -> bytes:
+def render_whatsapp_image_pdf(browser, rendered_page, output_width: float, output_height: float) -> bytes:
     """
     Rasterize the final newsletter page into a compressed JPEG, then wrap it in
     a single-page PDF. WhatsApp and iOS preview this shape more reliably than a
@@ -485,12 +442,7 @@ def render_whatsapp_image_pdf(browser, rendered_page, output_width: float, outpu
         jpeg_bytes = rendered_page.screenshot(type="jpeg", quality=quality, full_page=False)
         jpeg_base64 = base64.b64encode(jpeg_bytes).decode("ascii")
         image_html = build_image_pdf_document(jpeg_base64, output_width, output_height, links)
-        image_page = browser.new_page(
-            viewport={"width": int(output_width), "height": int(output_height)},
-            device_scale_factor=1,
-            java_script_enabled=False,
-        )
-        harden_export_page(image_page, origin)
+        image_page = browser.new_page(viewport={"width": int(output_width), "height": int(output_height)}, device_scale_factor=1)
         try:
             image_page.set_content(image_html, wait_until="load", timeout=15000)
             pdf_bytes = image_page.pdf(
@@ -550,14 +502,11 @@ def export_preview_pdf_bytes(preview_html: str, width: float, height: float, ori
                 browser = p.chromium.launch()
         except Exception as exc:
             raise RuntimeError("Chromium/Edge for Playwright could not start. Install Microsoft Edge or run: playwright install chromium") from exc
-        watchdog = start_export_watchdog(browser)
         try:
             page = browser.new_page(
                 viewport={"width": int(output_width), "height": int(output_height)},
                 device_scale_factor=pdf_device_scale_factor(pdf_profile, pdf_scale),
-                java_script_enabled=False,
             )
-            harden_export_page(page, origin)
             page.emulate_media(media="screen")
             page.set_content(document_html, wait_until="networkidle", timeout=30000)
             page.evaluate("""async () => {
@@ -570,7 +519,7 @@ def export_preview_pdf_bytes(preview_html: str, width: float, height: float, ori
               })));
             }""")
             if pdf_profile in WHATSAPP_PDF_PROFILES:
-                return render_whatsapp_image_pdf(browser, page, output_width, output_height, origin)
+                return render_whatsapp_image_pdf(browser, page, output_width, output_height)
             return page.pdf(
                 print_background=True,
                 prefer_css_page_size=True,
@@ -579,6 +528,5 @@ def export_preview_pdf_bytes(preview_html: str, width: float, height: float, ori
                 margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
             )
         finally:
-            watchdog.cancel()
             browser.close()
 

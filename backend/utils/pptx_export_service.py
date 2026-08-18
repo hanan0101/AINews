@@ -21,9 +21,7 @@ from backend.utils.pdf_export_service import (
     EDGE_EXECUTABLES,
     VENV_SITE_PACKAGES,
     build_preview_pdf_document,
-    harden_export_page,
     normalize_pdf_dimension,
-    start_export_watchdog,
 )
 
 
@@ -287,14 +285,11 @@ def _render_preview_layers(
                 "Chromium/Edge could not start for PowerPoint export. "
                 "Install Microsoft Edge or run: playwright install chromium"
             ) from exc
-        watchdog = start_export_watchdog(browser)
         try:
             page = browser.new_page(
                 viewport={"width": int(width), "height": int(height)},
                 device_scale_factor=2,
-                java_script_enabled=False,
             )
-            harden_export_page(page, origin)
             page.emulate_media(media="screen")
             page.set_content(document_html, wait_until="networkidle", timeout=30000)
             page.evaluate(
@@ -413,9 +408,7 @@ def _render_preview_layers(
             capture_page = browser.new_page(
                 viewport={"width": 1000, "height": 1000},
                 device_scale_factor=2,
-                java_script_enabled=False,
             )
-            harden_export_page(capture_page, origin)
             try:
                 for descriptor in image_descriptors:
                     capture_page.set_viewport_size(
@@ -486,7 +479,6 @@ object-fit:{html_escape(descriptor["objectFit"])};object-position:{html_escape(d
                 "images": image_layers,
             }
         finally:
-            watchdog.cancel()
             browser.close()
 
 

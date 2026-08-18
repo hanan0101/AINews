@@ -48,31 +48,6 @@ AI_UPDATES_BACKGROUND_TOPUP_DELAY_SECONDS = max(
 )
 NEWS_JSON_ONLY_MODE = os.getenv("NEWS_JSON_ONLY_MODE", "0").strip().lower() in {"1", "true", "yes", "on"}
 
-# COST BLOCK: Cap full generation/refresh runs regardless of who or what
-# triggers them (each run makes many paid Gemini calls). Single-card
-# refill/replace does not go through start_generator_background at all, so
-# it is unaffected by this cap. A background top-up is a system-scheduled
-# continuation of a run that already counted, not a new independently
-# triggered run, so it is exempt (see start_generator_background).
-AI_UPDATES_MAX_GENERATE_RUNS_PER_DAY = int(os.getenv("AI_UPDATES_MAX_GENERATE_RUNS_PER_DAY", "8") or "8")
-_GENERATE_RUN_BUDGET_WINDOW_SECONDS = 24 * 60 * 60
-_GENERATE_RUN_BUDGET_LOCK = threading.Lock()
-_recent_generate_run_times: list[float] = []
-
-
-def _generate_run_budget_allows_start() -> bool:
-    """Record this attempt and return whether it's within the rolling 24h cap."""
-    now = time.time()
-    cutoff = now - _GENERATE_RUN_BUDGET_WINDOW_SECONDS
-    with _GENERATE_RUN_BUDGET_LOCK:
-        while _recent_generate_run_times and _recent_generate_run_times[0] < cutoff:
-            _recent_generate_run_times.pop(0)
-        if len(_recent_generate_run_times) >= AI_UPDATES_MAX_GENERATE_RUNS_PER_DAY:
-            return False
-        _recent_generate_run_times.append(now)
-        return True
-
-
 GENERATOR_LOCK = threading.Lock()
 GENERATOR_CANCEL_EVENT = threading.Event()
 GENERATOR_STATE = {
@@ -575,23 +550,6 @@ def start_generator_background(section=None, reason="manual", force_refresh=Fals
         trace(f"Pipeline already running; request joined section={section or 'all'}")
         message = section_feedback(section) if section else "Fetching more content..."
         return {"success": True, "running": True, "message": message}
-    # COST BLOCK: reason == "background_topup" is a system-scheduled
-    # continuation of a run that already counted against the cap, not a new
-    # independently triggered one - see _generate_run_budget_allows_start.
-    if reason != "background_topup" and not _generate_run_budget_allows_start():
-        trace(
-            f"Generate run blocked by daily cap ({AI_UPDATES_MAX_GENERATE_RUNS_PER_DAY}/24h) "
-            f"section={section or 'all'} reason={reason}"
-        )
-        return {
-            "success": False,
-            "running": False,
-            "daily_limit_reached": True,
-            "message": (
-                f"Daily generation limit reached ({AI_UPDATES_MAX_GENERATE_RUNS_PER_DAY} runs/24h). "
-                "Try again later."
-            ),
-        }
     GENERATOR_CANCEL_EVENT.clear()
     GENERATOR_STATE["cancel_requested"] = False
 
